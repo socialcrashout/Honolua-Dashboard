@@ -49,17 +49,20 @@ export async function GET(request) {
 
   try {
     const tokenRes = await fetch("https://discord.com/api/oauth2/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: process.env.DISCORD_CLIENT_ID,
-        client_secret: process.env.DISCORD_CLIENT_SECRET,
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: `${process.env.PUBLIC_URL}/api/auth/discord/callback`,
-      }),
-    });
-    if (!tokenRes.ok) throw new Error("Discord token exchange failed");
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    client_id: process.env.DISCORD_CLIENT_ID,
+    client_secret: process.env.DISCORD_CLIENT_SECRET,
+    grant_type: "authorization_code",
+    code,
+    redirect_uri: `${process.env.PUBLIC_URL}/api/auth/discord/callback`,
+  }),
+});
+if (!tokenRes.ok) {
+  const errBody = await tokenRes.text().catch(() => "");
+  throw new Error(`Discord token exchange failed: ${tokenRes.status} ${errBody}`);
+}
     const tokenData = await tokenRes.json();
 
     const userRes = await fetch("https://discord.com/api/users/@me", {

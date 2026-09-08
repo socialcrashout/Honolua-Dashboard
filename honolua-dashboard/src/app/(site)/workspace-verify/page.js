@@ -384,7 +384,6 @@ export default function WorkspaceVerify() {
       <Suspense fallback={null}>
         <WorkspaceVerifyContent />
       </Suspense>
-      <Footer />
     </div>
   );
 }

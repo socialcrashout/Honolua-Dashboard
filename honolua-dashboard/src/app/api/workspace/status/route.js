@@ -17,9 +17,10 @@ export async function GET(request) {
     });
   }
 
-  // Reuse the same Bloxlink lookup as verify/status.js — if the user already
-  // went through /verify this session, this is already cached and skipped.
-  if (session.robloxLinked === undefined) {
+  // Re-check Bloxlink if we've never checked, OR if refresh was requested
+  // and the last check came back not-linked (don't waste a call re-verifying
+  // something we already confirmed true).
+  if (session.robloxLinked === undefined || (forceRefresh && !session.robloxLinked)) {
     try {
       const guildId = process.env.DISCORD_GUILD_ID;
       const bloxlinkRes = await fetch(
@@ -48,6 +49,8 @@ export async function GET(request) {
         session.robloxDisplayName = userData.displayName;
         session.robloxAvatarUrl = avatarData.data?.[0]?.imageUrl || null;
       } else {
+        const text = await bloxlinkRes.text().catch(() => "");
+        console.error("Bloxlink lookup failed:", bloxlinkRes.status, text);
         session.robloxLinked = false;
       }
     } catch (err) {

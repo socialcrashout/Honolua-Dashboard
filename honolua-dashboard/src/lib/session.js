@@ -3,6 +3,7 @@ import crypto from "crypto";
 
 const SECRET = process.env.SESSION_SECRET;
 const COOKIE_NAME = "honolua_session";
+const isSecureCookie = process.env.NODE_ENV === "production" && process.env.PUBLIC_URL?.startsWith("https://");
 
 function requireSecret() {
   if (!SECRET) {
@@ -43,7 +44,7 @@ export function setSessionCookie(response, session) {
   response.cookies.set(COOKIE_NAME, token, {
     path: "/",
     httpOnly: true,
-    secure: true,
+    secure: isSecureCookie,
     sameSite: "lax",
     maxAge: 1800,
   });

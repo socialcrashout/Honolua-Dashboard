@@ -1,0 +1,96 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Pacifico&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-reef-navy: #123646;
+  --color-reef-navy-deep: #081e28;
+  --color-lagoon: #6bb9d2;
+  --color-lagoon-soft: #c3e7f1;
+  --color-hibiscus: #e6736f;
+  --color-sand: #f6e9d8;
+  --color-sand-deep: #eedcc4;
+  --color-lava: #1b1613;
+  --color-gold: #f4b942;
+
+  --font-serif: "Fraunces", serif;
+  --font-sans: "Poppins", sans-serif;
+  --font-script: "Pacifico", cursive;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #fff8ef 8%,
+    #fdefe0 16%,
+    #fff6ec 24%,
+    #ffffff 32%,
+    #ffffff 100%
+  );
+  background-attachment: fixed;
+  color: var(--color-lava);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes drift {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-6%);
+  }
+}
+
+.animate-sway {
+  animation: sway 6s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+.animate-drift {
+  animation: drift 14s linear infinite;
+}
+
+.animate-drift-reverse {
+  animation: drift 20s linear infinite reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sway,
+  .animate-drift,
+  .animate-drift-reverse {
+    animation: none;
+  }
+}
+
+.fade-in {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.fade-in-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    transition: none;
+  }
+}

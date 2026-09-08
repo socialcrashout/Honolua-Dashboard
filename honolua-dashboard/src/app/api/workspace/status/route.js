@@ -1,6 +1,6 @@
 // api/workspace/status/route.js
 import { NextResponse } from "next/server";
-import { getSession, setSessionCookie } from "../../../../lib/session.js";
+import { getSession, setSessionCookie } from "@/lib/session.js";
 
 const GROUP_ID = "189373609";
 const MIN_RANK = 216; // strictly above this passes — 216 itself does NOT

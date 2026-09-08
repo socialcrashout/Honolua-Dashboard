@@ -1,6 +1,6 @@
 // api/verify/status/route.js
 import { NextResponse } from "next/server";
-import { getSession, setSessionCookie } from "../../../../lib/session.js";
+import { getSession, setSessionCookie } from "@/lib/session.js";
 
 export async function GET(request) {
   const session = getSession(request);

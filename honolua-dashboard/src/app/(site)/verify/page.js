@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Nav from "../components/Nav.js";
-import Footer from "../components/Footer.js";
+import Nav from "@/components/Nav.js";
+import Footer from "@/components/Footer.js";
 
 function useMounted() {
   const [mounted, setMounted] = useState(false);
@@ -391,7 +391,9 @@ export default function Verify() {
   return (
     <div className="min-h-screen">
       <Nav />
-      <VerifyContent />
+      <Suspense fallback={null}>
+        <VerifyContent />
+      </Suspense>
       <Footer />
     </div>
   );

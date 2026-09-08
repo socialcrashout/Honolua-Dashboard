@@ -1,6 +1,7 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import typo from "../assets/typo.png";
+import Link from "next/link";
 
 function DropText({ text, mounted, delayStart = 0, staggerMs = 45 }) {
   const words = text.split(" ");
@@ -103,7 +104,7 @@ export default function Hero() {
             }}
           >
             <Link
-              to="/workspace/verify"
+              href="/workspace-verify"
               className="text-white font-extrabold text-sm px-7 py-4 rounded-full shadow-[0_10px_30px_-8px_rgba(230,115,111,0.4)] hover:-translate-y-0.5 transition-transform"
               style={{ background: "linear-gradient(90deg, #F4B942, #E6736F, #F472B6)" }}
             >
@@ -137,7 +138,7 @@ export default function Hero() {
             }}
           >
             <img
-              src={typo}
+              src="/typo.png"
               alt="Honolua"
               className="w-full h-auto max-w-[540px] transition-transform duration-300 ease-out group-hover:scale-[1.04]"
             />

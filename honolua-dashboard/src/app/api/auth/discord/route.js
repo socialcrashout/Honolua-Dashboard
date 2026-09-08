@@ -11,7 +11,7 @@ export async function GET(request) {
 
   const params = new URLSearchParams({
     client_id: process.env.DISCORD_CLIENT_ID,
-    redirect_uri: `${process.env.PUBLIC_URL}/api/auth/discord/callback`,
+    redirect_uri: `${process.env.PUBLIC_URL}`,
     response_type: "code",
     scope: "identify",
     state,

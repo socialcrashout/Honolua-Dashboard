@@ -1,7 +1,7 @@
 // api/verify/confirm/route.js
 import { NextResponse } from "next/server";
-import { getSession } from "../../../../lib/session.js";
-import { sendVerificationLog } from "../../../../lib/discordLog.js";
+import { getSession } from "@/lib/session.js";
+import { sendVerificationLog } from "@/lib/discordLog.js";
 
 const DOT_EMOJI = "<:zarrow5:1525550609665757409>";
 const ROBLOX_ACCOUNT_EMOJI = "<:Roblox:1545860046867529828>";

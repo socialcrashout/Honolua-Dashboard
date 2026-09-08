@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Nav from "../components/Nav.js";
-import Footer from "../components/Footer.js";
+import Nav from "@/components/Nav.js";
+import Footer from "@/components/Footer.js";
 
 function useStagger(count, active, baseDelay = 0, step = 60) {
   return Array.from({ length: count }, (_, i) => (active ? baseDelay + i * step : 0));

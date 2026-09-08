@@ -2,6 +2,8 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 
+const isSecureCookie = process.env.NODE_ENV === "production" && process.env.PUBLIC_URL?.startsWith("https://");
+
 export async function GET(request) {
   const flow = request.nextUrl.searchParams.get("flow") === "workspace" ? "workspace" : "server";
   const random = crypto.randomBytes(16).toString("hex");
@@ -22,7 +24,7 @@ export async function GET(request) {
   response.cookies.set("discord_oauth_state", state, {
     path: "/",
     httpOnly: true,
-    secure: true,
+    secure: isSecureCookie,
     sameSite: "lax",
     maxAge: 600,
   });

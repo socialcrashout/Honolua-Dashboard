@@ -4,6 +4,7 @@ import { getSession, setSessionCookie } from "@/lib/session.js";
 
 export async function GET(request) {
   const session = getSession(request);
+  const forceRefresh = request.nextUrl.searchParams.get("refresh") === "true";
 
   if (!session.discordId) {
     return NextResponse.json({
@@ -12,7 +13,7 @@ export async function GET(request) {
     });
   }
 
-  if (session.robloxLinked === undefined) {
+  if (session.robloxLinked === undefined || (forceRefresh && !session.robloxLinked)) {
     try {
       const guildId = process.env.DISCORD_GUILD_ID;
       const bloxlinkRes = await fetch(
@@ -41,6 +42,8 @@ export async function GET(request) {
         session.robloxDisplayName = userData.displayName;
         session.robloxAvatarUrl = avatarData.data?.[0]?.imageUrl || null;
       } else {
+        const text = await bloxlinkRes.text().catch(() => "");
+        console.error("Bloxlink lookup failed:", bloxlinkRes.status, text);
         session.robloxLinked = false;
       }
     } catch (err) {

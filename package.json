@@ -1,0 +1,12 @@
+{
+  "name": "honolua-dashboard-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --dir honolua-dashboard dev",
+    "build": "pnpm --dir honolua-dashboard build",
+    "start": "pnpm --dir honolua-dashboard start",
+    "lint": "pnpm --dir honolua-dashboard lint"
+  },
+  "packageManager": "pnpm@10.34.3"
+}

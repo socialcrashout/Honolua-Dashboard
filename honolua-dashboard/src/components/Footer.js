@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import logo from "../assets/INITIAL (1).png";
+const logo = "/INITIAL%20(1).png";
 
 function useInView(threshold = 0.2) {
   const ref = useRef(null);

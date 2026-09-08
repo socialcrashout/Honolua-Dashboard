@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import typo from "../assets/typo.png";
+import Link from "next/link";
+
+const typo = "/typo.png";
 
 function DropText({ text, mounted, delayStart = 0, staggerMs = 45 }) {
   const words = text.split(" ");

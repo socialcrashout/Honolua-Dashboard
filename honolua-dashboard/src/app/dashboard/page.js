@@ -1,5 +1,6 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import ComingSoonDoc from "../../honolua-dashboard/src/components/temp";
 
 export default function Dashboard() {
   const [status, setStatus] = useState(null);
@@ -24,7 +25,11 @@ export default function Dashboard() {
       }}
     >
       <div className="px-6 pt-10">
-        <ComingSoonDoc />
+        <section className="rounded-2xl border border-border bg-card p-8 shadow-sm">
+          <p className="font-mono text-sm uppercase tracking-[0.2em] text-muted-foreground">Dashboard</p>
+          <h1 className="mt-3 text-3xl font-bold text-foreground">Workspace overview</h1>
+          <p className="mt-3 text-muted-foreground">Your dashboard modules will appear here.</p>
+        </section>
       </div>
     </div>
   );

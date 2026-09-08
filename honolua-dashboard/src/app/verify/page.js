@@ -1,5 +1,6 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 
 function useMounted() {
   const [mounted, setMounted] = useState(false);
@@ -185,7 +186,7 @@ function LinkedSuccessScreen({ mounted, status }) {
 
 export default function Verify() {
   const mounted = useMounted();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const searchParams = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -220,7 +221,7 @@ export default function Verify() {
     }
 
     if (searchParams.get("connected") || searchParams.get("error")) {
-      const t = setTimeout(() => setSearchParams({}), 50);
+      const t = setTimeout(() => window.history.replaceState({}, "", window.location.pathname), 50);
       return () => clearTimeout(t);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

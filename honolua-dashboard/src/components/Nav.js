@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { Menu, X } from "lucide-react";
-import logo from "../assets/logo.png";
 
 const LINKS = [
   { label: "Home", href: "/", type: "route" },
@@ -35,9 +34,9 @@ export default function Nav() {
         className="max-w-[1240px] mx-auto px-6 md:px-8 flex items-center justify-between opacity-0"
         style={{ animation: "navDropIn 0.6s cubic-bezier(0.16,1,0.3,1) forwards" }}
       >
-        <Link to="/" className="flex items-center gap-2.5 font-sans font-bold text-2xl text-reef-navy">
+        <Link href="/" className="flex items-center gap-2.5 font-sans font-bold text-2xl text-reef-navy">
           <img
-            src={logo}
+            src="/images/honolua-logo.png"
             alt="Honolua logo"
             className="h-9 w-auto shrink-0" />
           Honolua
@@ -48,7 +47,7 @@ export default function Nav() {
             <li key={l.label}>
               {l.type === "route" ? (
                 <Link
-                  to={l.href}
+                  href={l.href}
                   className="relative inline-block text-sm font-semibold text-reef-navy/70 hover:text-reef-navy transition-colors duration-200 px-4 py-2 rounded-full overflow-hidden"
                 >
                   <span
@@ -74,7 +73,7 @@ export default function Nav() {
         </ul>
 
         <Link
-          to="/workspace/verify"
+          href="/workspace/verify"
           className="hidden md:inline-flex text-reef-navy-deep font-bold text-sm px-5 py-2.5 rounded-full hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(255,122,89,0.35)] transition-all duration-300 whitespace-nowrap"
           style={{ background: NAV_GRADIENT }}
         >
@@ -110,7 +109,7 @@ export default function Nav() {
             l.type === "route" ? (
               <Link
                 key={l.label}
-                to={l.href}
+                href={l.href}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 text-reef-navy/80 font-semibold text-sm opacity-0"
                 style={{
@@ -145,7 +144,7 @@ export default function Nav() {
           )}
 
           <Link
-            to="/workspace/verify"
+            href="/workspace/verify"
             onClick={() => setOpen(false)}
             className="text-reef-navy-deep font-bold text-sm px-5 py-2.5 rounded-full text-center opacity-0"
             style={{

@@ -1,46 +1,30 @@
-import { Routes, Route } from "react-router-dom";
-import Nav from "./components/Nav.js";
-import HeroStats from "./components/HeroStats.js";
-import Modules from "./components/Modules.js";
-import UpdatesGrid from "./components/honoluainfo.js";
-import Footer from "./components/Footer.js";
-import Team from "./pages/Team.js";
-import Verify from "./pages/Verify.js";
-import WorkspaceVerify from "./pages/WorkspaceVerify.js";
-import Dashboard from "./pages/Dashboard.js";
+"use client";
 
-function Home() {
-  return (
-    <>
-      <HeroStats />
-      <Modules />
-      <UpdatesGrid />
-    </>
-  );
-}
+import Nav from "../components/Nav.js";
 
-function SiteLayout({ children }) {
+export default function Home() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <Nav />
-      {children}
-      <Footer />
+      <main className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-16">
+        <section className="max-w-3xl">
+          <p className="font-mono text-sm uppercase tracking-[0.2em] text-muted-foreground">Honolua Dashboard</p>
+          <h1 className="mt-4 text-balance text-5xl font-bold tracking-tight text-foreground md:text-7xl">
+            Manage your workspace with clarity.
+          </h1>
+          <p className="mt-6 max-w-2xl text-pretty text-lg leading-8 text-muted-foreground">
+            Review verification activity, workspace status, and team updates from one focused dashboard.
+          </p>
+        </section>
+        <div className="flex flex-wrap gap-4">
+          <a className="rounded-full bg-primary px-6 py-3 font-semibold text-primary-foreground" href="/dashboard">
+            Open dashboard
+          </a>
+          <a className="rounded-full border border-border px-6 py-3 font-semibold text-foreground" href="/team">
+            View team
+          </a>
+        </div>
+      </main>
     </div>
-  );
-}
-
-export default function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<SiteLayout><Home /></SiteLayout>} />
-      <Route path="/team" element={<SiteLayout><Team /></SiteLayout>} />
-      <Route path="/verify" element={<SiteLayout><Verify /></SiteLayout>} />
-      <Route
-        path="/workspace/verify"
-        element={<SiteLayout><WorkspaceVerify /></SiteLayout>}
-      />
-      {/* Dashboard renders standalone — no shared Nav/Footer */}
-      <Route path="/dashboard" element={<Dashboard />} />
-    </Routes>
   );
 }

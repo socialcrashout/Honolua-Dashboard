@@ -5,6 +5,22 @@
 const DOT_EMOJI = "<:zarrow5:1525550609665757409>";
 const ROBLOX_ACCOUNT_EMOJI = "<:Roblox:1545860046867529828>";
 
+export async function sendWorkspaceLoginLog({
+  robloxUsername,
+  robloxId,
+  discordId,
+  joinedTimestamp,
+  loginTimestamp,
+}) {
+  return sendVerificationLog({
+    robloxUsername,
+    robloxId,
+    discordId,
+    joinedTimestamp,
+    verifiedTimestamp: loginTimestamp,
+  });
+}
+
 export async function sendVerificationLog({
   robloxUsername,
   robloxId,

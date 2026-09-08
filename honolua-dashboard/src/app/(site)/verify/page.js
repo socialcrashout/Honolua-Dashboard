@@ -1,5 +1,9 @@
-import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+"use client";
+
+import { useEffect, useRef, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Nav from "@/components/Nav.js";
+import Footer from "@/components/Footer.js";
 
 function useMounted() {
   const [mounted, setMounted] = useState(false);
@@ -183,9 +187,10 @@ function LinkedSuccessScreen({ mounted, status }) {
   );
 }
 
-export default function Verify() {
+function VerifyContent() {
   const mounted = useMounted();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
@@ -220,7 +225,7 @@ export default function Verify() {
     }
 
     if (searchParams.get("connected") || searchParams.get("error")) {
-      const t = setTimeout(() => setSearchParams({}), 50);
+      const t = setTimeout(() => router.replace("/verify"), 50);
       return () => clearTimeout(t);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -454,5 +459,17 @@ export default function Verify() {
         )}
       </div>
     </section>
+  );
+}
+
+export default function Verify() {
+  return (
+    <div className="min-h-screen">
+      <Nav />
+      <Suspense fallback={null}>
+        <VerifyContent />
+      </Suspense>
+      <Footer />
+    </div>
   );
 }

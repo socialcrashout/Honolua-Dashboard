@@ -1,6 +1,10 @@
-// WorkspaceVerify.js
+"use client";
+
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import Nav from "../components/Nav.js";
+import Footer from "../components/Footer.js";
 
 function useMounted() {
   const [mounted, setMounted] = useState(false);
@@ -12,23 +16,11 @@ function useMounted() {
 }
 
 function DiscordIcon({ color = "5865F2", className }) {
-  return (
-    <img
-      src={`https://cdn.simpleicons.org/discord/${color}`}
-      alt="Discord"
-      className={className}
-    />
-  );
+  return <img src={`https://cdn.simpleicons.org/discord/${color}`} alt="Discord" className={className} />;
 }
 
 function RobloxIcon({ color = "000000", className }) {
-  return (
-    <img
-      src={`https://cdn.simpleicons.org/roblox/${color}`}
-      alt="Roblox"
-      className={className}
-    />
-  );
+  return <img src={`https://cdn.simpleicons.org/roblox/${color}`} alt="Roblox" className={className} />;
 }
 
 function CheckIcon(props) {
@@ -65,9 +57,7 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
       style={{
         animation: mounted ? "stepIn 0.6s cubic-bezier(0.16,1,0.3,1) forwards" : "none",
         animationDelay: mounted ? `${delay}ms` : "0ms",
-        boxShadow: isActive
-          ? "0 12px 32px -12px rgba(230,115,111,0.25)"
-          : "0 1px 2px rgba(0,0,0,0.03)",
+        boxShadow: isActive ? "0 12px 32px -12px rgba(230,115,111,0.25)" : "0 1px 2px rgba(0,0,0,0.03)",
         outline: isActive ? "2px solid rgba(244,114,182,0.35)" : "2px solid transparent",
         outlineOffset: "-2px",
       }}
@@ -75,9 +65,7 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
       <div
         className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 overflow-hidden"
         style={{
-          background: isDone
-            ? "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)"
-            : "rgba(230,115,111,0.08)",
+          background: isDone ? "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)" : "rgba(230,115,111,0.08)",
           color: isDone ? "#fff" : "#8A6B60",
         }}
       >
@@ -85,9 +73,7 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <h3 className="font-sans font-bold text-base md:text-lg text-reef-navy mb-1">
-          {title}
-        </h3>
+        <h3 className="font-sans font-bold text-base md:text-lg text-reef-navy mb-1">{title}</h3>
         <p className="text-sm text-lava/55 leading-relaxed">{desc}</p>
       </div>
 
@@ -103,17 +89,12 @@ function DeniedScreen({ mounted, status }) {
       style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
     >
       <div className="flex items-center justify-center mb-6">
-        <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center text-white"
-          style={{ background: "linear-gradient(135deg, #8A6B60, #B5473F)" }}
-        >
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white" style={{ background: "linear-gradient(135deg, #8A6B60, #B5473F)" }}>
           <LockIcon className="w-7 h-7" />
         </div>
       </div>
 
-      <h1 className="font-serif italic font-medium text-reef-navy text-3xl text-center mb-2">
-        Access Restricted
-      </h1>
+      <h1 className="font-serif italic font-medium text-reef-navy text-3xl text-center mb-2">Access Restricted</h1>
       <p className="text-sm text-lava/55 text-center mb-6 leading-relaxed max-w-md mx-auto">
         You are not allowed to view the Honolua Management Dashboard. This
         area is limited to staff at or above a specific rank in the Honolua
@@ -128,7 +109,7 @@ function DeniedScreen({ mounted, status }) {
       )}
 
       <Link
-        to="/"
+        href="/"
         className="block w-full text-center font-bold text-sm text-reef-navy border-2 border-hibiscus/25 px-6 py-3.5 rounded-full hover:border-hibiscus transition-colors"
       >
         Return Home
@@ -162,16 +143,12 @@ function EnteringOverlay() {
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6"
       style={{
-        background:
-          "linear-gradient(135deg, #FFFFFF 0%, #FFF3E4 30%, #FDE3C8 55%, #FFF3E4 80%, #FFFFFF 100%)",
+        background: "linear-gradient(135deg, #FFFFFF 0%, #FFF3E4 30%, #FDE3C8 55%, #FFF3E4 80%, #FFFFFF 100%)",
       }}
     >
       <div
         className="w-16 h-16 rounded-full animate-spin"
-        style={{
-          border: "5px solid rgba(230,115,111,0.15)",
-          borderTopColor: "#E6736F",
-        }}
+        style={{ border: "5px solid rgba(230,115,111,0.15)", borderTopColor: "#E6736F" }}
       />
       <p className="font-serif italic font-medium text-reef-navy text-2xl text-center px-6">
         {ENTER_MESSAGES[index]}
@@ -181,12 +158,12 @@ function EnteringOverlay() {
 }
 
 function VerifiedScreen({ mounted, status }) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [entering, setEntering] = useState(false);
 
   const handleEnter = () => {
     setEntering(true);
-    setTimeout(() => navigate("/dashboard"), 10000);
+    setTimeout(() => router.push("/dashboard"), 10000);
   };
 
   return (
@@ -197,28 +174,19 @@ function VerifiedScreen({ mounted, status }) {
         style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
       >
         <div className="flex items-center justify-center gap-4 mb-6">
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}
-          >
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}>
             <DiscordIcon color="ffffff" className="w-7 h-7" />
           </div>
           <CheckIcon className="w-5 h-5 text-hibiscus" />
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, #F4B942, #E6736F)" }}
-          >
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #F4B942, #E6736F)" }}>
             <RobloxIcon color="ffffff" className="w-7 h-7" />
           </div>
         </div>
 
-        <h1 className="font-serif italic font-medium text-reef-navy text-3xl text-center mb-2">
-          Successfully Verified
-        </h1>
+        <h1 className="font-serif italic font-medium text-reef-navy text-3xl text-center mb-2">Successfully Verified</h1>
         <p className="text-sm text-lava/55 text-center mb-8 leading-relaxed">
           {status?.robloxUsername}
-          {status?.workspaceRoleName ? ` — ${status.workspaceRoleName}` : ""} —
-          you're cleared for workspace access.
+          {status?.workspaceRoleName ? ` — ${status.workspaceRoleName}` : ""} — you're cleared for workspace access.
         </p>
 
         <button
@@ -234,9 +202,10 @@ function VerifiedScreen({ mounted, status }) {
   );
 }
 
-export default function WorkspaceVerify() {
+function WorkspaceVerifyContent() {
   const mounted = useMounted();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -257,7 +226,7 @@ export default function WorkspaceVerify() {
     fetchStatus();
 
     if (searchParams.get("connected") || searchParams.get("error")) {
-      const t = setTimeout(() => setSearchParams({}), 50);
+      const t = setTimeout(() => router.replace("/workspace-verify"), 50);
       return () => clearTimeout(t);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -290,34 +259,23 @@ export default function WorkspaceVerify() {
       `}</style>
 
       <div className="max-w-[720px] mx-auto px-6 md:px-8">
-        <div
-          className="mb-10 opacity-0"
-          style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
-        >
+        <div className="mb-10 opacity-0" style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}>
           <div className="inline-flex items-center gap-2.5 text-xs font-bold tracking-[0.18em] uppercase text-hibiscus mb-5">
-            <span
-              className="h-px bg-hibiscus/60 transition-all duration-700 ease-out"
-              style={{ width: mounted ? 20 : 0 }}
-            />
+            <span className="h-px bg-hibiscus/60 transition-all duration-700 ease-out" style={{ width: mounted ? 20 : 0 }} />
             Workspace Verification
           </div>
           <h1 className="font-serif italic font-medium text-reef-navy text-4xl md:text-5xl leading-tight mb-5">
             Verify to enter the workspace.
           </h1>
           <p className="text-lg leading-relaxed text-lava/60 max-w-[520px]">
-            Log in with Discord — we'll check your Roblox group rank to
-            confirm workspace access.
+            Log in with Discord — we'll check your Roblox group rank to confirm workspace access.
           </p>
         </div>
 
         {errorParam && (
           <div
             className="mb-6 rounded-2xl px-5 py-4 text-sm font-semibold opacity-0"
-            style={{
-              animation: "heroFadeUp 0.4s ease-out forwards",
-              background: "rgba(230,115,111,0.10)",
-              color: "#B5473F",
-            }}
+            style={{ animation: "heroFadeUp 0.4s ease-out forwards", background: "rgba(230,115,111,0.10)", color: "#B5473F" }}
           >
             {ERROR_MESSAGES[errorParam] || "Something went wrong. Please try again."}
           </div>
@@ -328,19 +286,13 @@ export default function WorkspaceVerify() {
             <StepCard
               index={1}
               title="Discord account"
-              desc={
-                discordConnected
-                  ? `Logged in as @${status.discordUsername}`
-                  : "Log in with Discord to start verification."
-              }
+              desc={discordConnected ? `Logged in as @${status.discordUsername}` : "Log in with Discord to start verification."}
               status={discordConnected ? "done" : "active"}
               mounted={mounted}
               delay={100}
               action={
                 discordConnected ? (
-                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">
-                    Connected
-                  </span>
+                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Connected</span>
                 ) : (
                   <a
                     href="/api/auth/discord?flow=workspace"
@@ -370,11 +322,7 @@ export default function WorkspaceVerify() {
               action={
                 robloxLinked ? (
                   status.robloxAvatarUrl && (
-                    <img
-                      src={status.robloxAvatarUrl}
-                      alt={status.robloxUsername}
-                      className="w-10 h-10 rounded-xl object-cover"
-                    />
+                    <img src={status.robloxAvatarUrl} alt={status.robloxUsername} className="w-10 h-10 rounded-xl object-cover" />
                   )
                 ) : discordConnected ? (
                   <div className="flex flex-col items-end gap-2">
@@ -387,10 +335,7 @@ export default function WorkspaceVerify() {
                     >
                       Verify with Bloxlink
                     </a>
-                    <button
-                      onClick={fetchStatus}
-                      className="text-xs font-bold text-reef-navy/60 hover:text-reef-navy"
-                    >
+                    <button onClick={fetchStatus} className="text-xs font-bold text-reef-navy/60 hover:text-reef-navy">
                       Refresh
                     </button>
                   </div>
@@ -401,20 +346,13 @@ export default function WorkspaceVerify() {
             <StepCard
               index={3}
               title="Group rank check"
-              desc={
-                robloxLinked
-                  ? "Checking your rank in the Honolua Roblox group…"
-                  : "Complete both steps above to check workspace access."
-              }
+              desc={robloxLinked ? "Checking your rank in the Honolua Roblox group…" : "Complete both steps above to check workspace access."}
               status={rankChecked ? "done" : robloxLinked ? "active" : "pending"}
               mounted={mounted}
               delay={300}
               action={
                 robloxLinked && !rankChecked ? (
-                  <button
-                    onClick={fetchStatus}
-                    className="text-xs font-bold text-reef-navy/60 hover:text-reef-navy"
-                  >
+                  <button onClick={fetchStatus} className="text-xs font-bold text-reef-navy/60 hover:text-reef-navy">
                     Refresh
                   </button>
                 ) : null
@@ -436,5 +374,15 @@ export default function WorkspaceVerify() {
         )}
       </div>
     </section>
+  );
+}
+
+export default function WorkspaceVerify() {
+  return (
+    <div className="min-h-screen">
+      <Nav />
+      <WorkspaceVerifyContent />
+      <Footer />
+    </div>
   );
 }

@@ -186,7 +186,7 @@ function VerifiedScreen({ mounted, status }) {
 
   const handleEnter = () => {
     setEntering(true);
-    setTimeout(() => navigate("/dashboard"), 20000);
+    setTimeout(() => navigate("/dashboard"), 10000);
   };
 
   return (

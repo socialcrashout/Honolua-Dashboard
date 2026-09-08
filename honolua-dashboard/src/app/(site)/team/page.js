@@ -172,7 +172,6 @@ export default function Team() {
     <div className="min-h-screen">
       <Nav />
       <TeamContent />
-      <Footer />
     </div>
   );
 }

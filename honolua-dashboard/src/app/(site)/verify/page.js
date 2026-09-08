@@ -394,7 +394,6 @@ export default function Verify() {
       <Suspense fallback={null}>
         <VerifyContent />
       </Suspense>
-      <Footer />
     </div>
   );
 }

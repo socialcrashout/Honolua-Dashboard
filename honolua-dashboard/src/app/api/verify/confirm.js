@@ -1,6 +1,6 @@
 // api/verify/confirm.js
-import { getSession } from "../../lib/session.js";
-import { sendWorkspaceLoginLog } from "../../lib/discordLog.js";
+import { getSession } from "../../../lib/session.js";
+import { sendWorkspaceLoginLog } from "../../../lib/discordLog.js";
 
 const DOT_EMOJI = "<:zarrow5:1525550609665757409>";
 const ROBLOX_ACCOUNT_EMOJI = "<:Roblox:1545860046867529828>";

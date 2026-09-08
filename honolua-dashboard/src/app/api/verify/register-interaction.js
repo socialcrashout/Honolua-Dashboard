@@ -1,5 +1,5 @@
 // api/verify/register-interaction.js
-import { getSession, setSessionCookie } from "../../lib/session.js";
+import { getSession, setSessionCookie } from "../../../lib/session.js";
 
 export default async function handler(req, res) {
   const { token, app_id } = req.body || {};

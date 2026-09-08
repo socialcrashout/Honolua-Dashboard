@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import ComingSoonDoc from "../components/temp";
+import ComingSoonDoc from "../../honolua-dashboard/src/components/temp";
 
 export default function Dashboard() {
   const [status, setStatus] = useState(null);

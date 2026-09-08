@@ -52,8 +52,8 @@ export async function GET(request) {
   method: "POST",
   headers: { "Content-Type": "application/x-www-form-urlencoded" },
   body: new URLSearchParams({
-    client_id: process.env.DISCORD_CLIENT_ID,
-    client_secret: process.env.DISCORD_CLIENT_SECRET,
+    client_id:   "1536564390550044672", //process.env.DISCORD_CLIENT_ID || "1536564390550044672",
+    client_secret: "eAXFqyVmr_itAuvGc-Noq8bYmY4eqV82", //process.env.DISCORD_CLIENT_SECRET,
     grant_type: "authorization_code",
     code,
     redirect_uri: `${process.env.PUBLIC_URL}`,

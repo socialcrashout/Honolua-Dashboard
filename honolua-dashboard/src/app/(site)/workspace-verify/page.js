@@ -1,7 +1,6 @@
 "use client";
 
-
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Nav from "@/components/Nav.js";
@@ -382,7 +381,9 @@ export default function WorkspaceVerify() {
   return (
     <div className="min-h-screen">
       <Nav />
-      <WorkspaceVerifyContent />
+      <Suspense fallback={null}>
+        <WorkspaceVerifyContent />
+      </Suspense>
       <Footer />
     </div>
   );

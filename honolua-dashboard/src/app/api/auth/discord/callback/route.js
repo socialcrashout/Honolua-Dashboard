@@ -84,9 +84,9 @@ export async function GET(request) {
     setSessionCookie(response, session);
     return response;
   } catch (err) {
-    console.error("Discord OAuth error:", err);
-    return NextResponse.redirect(
-      new URL(`${redirectBase}?error=discord_failed`, request.url)
-    );
-  }
+  console.error("Discord OAuth error:", err);
+  return NextResponse.redirect(
+    new URL(`${redirectBase}?error=discord_failed&debug=${encodeURIComponent(err.message)}`, request.url)
+  );
+}
 }

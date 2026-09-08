@@ -8,10 +8,12 @@ export async function GET(request) {
   const flow = request.nextUrl.searchParams.get("flow") === "workspace" ? "workspace" : "server";
   const random = crypto.randomBytes(16).toString("hex");
   const state = `${random}.${flow}`;
+  const publicUrl = process.env.PUBLIC_URL || "http://localhost:3000";
+  const redirectUri = new URL("/api/auth/discord/callback", publicUrl).toString();
 
   const params = new URLSearchParams({
     client_id: process.env.DISCORD_CLIENT_ID,
-    redirect_uri: `${process.env.PUBLIC_URL}/api/auth/discord/callback`,
+    redirect_uri: redirectUri,
     response_type: "code",
     scope: "identify",
     state,

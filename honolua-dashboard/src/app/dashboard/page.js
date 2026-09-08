@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ComingSoonDoc from "@/components/temp";
+import Sidebar from "@/components/Sidebar";
 
 export default function Dashboard() {
   const [status, setStatus] = useState(null);
@@ -25,8 +26,11 @@ export default function Dashboard() {
           "linear-gradient(135deg, #FFFFFF 0%, #FFF8EF 20%, #FDEFE0 38%, #FFF6EC 58%, #FFFFFF 80%, #FFFFFF 100%), radial-gradient(85% 65% at 8% 100%, rgba(244,114,182,0.08), transparent 60%), radial-gradient(70% 50% at 95% 0%, rgba(244,185,66,0.10), transparent 60%)",
       }}
     >
-      <div className="px-6 pt-10">
-        <ComingSoonDoc />
+      <div className="flex">
+        <Sidebar />
+        <div className="px-6 pt-10">
+          <ComingSoonDoc />
+        </div>
       </div>
     </div>
   );

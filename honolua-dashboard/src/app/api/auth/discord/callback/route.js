@@ -39,7 +39,7 @@ export async function GET(request) {
   // Which page started this login — falls back to "server" if the state
   // is missing/malformed, so a bad state still fails safely below.
   const flow = state?.split(".")[1] === "workspace" ? "workspace" : "server";
-  const redirectBase = flow === "workspace" ? "/workspace/verify" : "/verify";
+  const redirectBase = flow === "workspace" ? "/workspace-verify" : "/verify";
 
   if (!code || !state || state !== cookieState) {
     return NextResponse.redirect(

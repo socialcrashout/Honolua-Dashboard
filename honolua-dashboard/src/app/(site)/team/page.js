@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useState } from "react";
 
 function useStagger(count, active, baseDelay = 0, step = 60) {

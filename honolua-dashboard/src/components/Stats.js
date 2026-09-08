@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
 
 const DISCORD_INVITE_CODE = "8Am56ckPFP";

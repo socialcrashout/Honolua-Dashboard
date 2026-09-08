@@ -1,5 +1,6 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
-import logo from "../assets/INITIAL (1).png";
 
 function useInView(threshold = 0.2) {
   const ref = useRef(null);
@@ -140,7 +141,7 @@ export default function Footer() {
               className="flex items-center gap-2.5 font-serif italic font-semibold text-xl text-reef-navy mb-3"
             >
               <img
-                src={logo}
+                src="/INITIAL%20(1).png"
                 alt="Honolua logo"
                 className="w-6 h-6 rounded-full shrink-0 object-cover"
               />

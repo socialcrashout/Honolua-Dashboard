@@ -1,6 +1,9 @@
+"use client";
+
 // WorkspaceVerify.js
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 
 function useMounted() {
   const [mounted, setMounted] = useState(false);
@@ -128,7 +131,7 @@ function DeniedScreen({ mounted, status }) {
       )}
 
       <Link
-        to="/"
+        href="/"
         className="block w-full text-center font-bold text-sm text-reef-navy border-2 border-hibiscus/25 px-6 py-3.5 rounded-full hover:border-hibiscus transition-colors"
       >
         Return Home
@@ -181,12 +184,12 @@ function EnteringOverlay() {
 }
 
 function VerifiedScreen({ mounted, status }) {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [entering, setEntering] = useState(false);
 
   const handleEnter = () => {
     setEntering(true);
-    setTimeout(() => navigate("/dashboard"), 10000);
+    setTimeout(() => router.push("/dashboard"), 10000);
   };
 
   return (
@@ -236,7 +239,8 @@ function VerifiedScreen({ mounted, status }) {
 
 export default function WorkspaceVerify() {
   const mounted = useMounted();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -257,7 +261,7 @@ export default function WorkspaceVerify() {
     fetchStatus();
 
     if (searchParams.get("connected") || searchParams.get("error")) {
-      const t = setTimeout(() => setSearchParams({}), 50);
+      const t = setTimeout(() => router.replace("/workspace-verify"), 50);
       return () => clearTimeout(t);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

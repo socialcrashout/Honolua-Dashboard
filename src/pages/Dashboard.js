@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import DashboardOverview from "../components/DashboardOverview";
+import ComingSoonDoc from "../components/temp";
 
 export default function Dashboard() {
   const [status, setStatus] = useState(null);
@@ -24,7 +24,7 @@ export default function Dashboard() {
       }}
     >
       <div className="px-6 pt-10">
-        <DashboardOverview />
+        <ComingSoonDoc />
       </div>
     </div>
   );

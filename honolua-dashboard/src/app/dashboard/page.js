@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ComingSoonDoc from "../../components/temp";
+import ComingSoonDoc from "@/components/temp";
 
 export default function Dashboard() {
   const [status, setStatus] = useState(null);

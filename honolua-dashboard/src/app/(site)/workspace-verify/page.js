@@ -1,17 +1,11 @@
 "use client";
 
-<<<<<<< HEAD:honolua-dashboard/src/app/(site)/workspace-verify/page.js
-// WorkspaceVerify.js
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-=======
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import Nav from "../components/Nav.js";
-import Footer from "../components/Footer.js";
->>>>>>> 0c92ad448dd349f5217789e755c49d9c3c3cbc9d:honolua-dashboard/src/app/workspace-verify/page.js
+import Nav from "@/components/Nav.js";
+import Footer from "@/components/Footer.js";
 
 function useMounted() {
   const [mounted, setMounted] = useState(false);

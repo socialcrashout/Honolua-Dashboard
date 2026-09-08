@@ -1,6 +1,6 @@
 // api/auth/discord/callback/route.js
 import { NextResponse } from "next/server";
-import { getSession, setSessionCookie } from "../../../../../lib/session.js";
+import { getSession, setSessionCookie } from "@/lib/session.js";
 
 async function fetchGuildJoinedTimestamp(discordId) {
   const guildId = process.env.DISCORD_GUILD_ID;

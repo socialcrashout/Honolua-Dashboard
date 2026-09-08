@@ -1,6 +1,6 @@
 // api/verify/register-interaction/route.js
 import { NextResponse } from "next/server";
-import { getSession, setSessionCookie } from "../../../../lib/session.js";
+import { getSession, setSessionCookie } from "@/lib/session.js";
 
 export async function POST(request) {
   const { token, app_id } = await request.json().catch(() => ({}));

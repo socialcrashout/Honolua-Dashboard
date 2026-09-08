@@ -56,7 +56,7 @@ export async function GET(request) {
     client_secret: process.env.DISCORD_CLIENT_SECRET,
     grant_type: "authorization_code",
     code,
-    redirect_uri: `${process.env.PUBLIC_URL}/api/auth/discord/callback`,
+    redirect_uri: `${process.env.PUBLIC_URL}`,
   }),
 });
 if (!tokenRes.ok) {

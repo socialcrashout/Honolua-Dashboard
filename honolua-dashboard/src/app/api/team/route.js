@@ -1,5 +1,6 @@
-// api/team.js
+// api/team/route.js
 // Vercel serverless function — runs server-side, avoids Roblox CORS restrictions.
+import { NextResponse } from "next/server";
 
 const GROUP_ID = 189373609;
 
@@ -46,7 +47,7 @@ for (const team of TEAMS) {
 
 const ALL_ROLE_IDS = Object.keys(ROLE_ID_TO_TEAM).map(Number);
 
-export default async function handler(req, res) {
+export async function GET() {
   try {
     // 1. Get all group roles, keep only the ones we've assigned to a team
     const rolesRes = await fetch(`https://groups.roblox.com/v1/groups/${GROUP_ID}/roles`);
@@ -118,13 +119,15 @@ export default async function handler(req, res) {
 
     // Cache on Vercel's edge for 5 min, serve stale for 10 min while revalidating —
     // keeps avatars/roster fresh without hammering Roblox on every visit.
-    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
-    res.status(200).json({
-      teams: TEAMS.map((t) => ({ key: t.key, label: t.label })),
-      members: grouped,
-    });
+    return NextResponse.json(
+      {
+        teams: TEAMS.map((t) => ({ key: t.key, label: t.label })),
+        members: grouped,
+      },
+      { headers: { "Cache-Control": "s-maxage=300, stale-while-revalidate=600" } }
+    );
   } catch (err) {
     console.error("Team fetch error:", err);
-    res.status(500).json({ error: "Failed to load team data" });
+    return NextResponse.json({ error: "Failed to load team data" }, { status: 500 });
   }
-}n
+}

@@ -1,5 +1,6 @@
-// api/auth/discord/callback.js
-import { getSession, setSessionCookie } from "../../../../lib/session.js";
+// api/auth/discord/callback/route.js
+import { NextResponse } from "next/server";
+import { getSession, setSessionCookie } from "../../../../../lib/session.js";
 
 async function fetchGuildJoinedTimestamp(discordId) {
   const guildId = process.env.DISCORD_GUILD_ID;
@@ -30,9 +31,10 @@ async function fetchGuildJoinedTimestamp(discordId) {
   }
 }
 
-export default async function handler(req, res) {
-  const { code, state } = req.query;
-  const cookieState = (req.headers.cookie || "").match(/discord_oauth_state=([^;]+)/)?.[1];
+export async function GET(request) {
+  const code = request.nextUrl.searchParams.get("code");
+  const state = request.nextUrl.searchParams.get("state");
+  const cookieState = request.cookies.get("discord_oauth_state")?.value;
 
   // Which page started this login — falls back to "server" if the state
   // is missing/malformed, so a bad state still fails safely below.
@@ -40,7 +42,9 @@ export default async function handler(req, res) {
   const redirectBase = flow === "workspace" ? "/workspace/verify" : "/verify";
 
   if (!code || !state || state !== cookieState) {
-    return res.redirect(`${redirectBase}?error=discord_state_mismatch`);
+    return NextResponse.redirect(
+      new URL(`${redirectBase}?error=discord_state_mismatch`, request.url)
+    );
   }
 
   try {
@@ -66,18 +70,23 @@ export default async function handler(req, res) {
 
     const joinedTimestamp = await fetchGuildJoinedTimestamp(discordUser.id);
 
-    const session = getSession(req);
+    const session = getSession(request);
     session.discordId = discordUser.id;
     session.discordUsername = discordUser.username;
     session.discordAvatar = discordUser.avatar
       ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
       : null;
     session.joinedTimestamp = joinedTimestamp;
-    setSessionCookie(res, session);
 
-    res.redirect(`${redirectBase}?connected=discord`);
+    const response = NextResponse.redirect(
+      new URL(`${redirectBase}?connected=discord`, request.url)
+    );
+    setSessionCookie(response, session);
+    return response;
   } catch (err) {
     console.error("Discord OAuth error:", err);
-    res.redirect(`${redirectBase}?error=discord_failed`);
+    return NextResponse.redirect(
+      new URL(`${redirectBase}?error=discord_failed`, request.url)
+    );
   }
 }

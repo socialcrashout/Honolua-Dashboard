@@ -1,22 +1,17 @@
-// api/workspace/status.js
-import { getSession, setSessionCookie } from "../../../lib/session.js";
+// api/verify/status/route.js
+import { NextResponse } from "next/server";
+import { getSession, setSessionCookie } from "../../../../lib/session.js";
 
-const GROUP_ID = "189373609";
-const MIN_RANK = 216; // strictly above this passes — 216 itself does NOT
-
-export default async function handler(req, res) {
-  const session = getSession(req);
+export async function GET(request) {
+  const session = getSession(request);
 
   if (!session.discordId) {
-    return res.status(200).json({
+    return NextResponse.json({
       discordConnected: false,
       robloxLinked: false,
-      workspaceAllowed: false,
     });
   }
 
-  // Reuse the same Bloxlink lookup as verify/status.js — if the user already
-  // went through /verify this session, this is already cached and skipped.
   if (session.robloxLinked === undefined) {
     try {
       const guildId = process.env.DISCORD_GUILD_ID;
@@ -54,37 +49,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // Once Roblox is confirmed linked, fetch (or reuse cached) group rank.
-  if (session.robloxLinked && session.workspaceRank === undefined) {
-    try {
-      const groupRes = await fetch(
-        `https://groups.roblox.com/v2/users/${session.robloxId}/groups/roles`
-      );
-
-      if (groupRes.ok) {
-        const groupData = await groupRes.json();
-        const membership = groupData.data?.find(
-          (g) => String(g.group.id) === GROUP_ID
-        );
-        session.workspaceRank = membership ? membership.role.rank : 0;
-        session.workspaceRoleName = membership ? membership.role.name : null;
-      } else {
-        const text = await groupRes.text().catch(() => "");
-        console.error("Roblox group lookup failed:", groupRes.status, text);
-        session.workspaceRank = 0;
-      }
-    } catch (err) {
-      console.error("Roblox group lookup error:", err);
-      session.workspaceRank = 0;
-    }
-  }
-
-  setSessionCookie(res, session);
-
-  const rank = session.workspaceRank ?? null;
-  const allowed = rank !== null && rank > MIN_RANK;
-
-  res.status(200).json({
+  const response = NextResponse.json({
     discordConnected: true,
     discordId: session.discordId,
     discordUsername: session.discordUsername,
@@ -94,8 +59,9 @@ export default async function handler(req, res) {
     robloxUsername: session.robloxUsername || null,
     robloxDisplayName: session.robloxDisplayName || null,
     robloxAvatarUrl: session.robloxAvatarUrl || null,
-    workspaceRank: rank,
-    workspaceRoleName: session.workspaceRoleName || null,
-    workspaceAllowed: allowed,
   });
+
+  setSessionCookie(response, session);
+
+  return response;
 }

@@ -2,6 +2,7 @@
 import crypto from "crypto";
 
 const SECRET = process.env.SESSION_SECRET;
+const COOKIE_NAME = "honolua_session";
 
 function requireSecret() {
   if (!SECRET) {
@@ -32,16 +33,18 @@ function verify(token) {
   }
 }
 
-export function getSession(req) {
-  const cookie = req.headers.cookie || "";
-  const match = cookie.match(/(?:^|;\s*)honolua_session=([^;]+)/);
-  return verify(match ? decodeURIComponent(match[1]) : null) || {};
+export function getSession(request) {
+  const token = request.cookies.get(COOKIE_NAME)?.value;
+  return verify(token) || {};
 }
 
-export function setSessionCookie(res, session) {
+export function setSessionCookie(response, session) {
   const token = sign(session);
-  res.setHeader(
-    "Set-Cookie",
-    `honolua_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=1800`
-  );
+  response.cookies.set(COOKIE_NAME, token, {
+    path: "/",
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    maxAge: 1800,
+  });
 }

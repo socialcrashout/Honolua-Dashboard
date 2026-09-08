@@ -1,8 +1,10 @@
-// api/bloxlink/lookup.js
-export default async function handler(req, res) {
-  const { discordId } = req.query;
+// api/bloxlink/lookup/route.js
+import { NextResponse } from "next/server";
+
+export async function GET(request) {
+  const discordId = request.nextUrl.searchParams.get("discordId");
   if (!discordId) {
-    return res.status(400).json({ error: "Missing discordId" });
+    return NextResponse.json({ error: "Missing discordId" }, { status: 400 });
   }
 
   const guildId = process.env.DISCORD_GUILD_ID;
@@ -14,7 +16,7 @@ export default async function handler(req, res) {
     );
 
     if (bloxlinkRes.status === 404) {
-      return res.status(200).json({ linked: false });
+      return NextResponse.json({ linked: false });
     }
     if (!bloxlinkRes.ok) throw new Error("Bloxlink lookup failed");
 
@@ -31,7 +33,7 @@ export default async function handler(req, res) {
     const userData = await userRes.json();
     const avatarData = await avatarRes.json();
 
-    res.status(200).json({
+    return NextResponse.json({
       linked: true,
       robloxId,
       robloxUsername: userData.name,
@@ -40,6 +42,6 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     console.error("Bloxlink lookup error:", err);
-    res.status(500).json({ error: "Lookup failed" });
+    return NextResponse.json({ error: "Lookup failed" }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
-// api/verify/confirm.js
-import { getSession } from "../../../lib/session.js";
-import { sendWorkspaceLoginLog } from "../../../lib/discordLog.js";
+// api/verify/confirm/route.js
+import { NextResponse } from "next/server";
+import { getSession } from "../../../../lib/session.js";
+import { sendWorkspaceLoginLog } from "../../../../lib/discordLog.js";
 
 const DOT_EMOJI = "<:zarrow5:1525550609665757409>";
 const ROBLOX_ACCOUNT_EMOJI = "<:Roblox:1545860046867529828>";
@@ -51,25 +52,21 @@ async function editOriginalInteraction(session) {
   }
 }
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export async function POST(request) {
   try {
     let session;
     try {
-      session = getSession(req);
+      session = getSession(request);
     } catch (sessionErr) {
       console.error("getSession threw:", sessionErr);
-      return res.status(500).json({
-        error: `Session error: ${sessionErr.message || "failed to read session"}`,
-      });
+      return NextResponse.json(
+        { error: `Session error: ${sessionErr.message || "failed to read session"}` },
+        { status: 500 }
+      );
     }
 
     if (!session?.discordId || !session?.robloxUsername) {
-      return res.status(400).json({ error: "Not fully verified yet" });
+      return NextResponse.json({ error: "Not fully verified yet" }, { status: 400 });
     }
 
     const guildId = process.env.DISCORD_GUILD_ID;
@@ -77,9 +74,10 @@ export default async function handler(req, res) {
 
     if (!guildId || !roleId || !process.env.DISCORD_BOT_TOKEN) {
       console.error("Missing Discord env vars (guildId/roleId/botToken)");
-      return res.status(500).json({
-        error: "Server misconfigured: missing Discord env vars",
-      });
+      return NextResponse.json(
+        { error: "Server misconfigured: missing Discord env vars" },
+        { status: 500 }
+      );
     }
 
     const botHeaders = {
@@ -94,9 +92,10 @@ export default async function handler(req, res) {
     if (!roleRes.ok) {
       const text = await roleRes.text().catch(() => "");
       console.error("Role assignment failed:", roleRes.status, text);
-      return res.status(502).json({
-        error: `Failed to assign verified role (Discord ${roleRes.status}): ${text.slice(0, 200)}`,
-      });
+      return NextResponse.json(
+        { error: `Failed to assign verified role (Discord ${roleRes.status}): ${text.slice(0, 200)}` },
+        { status: 502 }
+      );
     }
 
     try {
@@ -135,11 +134,12 @@ export default async function handler(req, res) {
       console.error("Workspace login log failed (non-fatal):", logErr);
     }
 
-    return res.status(200).json({ success: true });
+    return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Confirm error (uncaught):", err);
-    return res.status(500).json({
-      error: err?.message || "Failed to confirm verification",
-    });
+    return NextResponse.json(
+      { error: err?.message || "Failed to confirm verification" },
+      { status: 500 }
+    );
   }
 }

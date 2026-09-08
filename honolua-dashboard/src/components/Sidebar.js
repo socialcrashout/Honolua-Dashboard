@@ -82,7 +82,7 @@ const NAV_GROUPS = [
     label: "Administration",
     minLevel: ROLE_LEVELS.administrator,
     items: [
-      { href: "/staff/reports", label: "Reports", icon: AlertTriangle },
+      { href: "/team", label: "Reports", icon: AlertTriangle },
       { href: "/staff/users", label: "Users", icon: Users },
       { href: "/staff/files", label: "Files", icon: FileSearch },
     ],

@@ -1,15 +1,16 @@
-// api/workspace/status.js
-import { getSession, setSessionCookie } from "../../../lib/session.js";
+// api/workspace/status/route.js
+import { NextResponse } from "next/server";
+import { getSession, setSessionCookie } from "../../../../lib/session.js";
 
 const GROUP_ID = "189373609";
 const MIN_RANK = 216; // strictly above this passes — 216 itself does NOT
 
-export default async function handler(req, res) {
-  const session = getSession(req);
-  const forceRefresh = req.query?.refresh === "true";
+export async function GET(request) {
+  const session = getSession(request);
+  const forceRefresh = request.nextUrl.searchParams.get("refresh") === "true";
 
   if (!session.discordId) {
-    return res.status(200).json({
+    return NextResponse.json({
       discordConnected: false,
       robloxLinked: false,
       workspaceAllowed: false,
@@ -81,12 +82,10 @@ export default async function handler(req, res) {
     }
   }
 
-  setSessionCookie(res, session);
-
   const rank = session.workspaceRank ?? null;
   const allowed = rank !== null && rank > MIN_RANK;
 
-  res.status(200).json({
+  const response = NextResponse.json({
     discordConnected: true,
     discordId: session.discordId,
     discordUsername: session.discordUsername,
@@ -100,4 +99,8 @@ export default async function handler(req, res) {
     workspaceRoleName: session.workspaceRoleName || null,
     workspaceAllowed: allowed,
   });
+
+  setSessionCookie(response, session);
+
+  return response;
 }

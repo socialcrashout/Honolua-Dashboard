@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { Construction, ArrowLeft } from "lucide-react"
 
 export default function ComingSoonDoc({

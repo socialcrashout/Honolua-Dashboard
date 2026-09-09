@@ -79,7 +79,10 @@ const SOCIALS = [
   { label: "X", href: "#", Icon: XIcon },
 ];
 
-const LEGAL_LINKS = ["Terms of Service", "Privacy Policy"];
+const LEGAL_LINKS = [
+  { label: "Terms of Service", href: "#" },
+  { label: "Privacy Policy", href: "/privacy" },
+];
 
 export default function Footer() {
   const [ref, inView] = useInView(0.2);
@@ -179,13 +182,13 @@ export default function Footer() {
             }}
           >
             <div className="flex gap-5">
-              {LEGAL_LINKS.map((link) => (
+              {LEGAL_LINKS.map(({ label, href }) => (
                 <a
-                  key={link}
-                  href="#"
+                  key={label}
+                  href={href}
                   className="footer-link text-xs text-lava/50"
                 >
-                  {link}
+                  {label}
                 </a>
               ))}
             </div>

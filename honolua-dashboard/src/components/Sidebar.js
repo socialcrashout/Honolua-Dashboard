@@ -214,7 +214,7 @@ function RoleHeader({ username, avatarUrl, role, robloxRank, showLabel }) {
     return (
       <div className="relative flex justify-center py-3">
         <motion.div layout transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
-          <Avatar className="h-8 w-8 rounded-lg border border-lava/10 bg-lava/5">
+          <Avatar className="h-8 w-8 rounded-lg bg-lava/5">
             <AvatarImage src={avatarUrl || "/avatars/Placeholder.png"} alt={username || "Staff"} />
           </Avatar>
         </motion.div>
@@ -241,7 +241,7 @@ function RoleHeader({ username, avatarUrl, role, robloxRank, showLabel }) {
       <div className="flex items-center gap-2.5">
         <div className="relative">
           <motion.div layout transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
-            <Avatar className="h-9 w-9 shrink-0 rounded-lg border border-lava/10 bg-lava/5">
+            <Avatar className="h-9 w-9 shrink-0 rounded-lg bg-lava/5">
               <AvatarImage src={avatarUrl || "/avatars/Placeholder.png"} alt={username || "Staff"} />
             </Avatar>
           </motion.div>

@@ -122,19 +122,20 @@ function useReveal(threshold = 0.15) {
   return [ref, visible];
 }
 
-function SectionCard({ section, index }) {
+function SectionBlock({ section, index, isLast }) {
   const [ref, visible] = useReveal();
 
   return (
     <div
       ref={ref}
-      className="group relative rounded-[28px] border bg-white/70 backdrop-blur-sm px-7 py-8 md:px-10 md:py-9 transition-all duration-500 ease-out hover:-translate-y-1"
+      className={`group relative px-7 py-8 md:px-10 md:py-9 transition-all duration-500 ease-out ${
+        isLast ? "" : "border-b"
+      }`}
       style={{
-        borderColor: "rgba(230,115,111,0.14)",
-        boxShadow: "0 20px 45px -25px rgba(230,115,111,0.20)",
+        borderColor: "rgba(230,115,111,0.12)",
         opacity: visible ? 1 : 0,
-        transform: visible ? "translateY(0)" : "translateY(28px)",
-        transitionDelay: visible ? `${Math.min(index, 4) * 60}ms` : "0ms",
+        transform: visible ? "translateY(0)" : "translateY(24px)",
+        transitionDelay: visible ? `${Math.min(index, 4) * 50}ms` : "0ms",
       }}
     >
       <div className="flex items-start gap-4 md:gap-5 mb-4">
@@ -144,7 +145,7 @@ function SectionCard({ section, index }) {
             background: GRADIENT,
             transform: visible ? "scale(1)" : "scale(0.6)",
             opacity: visible ? 1 : 0,
-            transitionDelay: visible ? `${Math.min(index, 4) * 60 + 120}ms` : "0ms",
+            transitionDelay: visible ? `${Math.min(index, 4) * 50 + 100}ms` : "0ms",
           }}
         >
           {section.id}
@@ -170,7 +171,7 @@ function SectionCard({ section, index }) {
                 opacity: visible ? 1 : 0,
                 transform: visible ? "translateX(0)" : "translateX(-8px)",
                 transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
-                transitionDelay: visible ? `${180 + i * 55}ms` : "0ms",
+                transitionDelay: visible ? `${150 + i * 55}ms` : "0ms",
               }}
             >
               <span
@@ -288,8 +289,8 @@ export default function PrivacyPolicy() {
               animation: mounted ? "popFadeUp 0.6s ease-out forwards" : "none",
             }}
           >
-            <Link href="/" className="font-sans font-bold text-reef-navy text-lg">
-              Honolua
+            <Link href="/" className="inline-flex items-center">
+              <img src="/typo.png" alt="Honolua" className="h-7 md:h-8 w-auto" />
             </Link>
             <Link
               href="/"
@@ -356,9 +357,22 @@ export default function PrivacyPolicy() {
 
       <section className="relative bg-white pb-24">
         <div className="max-w-[860px] mx-auto px-6 md:px-8 -mt-6 md:-mt-8 space-y-6 relative z-10">
-          {SECTIONS.map((section, i) => (
-            <SectionCard key={section.id} section={section} index={i} />
-          ))}
+          <div
+            className="rounded-[28px] border bg-white/80 backdrop-blur-sm overflow-hidden"
+            style={{
+              borderColor: "rgba(230,115,111,0.14)",
+              boxShadow: "0 20px 45px -25px rgba(230,115,111,0.20)",
+            }}
+          >
+            {SECTIONS.map((section, i) => (
+              <SectionBlock
+                key={section.id}
+                section={section}
+                index={i}
+                isLast={i === SECTIONS.length - 1}
+              />
+            ))}
+          </div>
 
           {/* contact CTA */}
           <div

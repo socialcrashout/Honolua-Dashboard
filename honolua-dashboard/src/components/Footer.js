@@ -80,7 +80,7 @@ const SOCIALS = [
 ];
 
 const LEGAL_LINKS = [
-  { label: "Terms of Service", href: "#" },
+  { label: "Terms of Service", href: "/terms" },
   { label: "Privacy Policy", href: "/privacy" },
 ];
 

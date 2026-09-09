@@ -272,20 +272,6 @@ export default function PrivacyPolicy() {
           className="pointer-events-none absolute top-24 right-0 w-72 h-72 rounded-full blur-3xl opacity-30"
           style={{ background: "#E6736F", animation: "floatBlob 11s ease-in-out infinite 1.5s" }}
         />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute select-none text-4xl"
-          style={{ top: "18%", left: "6%", animation: "bob 6s ease-in-out infinite" }}
-        >
-          🌺
-        </div>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute select-none text-3xl"
-          style={{ top: "10%", right: "10%", animation: "bob 7s ease-in-out infinite 0.8s" }}
-        >
-          🌴
-        </div>
 
         <div className="max-w-[860px] mx-auto px-6 md:px-8 relative">
           {/* top bar */}
@@ -296,11 +282,11 @@ export default function PrivacyPolicy() {
             }}
           >
             <Link href="/" className="inline-flex items-center">
-              <img src="/typo.png" alt="Honolua" className="h-7 md:h-8 w-auto" />
+              <img src="/typo.png" alt="Honolua" className="h-9 w-auto shrink-0" />
             </Link>
             <Link
               href="/"
-              className="text-white font-extrabold text-xs md:text-sm px-5 py-3 rounded-full shadow-[0_10px_30px_-8px_rgba(230,115,111,0.4)] hover:-translate-y-0.5 transition-transform"
+              className="text-white font-bold text-sm px-5 py-2.5 rounded-full shadow-[0_10px_30px_-8px_rgba(230,115,111,0.4)] hover:-translate-y-0.5 transition-transform whitespace-nowrap"
               style={{ background: GRADIENT }}
             >
               Back to Dashboard
@@ -356,7 +342,7 @@ export default function PrivacyPolicy() {
           >
             Honolua values the privacy of its community members, staff, and users. This
             policy explains what information may be handled through Honolua's Roblox
-            groups, Discord server, internal systems, and related services. 🌊
+            groups, Discord server, internal systems, and related services.
           </p>
         </div>
       </section>
@@ -389,7 +375,6 @@ export default function PrivacyPolicy() {
               border: "1px solid rgba(230,115,111,0.15)",
             }}
           >
-            <div className="text-3xl mb-3">🌸</div>
             <h3 className="font-sans font-bold text-reef-navy text-xl md:text-2xl mb-2">
               Have a question or a request?
             </h3>

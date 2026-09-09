@@ -92,7 +92,7 @@ const SECTIONS = [
   },
 ];
 
-const GRADIENT = "linear-gradient(90deg, #F4B942, #E6736F, #F472B6)";
+const GRADIENT = "linear-gradient(90deg, #F7C873, #F4B942, #E6736F)";
 
 /* ---------------------------------------------------------
    useReveal — tiny in-view hook for scroll animations.
@@ -224,7 +224,13 @@ export default function PrivacyPolicy() {
   }, []);
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      style={{
+        background:
+          "linear-gradient(180deg, #FFFFFF 0%, #FFF8EF 12%, #FDEFE0 26%, #FFF6EC 42%, #FFFCF8 60%, #FFFFFF 100%)",
+      }}
+    >
       <style>{`
         @keyframes floatBlob {
           0%, 100% { transform: translate(0, 0) scale(1); }
@@ -252,7 +258,7 @@ export default function PrivacyPolicy() {
         className="relative overflow-hidden pt-14 md:pt-20 pb-14"
         style={{
           background:
-            "linear-gradient(135deg, #FFFFFF 0%, #FFF8EF 20%, #FDEFE0 38%, #FFF6EC 58%, #FFFFFF 80%, #FFFFFF 100%), radial-gradient(85% 65% at 8% 100%, rgba(244,114,182,0.08), transparent 60%), radial-gradient(70% 50% at 95% 0%, rgba(244,185,66,0.10), transparent 60%)",
+            "radial-gradient(85% 65% at 8% 100%, rgba(230,115,111,0.08), transparent 60%), radial-gradient(70% 50% at 95% 0%, rgba(244,185,66,0.12), transparent 60%)",
         }}
       >
         {/* decorative floating blobs */}
@@ -264,7 +270,7 @@ export default function PrivacyPolicy() {
         <div
           aria-hidden
           className="pointer-events-none absolute top-24 right-0 w-72 h-72 rounded-full blur-3xl opacity-30"
-          style={{ background: "#F472B6", animation: "floatBlob 11s ease-in-out infinite 1.5s" }}
+          style={{ background: "#E6736F", animation: "floatBlob 11s ease-in-out infinite 1.5s" }}
         />
         <div
           aria-hidden
@@ -355,7 +361,7 @@ export default function PrivacyPolicy() {
         </div>
       </section>
 
-      <section className="relative bg-white pb-24">
+      <section className="relative pb-24">
         <div className="max-w-[860px] mx-auto px-6 md:px-8 -mt-6 md:-mt-8 space-y-6 relative z-10">
           <div
             className="rounded-[28px] border bg-white/80 backdrop-blur-sm overflow-hidden"

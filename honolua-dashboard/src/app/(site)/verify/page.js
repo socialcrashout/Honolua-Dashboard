@@ -15,11 +15,23 @@ function useMounted() {
 }
 
 function DiscordIcon({ color = "5865F2", className }) {
-  return <img src={`https://cdn.simpleicons.org/discord/${color}`} alt="Discord" className={className} />;
+  return (
+    <img
+      src={`https://cdn.simpleicons.org/discord/${color}`}
+      alt="Discord"
+      className={className}
+    />
+  );
 }
 
 function RobloxIcon({ color = "000000", className }) {
-  return <img src={`https://cdn.simpleicons.org/roblox/${color}`} alt="Roblox" className={className} />;
+  return (
+    <img
+      src={`https://cdn.simpleicons.org/roblox/${color}`}
+      alt="Roblox"
+      className={className}
+    />
+  );
 }
 
 function CheckIcon(props) {
@@ -33,7 +45,11 @@ function CheckIcon(props) {
 function SpinnerIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" {...props}>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeDasharray="42" strokeDashoffset="14" />
+      <circle
+        cx="12" cy="12" r="9"
+        stroke="currentColor" strokeWidth="3" strokeLinecap="round"
+        strokeDasharray="42" strokeDashoffset="14"
+      />
     </svg>
   );
 }
@@ -55,7 +71,9 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
       style={{
         animation: mounted ? "stepIn 0.6s cubic-bezier(0.16,1,0.3,1) forwards" : "none",
         animationDelay: mounted ? `${delay}ms` : "0ms",
-        boxShadow: isActive ? "0 12px 32px -12px rgba(230,115,111,0.25)" : "0 1px 2px rgba(0,0,0,0.03)",
+        boxShadow: isActive
+          ? "0 12px 32px -12px rgba(230,115,111,0.25)"
+          : "0 1px 2px rgba(0,0,0,0.03)",
         outline: isActive ? "2px solid rgba(244,114,182,0.35)" : "2px solid transparent",
         outlineOffset: "-2px",
       }}
@@ -63,7 +81,9 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
       <div
         className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 overflow-hidden"
         style={{
-          background: isDone ? "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)" : "rgba(230,115,111,0.08)",
+          background: isDone
+            ? "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)"
+            : "rgba(230,115,111,0.08)",
           color: isDone ? "#fff" : "#8A6B60",
         }}
       >
@@ -71,7 +91,9 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
       </div>
 
       <div className="flex-1 min-w-0">
-        <h3 className="font-sans font-bold text-base md:text-lg text-reef-navy mb-1">{title}</h3>
+        <h3 className="font-sans font-bold text-base md:text-lg text-reef-navy mb-1">
+          {title}
+        </h3>
         <p className="text-sm text-lava/55 leading-relaxed">{desc}</p>
       </div>
 
@@ -84,10 +106,16 @@ function LinkedAccountRow({ label, avatarUrl, fallbackIcon, name, id }) {
   return (
     <div className="flex items-center gap-4 rounded-2xl bg-cream/60 border border-lava/10 px-5 py-4">
       <div className="shrink-0 w-11 h-11 rounded-xl overflow-hidden bg-white border border-lava/10 flex items-center justify-center">
-        {avatarUrl ? <img src={avatarUrl} alt={name} className="w-full h-full object-cover" /> : fallbackIcon}
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          fallbackIcon
+        )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-lava/45 mb-0.5">{label}</div>
+        <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-lava/45 mb-0.5">
+          {label}
+        </div>
         <div className="font-bold text-reef-navy truncate">{name}</div>
       </div>
       {id && (
@@ -106,11 +134,17 @@ function LinkedSuccessScreen({ mounted, status }) {
       style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
     >
       <div className="flex items-center justify-center gap-4 mb-6">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}>
+        <div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}
+        >
           <DiscordIcon color="ffffff" className="w-7 h-7" />
         </div>
         <CheckIcon className="w-5 h-5 text-hibiscus" />
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #F4B942, #E6736F)" }}>
+        <div
+          className="w-14 h-14 rounded-2xl flex items-center justify-center"
+          style={{ background: "linear-gradient(135deg, #F4B942, #E6736F)" }}
+        >
           <RobloxIcon color="ffffff" className="w-7 h-7" />
         </div>
       </div>
@@ -146,7 +180,9 @@ function LinkedSuccessScreen({ mounted, status }) {
         />
       </div>
 
-      <p className="text-xs text-lava/45 text-center">Your accounts are now connected and ready to use.</p>
+      <p className="text-xs text-lava/45 text-center">
+        Your accounts are now connected and ready to use.
+      </p>
     </div>
   );
 }
@@ -226,6 +262,9 @@ function VerifyContent() {
   const robloxLinked = status?.robloxLinked;
   const bothReady = discordConnected && robloxLinked;
 
+  // Auto-confirm the instant both accounts are linked — no button click
+  // needed. Guarded by the ref so it only ever fires once per page load,
+  // even if bothReady flips true/false/true from a re-fetch.
   useEffect(() => {
     if (bothReady && !done && !confirming && !autoConfirmedRef.current) {
       autoConfirmedRef.current = true;
@@ -257,23 +296,34 @@ function VerifyContent() {
       `}</style>
 
       <div className="max-w-[720px] mx-auto px-6 md:px-8">
-        <div className="mb-10 opacity-0" style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}>
+        <div
+          className="mb-10 opacity-0"
+          style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
+        >
           <div className="inline-flex items-center gap-2.5 text-xs font-bold tracking-[0.18em] uppercase text-hibiscus mb-5">
-            <span className="h-px bg-hibiscus/60 transition-all duration-700 ease-out" style={{ width: mounted ? 20 : 0 }} />
+            <span
+              className="h-px bg-hibiscus/60 transition-all duration-700 ease-out"
+              style={{ width: mounted ? 20 : 0 }}
+            />
             Roblox &amp; Discord Verification
           </div>
           <h1 className="font-serif italic font-medium text-reef-navy text-4xl md:text-5xl leading-tight mb-5">
             Verify to enter Honolua.
           </h1>
           <p className="text-lg leading-relaxed text-lava/60 max-w-[520px]">
-            Log in with Discord and we'll pull your linked Roblox account to confirm your staff role.
+            Log in with Discord and we'll pull your linked Roblox account to
+            confirm your staff role.
           </p>
         </div>
 
         {errorParam && (
           <div
             className="mb-6 rounded-2xl px-5 py-4 text-sm font-semibold opacity-0"
-            style={{ animation: "heroFadeUp 0.4s ease-out forwards", background: "rgba(230,115,111,0.10)", color: "#B5473F" }}
+            style={{
+              animation: "heroFadeUp 0.4s ease-out forwards",
+              background: "rgba(230,115,111,0.10)",
+              color: "#B5473F",
+            }}
           >
             {ERROR_MESSAGES[errorParam] || "Something went wrong. Please try again."}
           </div>
@@ -284,13 +334,19 @@ function VerifyContent() {
             <StepCard
               index={1}
               title="Discord account"
-              desc={discordConnected ? `Logged in as @${status.discordUsername}` : "Log in with Discord to start verification."}
+              desc={
+                discordConnected
+                  ? `Logged in as @${status.discordUsername}`
+                  : "Log in with Discord to start verification."
+              }
               status={discordConnected ? "done" : "active"}
               mounted={mounted}
               delay={100}
               action={
                 discordConnected ? (
-                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Connected</span>
+                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">
+                    Connected
+                  </span>
                 ) : (
                   <a
                     href="/api/auth/discord"
@@ -320,7 +376,11 @@ function VerifyContent() {
               action={
                 robloxLinked ? (
                   status.robloxAvatarUrl && (
-                    <img src={status.robloxAvatarUrl} alt={status.robloxUsername} className="w-10 h-10 rounded-xl object-cover" />
+                    <img
+                      src={status.robloxAvatarUrl}
+                      alt={status.robloxUsername}
+                      className="w-10 h-10 rounded-xl object-cover"
+                    />
                   )
                 ) : discordConnected ? (
                   <div className="flex flex-col items-end gap-2">
@@ -333,7 +393,10 @@ function VerifyContent() {
                     >
                       Verify with Bloxlink
                     </a>
-                    <button onClick={fetchStatus} className="text-xs font-bold text-reef-navy/60 hover:text-reef-navy">
+                    <button
+                      onClick={fetchStatus}
+                      className="text-xs font-bold text-reef-navy/60 hover:text-reef-navy"
+                    >
                       Refresh
                     </button>
                   </div>
@@ -354,7 +417,14 @@ function VerifyContent() {
               status={done ? "done" : "pending"}
               mounted={mounted}
               delay={300}
-              action={confirming ? <SpinnerIcon className="w-5 h-5 text-hibiscus" style={{ animation: "spin 0.8s linear infinite" }} /> : null}
+              action={
+                confirming ? (
+                  <SpinnerIcon
+                    className="w-5 h-5 text-hibiscus"
+                    style={{ animation: "spin 0.8s linear infinite" }}
+                  />
+                ) : null
+              }
             />
           </div>
         )}
@@ -365,8 +435,13 @@ function VerifyContent() {
           </div>
         )}
 
+        {/* Only shown if auto-confirm actually failed — gives the user a
+            way to retry without needing to refresh the whole page. */}
         {!done && confirmError && (
-          <div className="flex flex-col gap-3 opacity-0" style={{ animation: "heroFadeUp 0.4s ease-out forwards" }}>
+          <div
+            className="flex flex-col gap-3 opacity-0"
+            style={{ animation: "heroFadeUp 0.4s ease-out forwards" }}
+          >
             <p className="text-sm font-semibold" style={{ color: "#B5473F" }}>
               {confirmError}
             </p>
@@ -394,6 +469,7 @@ export default function Verify() {
       <Suspense fallback={null}>
         <VerifyContent />
       </Suspense>
+      <Footer />
     </div>
   );
 }

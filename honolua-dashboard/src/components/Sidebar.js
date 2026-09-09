@@ -1,7 +1,6 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -301,11 +300,9 @@ function MobileSidebarContent({ pathname, logoSrc, profile, visibleGroups }) {
       <div className="flex h-12 flex-col justify-center border-b border-lava/10 px-4">
         <div className="flex items-center gap-2">
           {logoSrc ? (
-            <Image
+            <img
               src={logoSrc}
-              alt="Logo"
-              width={72}
-              height={18}
+              alt="Honolua"
               className="h-4 w-auto object-contain"
             />
           ) : (
@@ -365,7 +362,7 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
           <div className="flex items-center justify-between">
             <div>
               {logoSrc ? (
-                <Image src={logoSrc} alt="Logo" width={22} height={22} className="object-contain" />
+                <img src={logoSrc} alt="Honolua" className="h-5 w-auto object-contain" />
               ) : (
                 <div
                   className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold text-white"
@@ -470,7 +467,7 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
 
 export default function StaffSidebar() {
   const pathname = usePathname()
-  const logoSrc = "/brand/1.png"
+  const logoSrc = "/typo.png"
   const [expanded, setExpanded] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const [profile, setProfile] = useState({ username: "", avatarUrl: "", role: "" })

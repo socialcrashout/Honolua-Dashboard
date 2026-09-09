@@ -1,5 +1,3 @@
-import Nav from "@/components/Nav.js";
-import Footer from "@/components/Footer.js";
 import PrivacyPolicy from "@/components/PrivacyPolicy";
 
 export const metadata = {
@@ -8,11 +6,5 @@ export const metadata = {
 };
 
 export default function PrivacyPage() {
-  return (
-    <div className="min-h-screen">
-      <Nav />
-      <PrivacyPolicy />
-      <Footer />
-    </div>
-  );
+  return <PrivacyPolicy />;
 }

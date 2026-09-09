@@ -254,13 +254,7 @@ export default function PrivacyPolicy() {
         />
       </div>
 
-      <section
-        className="relative overflow-hidden pt-14 md:pt-20 pb-14"
-        style={{
-          background:
-            "radial-gradient(85% 65% at 8% 100%, rgba(230,115,111,0.08), transparent 60%), radial-gradient(70% 50% at 95% 0%, rgba(244,185,66,0.12), transparent 60%)",
-        }}
-      >
+      <section className="relative pt-14 md:pt-20 pb-24">
         {/* decorative floating blobs */}
         <div
           aria-hidden
@@ -324,7 +318,7 @@ export default function PrivacyPolicy() {
           </h1>
 
           <p
-            className="text-lava/65 text-base md:text-lg mb-3 opacity-0"
+            className="text-lava/65 text-base md:text-lg mb-10 opacity-0"
             style={{
               animation: mounted ? "popFadeUp 0.7s ease-out forwards" : "none",
               animationDelay: "260ms",
@@ -333,24 +327,8 @@ export default function PrivacyPolicy() {
             Last updated: {LAST_UPDATED}
           </p>
 
-          <p
-            className="text-lava/70 leading-relaxed max-w-[620px] opacity-0"
-            style={{
-              animation: mounted ? "popFadeUp 0.7s ease-out forwards" : "none",
-              animationDelay: "340ms",
-            }}
-          >
-            Honolua values the privacy of its community members, staff, and users. This
-            policy explains what information may be handled through Honolua's Roblox
-            groups, Discord server, internal systems, and related services.
-          </p>
-        </div>
-      </section>
-
-      <section className="relative pb-24">
-        <div className="max-w-[860px] mx-auto px-6 md:px-8 -mt-6 md:-mt-8 space-y-6 relative z-10">
           <div
-            className="rounded-[28px] border bg-white/80 backdrop-blur-sm overflow-hidden"
+            className="rounded-[28px] border bg-white/80 backdrop-blur-sm overflow-hidden relative z-10"
             style={{
               borderColor: "rgba(230,115,111,0.14)",
               boxShadow: "0 20px 45px -25px rgba(230,115,111,0.20)",
@@ -364,32 +342,6 @@ export default function PrivacyPolicy() {
                 isLast={i === SECTIONS.length - 1}
               />
             ))}
-          </div>
-
-          {/* contact CTA */}
-          <div
-            className="relative rounded-[28px] px-7 py-10 md:px-10 md:py-12 text-center overflow-hidden"
-            style={{
-              background:
-                "linear-gradient(160deg, #FFF8EF 0%, #FDEFE0 55%, #FFF6EC 100%)",
-              border: "1px solid rgba(230,115,111,0.15)",
-            }}
-          >
-            <h3 className="font-sans font-bold text-reef-navy text-xl md:text-2xl mb-2">
-              Have a question or a request?
-            </h3>
-            <p className="text-lava/70 leading-relaxed max-w-[440px] mx-auto mb-6">
-              Reach out to the Owner about anything in this policy, or if you'd like
-              information corrected or removed.
-            </p>
-            {/* TODO: point this at your actual contact channel (Discord, form, etc.) */}
-            <a
-              href="#"
-              className="inline-block text-white font-extrabold text-sm px-7 py-4 rounded-full shadow-[0_10px_30px_-8px_rgba(230,115,111,0.4)] hover:-translate-y-0.5 transition-transform"
-              style={{ background: GRADIENT }}
-            >
-              Contact the Owner
-            </a>
           </div>
         </div>
       </section>

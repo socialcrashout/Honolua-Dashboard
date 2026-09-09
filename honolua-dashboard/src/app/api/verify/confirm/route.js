@@ -1,7 +1,8 @@
 // api/verify/confirm/route.js
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session.js";
-import { sendVerificationLog } from "@/lib/discordLog.js";
+import { getSession } from "@/lib/session";
+import { sendVerificationLog } from "@/lib/discordLog";
+
 
 const DOT_EMOJI = "<:zarrow5:1525550609665757409>";
 const ROBLOX_ACCOUNT_EMOJI = "<:Roblox:1545860046867529828>";
@@ -122,16 +123,15 @@ export async function POST(request) {
     }
 
     try {
-      await sendWorkspaceLoginLog({
+      await sendVerificationLog({
         robloxUsername: session.robloxUsername,
         robloxId: session.robloxId,
         discordId: session.discordId,
-        discordUsername: session.discordUsername,
         joinedTimestamp: session.joinedTimestamp,
-        loginTimestamp: Math.floor(Date.now() / 1000),
+        verifiedTimestamp: Math.floor(Date.now() / 1000),
       });
     } catch (logErr) {
-      console.error("Workspace login log failed (non-fatal):", logErr);
+      console.error("Verification log failed (non-fatal):", logErr);
     }
 
     return NextResponse.json({ success: true });

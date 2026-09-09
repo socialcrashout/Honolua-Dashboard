@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 
-const SIDEBAR_STORAGE_KEY = "yumi-staff-sidebar-expanded"
+const SIDEBAR_STORAGE_KEY = "honolua-staff-sidebar-expanded"
 
 // Shared brand gradient used across the site (CTAs, active/elevated accents)
 const BRAND_GRADIENT = "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)"
@@ -47,22 +47,6 @@ const ROLE_LEVELS = {
   manager: 2,
   executive: 3,
   owner: 4,
-}
-
-const ROLE_LABELS = {
-  owner: "Owner",
-  executive: "Executive",
-  manager: "Manager",
-  administrator: "Administrator",
-  moderator: "Moderator",
-}
-
-const ROLE_ACCENTS = {
-  owner: "border-[#F4B942]/40 bg-[#F4B942]/10 text-[#8A6B60]",
-  executive: "border-hibiscus/25 bg-hibiscus/10 text-hibiscus",
-  manager: "border-[#E6736F]/25 bg-[#E6736F]/10 text-[#E6736F]",
-  administrator: "border-lava/15 bg-lava/5 text-lava/60",
-  moderator: "border-lava/10 bg-lava/5 text-lava/45",
 }
 
 const NAV_GROUPS = [
@@ -223,9 +207,7 @@ function GroupLabel({ children, showLabel }) {
   )
 }
 
-function RoleHeader({ username, avatarUrl, role, showLabel }) {
-  const roleLabel = ROLE_LABELS[role] || "Staff"
-  const accent = ROLE_ACCENTS[role] || ROLE_ACCENTS.moderator
+function RoleHeader({ username, avatarUrl, role, robloxRank, showLabel }) {
   const isElevated = role === "owner" || role === "executive"
 
   if (!showLabel) {
@@ -285,9 +267,7 @@ function RoleHeader({ username, avatarUrl, role, showLabel }) {
           className="min-w-0"
         >
           <div className="truncate text-sm font-medium text-reef-navy">{username || "Staff"}</div>
-          <div className={cn("mt-0.5 inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide", accent)}>
-            {roleLabel}
-          </div>
+          <div className="truncate text-xs text-lava/45">{robloxRank || "No Roblox rank"}</div>
         </motion.div>
       </div>
     </div>
@@ -318,7 +298,13 @@ function MobileSidebarContent({ pathname, logoSrc, profile, visibleGroups }) {
       </div>
 
       <div className="border-b border-lava/10">
-        <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} role={profile?.role} showLabel />
+        <RoleHeader
+          username={profile?.username}
+          avatarUrl={profile?.avatarUrl}
+          role={profile?.role}
+          robloxRank={profile?.robloxRank}
+          showLabel
+        />
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3 scrollbar-hide">
@@ -433,7 +419,13 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
       </div>
 
       <div className="border-b border-lava/10">
-        <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} role={profile?.role} showLabel={expanded} />
+        <RoleHeader
+          username={profile?.username}
+          avatarUrl={profile?.avatarUrl}
+          role={profile?.role}
+          robloxRank={profile?.robloxRank}
+          showLabel={expanded}
+        />
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden p-2 scrollbar-hide">
@@ -470,7 +462,7 @@ export default function StaffSidebar() {
   const logoSrc = "/typo.png"
   const [expanded, setExpanded] = useState(false)
   const [hydrated, setHydrated] = useState(false)
-  const [profile, setProfile] = useState({ username: "", avatarUrl: "", role: "" })
+  const [profile, setProfile] = useState({ username: "", avatarUrl: "", role: "", robloxRank: "" })
 
   useEffect(() => {
     try {
@@ -491,6 +483,7 @@ export default function StaffSidebar() {
             username: j?.user?.username || "",
             avatarUrl: j?.user?.avatarUrl || "",
             role: j?.user?.staffRole || "",
+            robloxRank: j?.user?.robloxRank || "",
           })
         }
       } catch {}

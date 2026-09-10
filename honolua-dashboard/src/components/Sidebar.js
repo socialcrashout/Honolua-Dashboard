@@ -132,7 +132,8 @@ function NavItem({ item, pathname, showLabel = false, index = 0, pillId = "activ
         {active ? (
           <motion.div
             layoutId={pillId}
-            className="absolute inset-0 rounded-xl bg-black/[0.06]"
+            className="absolute inset-0 rounded-xl"
+            style={{ background: BRAND_GRADIENT_ROW }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
           />
         ) : (
@@ -494,11 +495,12 @@ export default function StaffSidebar() {
       </div>
 
       <motion.aside
-        data-sidebar-expanded={hydrated && expanded ? "true" : "false"}
-        initial={false}
-        animate={{ width: hydrated && expanded ? 216 : 56 }}
-        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="fixed inset-y-0 left-0 z-40 hidden overflow-hidden border-r border-lava/10 bg-white shadow-[1px_0_3px_rgba(0,0,0,0.03)] md:flex md:flex-col"
+          data-sidebar-expanded={hydrated && expanded ? "true" : "false"}
+          initial={false}
+          animate={{ width: hydrated && expanded ? 216 : 56 }}
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          style={{ background: "linear-gradient(180deg, rgba(244,185,66,0.04), rgba(230,115,111,0.02))" }}
+          className="fixed inset-y-0 left-0 z-40 hidden overflow-hidden border-r border-lava/10 bg-white shadow-[1px_0_3px_rgba(0,0,0,0.03)] md:flex md:flex-col"
       >
         <DesktopSidebarContent
           pathname={pathname}

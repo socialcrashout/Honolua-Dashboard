@@ -132,36 +132,32 @@ function NavItem({ item, pathname, showLabel = false, index = 0, pillId = "activ
       <Link
         href={item.href}
         className={cn(
-          "relative flex items-center rounded-md transition-colors duration-200",
-          showLabel ? "gap-3 px-3 py-2" : "justify-center p-2.5",
-          active ? "text-reef-navy" : "text-lava/50 hover:text-reef-navy"
+          "relative flex items-center rounded-xl transition-colors duration-200",
+          showLabel ? "gap-3 px-3 py-2.5" : "justify-center p-2.5",
+          active ? "text-reef-navy font-medium" : "text-lava/50 hover:text-reef-navy"
         )}
         title={!showLabel ? item.label : undefined}
       >
         {active ? (
           <motion.div
             layoutId={pillId}
-            className="absolute inset-0 rounded-md"
-            style={{
-              background:
-                "linear-gradient(90deg, rgba(244,185,66,0.12), rgba(230,115,111,0.14), rgba(244,114,182,0.12))",
-            }}
+            className="absolute inset-0 rounded-xl bg-black/[0.06]"
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
           />
         ) : (
           <motion.div
-            className="absolute inset-0 rounded-md bg-lava/5 opacity-0"
+            className="absolute inset-0 rounded-xl bg-black/[0.035] opacity-0"
             whileHover={{ opacity: 1 }}
             transition={{ duration: 0.15 }}
           />
         )}
         <motion.span
           className="relative z-10 flex items-center gap-3"
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.94 }}
-          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.96 }}
+          transition={{ type: "spring", stiffness: 400, damping: 22 }}
         >
-          <Icon className="h-[18px] w-[18px] shrink-0" />
+          <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.25 : 2} />
           <AnimatePresence initial={false}>
             {showLabel && (
               <motion.span
@@ -214,7 +210,7 @@ function GroupLabel({ children, showLabel }) {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="px-3 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-lava/35 first:pt-1"
+          className="px-3 pb-2 pt-4 text-[10px] font-medium uppercase tracking-[0.22em] text-lava/30 first:pt-1"
         >
           {children}
         </motion.div>

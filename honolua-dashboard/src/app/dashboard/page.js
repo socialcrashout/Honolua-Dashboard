@@ -29,9 +29,7 @@ export default function Dashboard() {
       <div className="flex">
         <Sidebar />
         <div className="justify-center items-center flex-1 p-8">
-          <div className="max-w-4xl">
-            <p>Dashboard</p>
-          </div>
+          <div className="max-w-4xl">{/* main dashboard content goes here */}</div>
         </div>
       </div>
     </div>

@@ -35,24 +35,34 @@ import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 
-const SIDEBAR_STORAGE_KEY = "honolua-staff-sidebar-expanded"
+const SIDEBAR_STORAGE_KEY = "yumi-staff-sidebar-expanded"
 
 // Shared brand gradient used across the site (CTAs, active/elevated accents)
 const BRAND_GRADIENT = "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)"
 const BRAND_GRADIENT_ROW = "linear-gradient(90deg, #F4B942, #E6736F, #F472B6)"
 
-const ROLE_LEVELS = {
-  moderator: 0,
-  administrator: 1,
-  manager: 2,
-  executive: 3,
-  owner: 4,
+// ---------------------------------------------------------------------------
+// Section access is gated by numeric Roblox group rank, not a staff-role
+// string. EDIT THESE RANGES to match your group's actual rank numbers —
+// `min`/`max` are inclusive. Employee is set to your 216–223 example;
+// fill in the real ranges for the rest.
+// ---------------------------------------------------------------------------
+const RANK_RANGES = {
+  employee: { min: 216, max: 223 },
+  administration: { min: 224, max: 231 }, // placeholder — edit me
+  management: { min: 232, max: 239 }, // placeholder — edit me
+  executive: { min: 240, max: 255 }, // placeholder — edit me
+}
+
+function rankInRange(rank, range) {
+  if (typeof rank !== "number" || Number.isNaN(rank)) return false
+  return rank >= range.min && rank <= range.max
 }
 
 const NAV_GROUPS = [
   {
     label: "Employee",
-    minLevel: ROLE_LEVELS.moderator,
+    rankRange: RANK_RANGES.employee,
     items: [
       { href: "/staff", label: "Overview", icon: LayoutGrid },
       { href: "/staff/support", label: "Support", icon: MessageCircle },
@@ -63,7 +73,7 @@ const NAV_GROUPS = [
   },
   {
     label: "Administration",
-    minLevel: ROLE_LEVELS.administrator,
+    rankRange: RANK_RANGES.administration,
     items: [
       { href: "/staff/reports", label: "Reports", icon: AlertTriangle },
       { href: "/staff/users", label: "Users", icon: Users },
@@ -72,7 +82,7 @@ const NAV_GROUPS = [
   },
   {
     label: "Management",
-    minLevel: ROLE_LEVELS.manager,
+    rankRange: RANK_RANGES.management,
     items: [
       { href: "/staff/staff", label: "Staff", icon: Shield },
       { href: "/staff/applications", label: "Applications", icon: ClipboardList },
@@ -83,7 +93,7 @@ const NAV_GROUPS = [
   },
   {
     label: "Executive",
-    minLevel: ROLE_LEVELS.executive,
+    rankRange: RANK_RANGES.executive,
     items: [
       { href: "/staff/departments", label: "App. Depts", icon: Layers },
       { href: "/staff/giveaways", label: "Giveaways", icon: PartyPopper },
@@ -203,31 +213,17 @@ function GroupLabel({ children, showLabel }) {
   )
 }
 
-function RoleHeader({ username, avatarUrl, role, robloxRank, showLabel }) {
-  const isElevated = role === "owner" || role === "executive"
+function RoleHeader({ username, avatarUrl, roleLabel, showLabel }) {
+  const label = roleLabel || "Staff"
 
   if (!showLabel) {
     return (
       <div className="relative flex justify-center py-3">
         <motion.div layout transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
-          <Avatar className="h-8 w-8 rounded-lg bg-lava/5">
+          <Avatar className="h-8 w-8 rounded-lg border border-lava/10 bg-lava/5">
             <AvatarImage src={avatarUrl || "/avatars/Placeholder.png"} alt={username || "Staff"} />
           </Avatar>
         </motion.div>
-        <AnimatePresence>
-          {isElevated ? (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              transition={{ type: "spring", stiffness: 500, damping: 20 }}
-              className="absolute -right-0.5 top-2 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white"
-              style={{ background: BRAND_GRADIENT }}
-            >
-              <Crown className="h-2 w-2 text-white" />
-            </motion.span>
-          ) : null}
-        </AnimatePresence>
       </div>
     )
   }
@@ -237,24 +233,10 @@ function RoleHeader({ username, avatarUrl, role, robloxRank, showLabel }) {
       <div className="flex items-center gap-2.5">
         <div className="relative">
           <motion.div layout transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
-            <Avatar className="h-9 w-9 shrink-0 rounded-lg bg-lava/5">
+            <Avatar className="h-9 w-9 shrink-0 rounded-lg border border-lava/10 bg-lava/5">
               <AvatarImage src={avatarUrl || "/avatars/Placeholder.png"} alt={username || "Staff"} />
             </Avatar>
           </motion.div>
-          <AnimatePresence>
-            {isElevated ? (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                transition={{ type: "spring", stiffness: 500, damping: 20 }}
-                className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white"
-                style={{ background: BRAND_GRADIENT }}
-              >
-                <Crown className="h-2.5 w-2.5 text-white" />
-              </motion.span>
-            ) : null}
-          </AnimatePresence>
         </div>
         <motion.div
           initial={{ opacity: 0, x: -6 }}
@@ -263,7 +245,9 @@ function RoleHeader({ username, avatarUrl, role, robloxRank, showLabel }) {
           className="min-w-0"
         >
           <div className="truncate text-sm font-medium text-reef-navy">{username || "Staff"}</div>
-          <div className="truncate text-xs text-lava/45">{robloxRank || "No Roblox rank"}</div>
+          <div className="mt-0.5 inline-flex items-center rounded-full border border-lava/10 bg-lava/5 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-lava/60">
+            {label}
+          </div>
         </motion.div>
       </div>
     </div>
@@ -294,13 +278,7 @@ function MobileSidebarContent({ pathname, logoSrc, profile, visibleGroups }) {
       </div>
 
       <div className="border-b border-lava/10">
-        <RoleHeader
-          username={profile?.username}
-          avatarUrl={profile?.avatarUrl}
-          role={profile?.role}
-          robloxRank={profile?.robloxRank}
-          showLabel
-        />
+        <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} roleLabel={profile?.robloxRank} showLabel />
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3 scrollbar-hide">
@@ -415,13 +393,7 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
       </div>
 
       <div className="border-b border-lava/10">
-        <RoleHeader
-          username={profile?.username}
-          avatarUrl={profile?.avatarUrl}
-          role={profile?.role}
-          robloxRank={profile?.robloxRank}
-          showLabel={expanded}
-        />
+        <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} roleLabel={profile?.robloxRank} showLabel={expanded} />
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden p-2 scrollbar-hide">
@@ -458,7 +430,7 @@ export default function StaffSidebar() {
   const logoSrc = "/typo.png"
   const [expanded, setExpanded] = useState(false)
   const [hydrated, setHydrated] = useState(false)
-  const [profile, setProfile] = useState({ username: "", avatarUrl: "", role: "", robloxRank: "" })
+  const [profile, setProfile] = useState({ username: "", avatarUrl: "", robloxRank: "", robloxRankId: null })
 
   useEffect(() => {
     try {
@@ -478,8 +450,11 @@ export default function StaffSidebar() {
           setProfile({
             username: j?.user?.username || "",
             avatarUrl: j?.user?.avatarUrl || "",
-            role: j?.user?.staffRole || "",
             robloxRank: j?.user?.robloxRank || "",
+            // Numeric Roblox group rank — this is what gates section
+            // visibility below. Make sure /api/auth/me actually returns
+            // this field (e.g. j.user.robloxRankId).
+            robloxRankId: typeof j?.user?.robloxRankId === "number" ? j.user.robloxRankId : null,
           })
         }
       } catch {}
@@ -499,8 +474,7 @@ export default function StaffSidebar() {
     })
   }
 
-  const myLevel = ROLE_LEVELS[profile.role] ?? -1
-  const visibleGroups = NAV_GROUPS.filter((group) => myLevel >= group.minLevel)
+  const visibleGroups = NAV_GROUPS.filter((group) => rankInRange(profile.robloxRankId, group.rankRange))
 
   return (
     <>

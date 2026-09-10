@@ -47,7 +47,11 @@ export async function GET(request) {
       username: discordUsername,
       avatarUrl,
       robloxUsername: session.robloxUsername || null,
+      // `robloxRank` is the human-friendly role name; `robloxRankId` is
+      // the numeric group rank used for gating sections in the sidebar.
       robloxRank: session.workspaceRoleName || null,
+      robloxRankId: typeof session.workspaceRank === "number" ? session.workspaceRank : null,
+      robloxAvatarUrl: session.robloxAvatarUrl || null,
       staffRole: session.staffRole || null, // not populated yet — see note
     },
   });

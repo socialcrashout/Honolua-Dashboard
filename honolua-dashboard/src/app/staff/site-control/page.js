@@ -13,9 +13,9 @@ export default async function SiteControlPage() {
   const cookieStore = await cookies()
   const session = getSession({ cookies: cookieStore })
 
-  if (!session?.discordId) {
-    redirect("/login")
-  }
+  //if (!session?.discordId) {
+    //redirect("/login")
+  //}
 
   // NOTE: this only confirms the person is logged in. It does not yet check
   // their Roblox rank server-side the way the sidebar does on the client —

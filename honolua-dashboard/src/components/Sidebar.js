@@ -28,7 +28,6 @@ import {
   CreditCard,
   PanelLeftClose,
   PanelLeftOpen,
-  Crown,
   TrendingUp,
   Bug
 } from "lucide-react"
@@ -49,22 +48,6 @@ const ROLE_LEVELS = {
   manager: 2,
   executive: 3,
   owner: 4,
-}
-
-const ROLE_LABELS = {
-  owner: "Owner",
-  executive: "Executive",
-  manager: "Manager",
-  administrator: "Administrator",
-  moderator: "Moderator",
-}
-
-const ROLE_ACCENTS = {
-  owner: "border-[#F4B942]/40 bg-[#F4B942]/10 text-[#8A6B60]",
-  executive: "border-hibiscus/25 bg-hibiscus/10 text-hibiscus",
-  manager: "border-[#E6736F]/25 bg-[#E6736F]/10 text-[#E6736F]",
-  administrator: "border-lava/15 bg-lava/5 text-lava/60",
-  moderator: "border-lava/10 bg-lava/5 text-lava/45",
 }
 
 const NAV_GROUPS = [
@@ -225,80 +208,9 @@ function GroupLabel({ children, showLabel }) {
   )
 }
 
-function RoleHeader({ username, avatarUrl, role, showLabel }) {
-  const roleLabel = ROLE_LABELS[role] || "Staff"
-  const accent = ROLE_ACCENTS[role] || ROLE_ACCENTS.moderator
-  const isElevated = role === "owner" || role === "executive"
-
-  if (!showLabel) {
-    return (
-      <div className="relative flex justify-center py-3">
-        <motion.div layout transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
-          <Avatar className="h-8 w-8 rounded-lg border border-lava/10 bg-lava/5">
-            <AvatarImage src={avatarUrl || "/avatars/Placeholder.png"} alt={username || "Staff"} />
-          </Avatar>
-        </motion.div>
-        <AnimatePresence>
-          {isElevated ? (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              transition={{ type: "spring", stiffness: 500, damping: 20 }}
-              className="absolute -right-0.5 top-2 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white"
-              style={{ background: BRAND_GRADIENT }}
-            >
-              <Crown className="h-2 w-2 text-white" />
-            </motion.span>
-          ) : null}
-        </AnimatePresence>
-      </div>
-    )
-  }
-
-  return (
-    <div className="px-3 py-3">
-      <div className="flex items-center gap-2.5">
-        <div className="relative">
-          <motion.div layout transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
-            <Avatar className="h-9 w-9 shrink-0 rounded-lg border border-lava/10 bg-lava/5">
-              <AvatarImage src={avatarUrl || "/avatars/Placeholder.png"} alt={username || "Staff"} />
-            </Avatar>
-          </motion.div>
-          <AnimatePresence>
-            {isElevated ? (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                transition={{ type: "spring", stiffness: 500, damping: 20 }}
-                className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white"
-                style={{ background: BRAND_GRADIENT }}
-              >
-                <Crown className="h-2.5 w-2.5 text-white" />
-              </motion.span>
-            ) : null}
-          </AnimatePresence>
-        </div>
-        <motion.div
-          initial={{ opacity: 0, x: -6 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.18, delay: 0.05 }}
-          className="min-w-0"
-        >
-          <div className="truncate text-sm font-medium text-reef-navy">{username || "Staff"}</div>
-          <div className={cn("mt-0.5 inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide", accent)}>
-            {roleLabel}
-          </div>
-        </motion.div>
-      </div>
-    </div>
-  )
-}
-
-// Roblox username + live group rank, pulled from /api/staff/roblox-rank.
-// Sits directly under the RoleHeader, collapses to just the avatar + a
-// small gradient dot when the sidebar is collapsed.
+// Roblox username + live group rank, pulled from Bloxlink + Roblox APIs.
+// Now the sidebar's single identity block (the old Discord username/role
+// header was removed — redundant next to this).
 function RobloxStatus({ roblox, showLabel }) {
   if (!roblox?.username) return null
 
@@ -369,18 +281,18 @@ function RobloxStatus({ roblox, showLabel }) {
   )
 }
 
-function MobileSidebarContent({ pathname, logoSrc, profile, roblox, visibleGroups }) {
+function MobileSidebarContent({ pathname, logoSrc, roblox, visibleGroups }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-12 flex-col justify-center border-b border-lava/10 px-4">
+      <div className="flex h-14 flex-col justify-center border-b border-lava/10 px-4">
         <div className="flex items-center gap-2">
           {logoSrc ? (
             <Image
               src={logoSrc}
               alt="Logo"
-              width={72}
-              height={18}
-              className="h-4 w-auto object-contain"
+              width={140}
+              height={36}
+              className="h-8 w-auto object-contain"
             />
           ) : (
             <div
@@ -392,10 +304,6 @@ function MobileSidebarContent({ pathname, logoSrc, profile, roblox, visibleGroup
           )}
         </div>
         <div className="text-[9px] uppercase tracking-[0.2em] text-lava/40">Staff Portal</div>
-      </div>
-
-      <div className="border-b border-lava/10">
-        <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} role={profile?.role} showLabel />
       </div>
 
       <RobloxStatus roblox={roblox} showLabel />
@@ -428,7 +336,7 @@ function MobileSidebarContent({ pathname, logoSrc, profile, roblox, visibleGroup
   )
 }
 
-function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile, roblox, visibleGroups }) {
+function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, roblox, visibleGroups }) {
   return (
     <div className="flex h-full flex-col">
       <div
@@ -441,7 +349,13 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
           <div className="flex items-center justify-between">
             <div>
               {logoSrc ? (
-                <Image src={logoSrc} alt="Logo" width={22} height={22} className="object-contain" />
+                <Image
+                  src={logoSrc}
+                  alt="Logo"
+                  width={150}
+                  height={38}
+                  className="h-7 w-auto object-contain"
+                />
               ) : (
                 <div
                   className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold text-white"
@@ -509,10 +423,6 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
             </motion.div>
           ) : null}
         </AnimatePresence>
-      </div>
-
-      <div className="border-b border-lava/10">
-        <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} role={profile?.role} showLabel={expanded} />
       </div>
 
       <RobloxStatus roblox={roblox} showLabel={expanded} />
@@ -643,7 +553,6 @@ export default function StaffSidebar() {
             <MobileSidebarContent
               pathname={pathname}
               logoSrc={logoSrc}
-              profile={profile}
               roblox={roblox}
               visibleGroups={visibleGroups}
             />
@@ -663,7 +572,6 @@ export default function StaffSidebar() {
           logoSrc={logoSrc}
           expanded={hydrated && expanded}
           onToggle={toggleExpanded}
-          profile={profile}
           roblox={roblox}
           visibleGroups={visibleGroups}
         />

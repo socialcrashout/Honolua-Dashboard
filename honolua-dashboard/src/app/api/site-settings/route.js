@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { getSession } from "@/lib/session"
 import clientPromise from "@/lib/mongodb"
+import { logStaffAction } from "@/lib/audit"
 
 const SETTINGS_ID = "singleton"
 
@@ -68,6 +69,19 @@ export async function PATCH(request) {
         { $set: { isActive: false } }
       )
     }
+
+    await logStaffAction({
+      session,
+      action:
+        body.maintenanceMode !== undefined
+          ? "site_control_maintenance_toggle"
+          : body.shutdownMode !== undefined
+          ? "site_control_shutdown_toggle"
+          : body.announcement
+          ? "site_control_announcement_publish"
+          : "site_control_update",
+      meta: body,
+    })
 
     return NextResponse.json({ ok: true })
   } catch (err) {

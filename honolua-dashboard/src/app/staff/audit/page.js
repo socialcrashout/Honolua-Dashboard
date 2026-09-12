@@ -48,7 +48,7 @@ export default function StaffAuditPage() {
   async function load() {
     setLoading(true)
     try {
-      const res = await fetch("/api/staff/audit-log", { cache: "no-store" })
+      const res = await fetch("/api/staff/audit/audit-log", { cache: "no-store" })
       const j = await res.json().catch(() => ({}))
       if (!res.ok || !j?.ok) {
         toast.error("unable to load audit log")
@@ -68,7 +68,7 @@ export default function StaffAuditPage() {
     setLoadingMore(true)
     try {
       const res = await fetch(
-        `/api/staff/audit-log?cursor=${encodeURIComponent(nextCursor)}`,
+        `/api/staff/audit/audit-log?cursor=${encodeURIComponent(nextCursor)}`,
         { cache: "no-store" }
       )
       const j = await res.json().catch(() => ({}))

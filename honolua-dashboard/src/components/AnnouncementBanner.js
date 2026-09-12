@@ -55,7 +55,7 @@ const DISMISS_PREFIX = "yumi-announcement-dismissed:"
 
 export default function AnnouncementBanner() {
   const [announcement, setAnnouncement] = useState(null)
-  const [maintenance, setMaintenance] = useState(null)
+  const [statusBanner, setStatusBanner] = useState(null) // { kind: "shutdown" | "maintenance", message }
   const [dismissed, setDismissed] = useState(true) // default true, only show once confirmed
   const [mounted, setMounted] = useState(false)
 
@@ -68,11 +68,19 @@ export default function AnnouncementBanner() {
         if (cancelled) return
         if (!res.ok || !j?.ok) return
 
-        // Maintenance mode: shown whenever it's enabled, takes priority
-        // over the announcement banner, and is never dismissible since
-        // it reflects the site's actual current state.
-        if (j.maintenance?.enabled && j.maintenance.message) {
-          setMaintenance(j.maintenance)
+        // Shutdown and maintenance are both operational states, not
+        // dismissible, and take priority over the announcement banner.
+        // Shutdown (fully down) wins over maintenance (degraded) if both
+        // happen to be set.
+        if (j.shutdownMode && j.shutdownMessage) {
+          setStatusBanner({ kind: "shutdown", message: j.shutdownMessage })
+          setDismissed(false)
+          requestAnimationFrame(() => setMounted(true))
+          return
+        }
+
+        if (j.maintenanceMode && j.maintenanceMessage) {
+          setStatusBanner({ kind: "maintenance", message: j.maintenanceMessage })
           setDismissed(false)
           requestAnimationFrame(() => setMounted(true))
           return
@@ -106,7 +114,7 @@ export default function AnnouncementBanner() {
   }
 
   function handleDismiss() {
-    // Maintenance banners can't be dismissed.
+    // Status banners (maintenance/shutdown) can't be dismissed.
     if (!announcement) return
     const dismissKey = DISMISS_PREFIX + hashMessage(announcement.message)
     localStorage.setItem(dismissKey, "1")
@@ -114,10 +122,10 @@ export default function AnnouncementBanner() {
     setTimeout(() => setDismissed(true), 220)
   }
 
-  if (dismissed || (!announcement && !maintenance)) return null
+  if (dismissed || (!announcement && !statusBanner)) return null
 
-  // --- Maintenance mode banner ---
-  if (maintenance) {
+  // --- Maintenance / shutdown banner ---
+  if (statusBanner) {
     return (
       <div
         className={`sticky top-0 z-[100] w-full border-b backdrop-blur-md transition-all duration-300 ease-out ${
@@ -130,7 +138,7 @@ export default function AnnouncementBanner() {
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />
             <span className="text-sm font-medium leading-snug sm:text-base">
-              {maintenance.message}
+              {statusBanner.message}
             </span>
           </div>
         </div>

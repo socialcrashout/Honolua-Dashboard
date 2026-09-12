@@ -1,6 +1,8 @@
 // api/bloxlink/lookup/route.js
 import { NextResponse } from "next/server";
 
+const HONOLUA_GROUP_ID = "743137138";
+
 export async function GET(request) {
   const discordId = request.nextUrl.searchParams.get("discordId");
   if (!discordId) {
@@ -23,15 +25,21 @@ export async function GET(request) {
     const data = await bloxlinkRes.json();
     const robloxId = data.robloxID;
 
-    // Get username/avatar for display
-    const [userRes, avatarRes] = await Promise.all([
+    // Get username/avatar/group rank for display
+    const [userRes, avatarRes, rolesRes] = await Promise.all([
       fetch(`https://users.roblox.com/v1/users/${robloxId}`),
       fetch(
         `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${robloxId}&size=150x150&format=Png`
       ),
+      fetch(`https://groups.roblox.com/v1/users/${robloxId}/groups/roles`),
     ]);
     const userData = await userRes.json();
     const avatarData = await avatarRes.json();
+    const rolesData = await rolesRes.json().catch(() => ({}));
+
+    const membership = (rolesData?.data || []).find(
+      (g) => String(g.group?.id) === HONOLUA_GROUP_ID
+    );
 
     return NextResponse.json({
       linked: true,
@@ -39,6 +47,10 @@ export async function GET(request) {
       robloxUsername: userData.name,
       robloxDisplayName: userData.displayName,
       avatarUrl: avatarData.data?.[0]?.imageUrl || null,
+      inGroup: Boolean(membership),
+      groupName: membership?.group?.name || null,
+      rankName: membership?.role?.name || null,
+      rankNumber: membership?.role?.rank ?? null,
     });
   } catch (err) {
     console.error("Bloxlink lookup error:", err);

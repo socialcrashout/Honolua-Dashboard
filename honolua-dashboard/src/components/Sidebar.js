@@ -37,6 +37,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Avatar, AvatarImage } from "@/components/ui/avatar"
 
 const SIDEBAR_STORAGE_KEY = "yumi-staff-sidebar-expanded"
+const HONOLUA_ROBLOX_GROUP_ID = "743137138"
 
 // Shared brand gradient used across the site (CTAs, active/elevated accents)
 const BRAND_GRADIENT = "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)"
@@ -295,7 +296,80 @@ function RoleHeader({ username, avatarUrl, role, showLabel }) {
   )
 }
 
-function MobileSidebarContent({ pathname, logoSrc, profile, visibleGroups }) {
+// Roblox username + live group rank, pulled from /api/staff/roblox-rank.
+// Sits directly under the RoleHeader, collapses to just the avatar + a
+// small gradient dot when the sidebar is collapsed.
+function RobloxStatus({ roblox, showLabel }) {
+  if (!roblox?.username) return null
+
+  if (!showLabel) {
+    return (
+      <div className="relative flex justify-center border-b border-lava/10 py-2.5">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.85 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.2, delay: 0.05 }}
+          className="relative"
+          title={
+            roblox.inGroup
+              ? `${roblox.username} — ${roblox.rankName}`
+              : roblox.username
+          }
+        >
+          <Avatar className="h-7 w-7 rounded-full border border-lava/10 bg-lava/5">
+            <AvatarImage src={roblox.avatarUrl} alt={roblox.username} />
+          </Avatar>
+          {roblox.inGroup ? (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 500, damping: 20, delay: 0.1 }}
+              className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-white"
+              style={{ background: BRAND_GRADIENT }}
+            />
+          ) : null}
+        </motion.div>
+      </div>
+    )
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, delay: 0.05 }}
+      className="border-b border-lava/10 px-3 py-2.5"
+    >
+      <div className="flex items-center gap-2.5 rounded-lg border border-lava/10 bg-lava/[0.03] p-2">
+        <motion.div layout transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}>
+          <Avatar className="h-8 w-8 shrink-0 rounded-full border border-lava/10 bg-lava/5">
+            <AvatarImage src={roblox.avatarUrl} alt={roblox.username} />
+          </Avatar>
+        </motion.div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-xs font-medium text-reef-navy">{roblox.username}</div>
+          {roblox.inGroup ? (
+            <motion.div
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              transition={{ duration: 0.15, delay: 0.1 }}
+              className="mt-0.5 inline-block whitespace-nowrap rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white"
+              style={{ background: BRAND_GRADIENT_ROW }}
+            >
+              {roblox.rankName}
+            </motion.div>
+          ) : (
+            <div className="mt-0.5 text-[9px] uppercase tracking-wide text-lava/35">
+              Not in group
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function MobileSidebarContent({ pathname, logoSrc, profile, roblox, visibleGroups }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-12 flex-col justify-center border-b border-lava/10 px-4">
@@ -323,6 +397,8 @@ function MobileSidebarContent({ pathname, logoSrc, profile, visibleGroups }) {
       <div className="border-b border-lava/10">
         <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} role={profile?.role} showLabel />
       </div>
+
+      <RobloxStatus roblox={roblox} showLabel />
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3 scrollbar-hide">
         {visibleGroups.map((group, gi) => (
@@ -352,7 +428,7 @@ function MobileSidebarContent({ pathname, logoSrc, profile, visibleGroups }) {
   )
 }
 
-function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile, visibleGroups }) {
+function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile, roblox, visibleGroups }) {
   return (
     <div className="flex h-full flex-col">
       <div
@@ -439,6 +515,8 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
         <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} role={profile?.role} showLabel={expanded} />
       </div>
 
+      <RobloxStatus roblox={roblox} showLabel={expanded} />
+
       <nav className="flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden p-2 scrollbar-hide">
         {visibleGroups.map((group, gi) => (
           <div key={group.label}>
@@ -470,10 +548,11 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
 
 export default function StaffSidebar() {
   const pathname = usePathname()
-  const logoSrc = "/brand/1.png"
+  const logoSrc = "/typo.png"
   const [expanded, setExpanded] = useState(false)
   const [hydrated, setHydrated] = useState(false)
-  const [profile, setProfile] = useState({ username: "", avatarUrl: "", role: "" })
+  const [profile, setProfile] = useState({ username: "", avatarUrl: "", role: "", discordId: "" })
+  const [roblox, setRoblox] = useState(null)
 
   useEffect(() => {
     try {
@@ -494,6 +573,9 @@ export default function StaffSidebar() {
             username: j?.user?.username || "",
             avatarUrl: j?.user?.avatarUrl || "",
             role: j?.user?.staffRole || "",
+            // NOTE: assuming /api/auth/me exposes the staffer's Discord ID
+            // as `discordId` (or falls back to `id`) — adjust if yours differs.
+            discordId: j?.user?.discordId || j?.user?.id || "",
           })
         }
       } catch {}
@@ -502,6 +584,33 @@ export default function StaffSidebar() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    if (!profile.discordId) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(
+          `/api/bloxlink/lookup?discordId=${encodeURIComponent(profile.discordId)}`
+        )
+        const j = await res.json().catch(() => ({}))
+        if (!cancelled && res.ok && j?.linked) {
+          setRoblox({
+            username: j.robloxUsername,
+            displayName: j.robloxDisplayName,
+            avatarUrl: j.avatarUrl,
+            inGroup: j.inGroup,
+            rankName: j.rankName,
+          })
+        }
+      } catch {
+        // fail silently, Roblox block just doesn't show
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [profile.discordId])
 
   function toggleExpanded() {
     setExpanded((prev) => {
@@ -531,7 +640,13 @@ export default function StaffSidebar() {
             </motion.button>
           </SheetTrigger>
           <SheetContent side="left" className="w-56 border-lava/10 bg-white p-0">
-            <MobileSidebarContent pathname={pathname} logoSrc={logoSrc} profile={profile} visibleGroups={visibleGroups} />
+            <MobileSidebarContent
+              pathname={pathname}
+              logoSrc={logoSrc}
+              profile={profile}
+              roblox={roblox}
+              visibleGroups={visibleGroups}
+            />
           </SheetContent>
         </Sheet>
       </div>
@@ -549,6 +664,7 @@ export default function StaffSidebar() {
           expanded={hydrated && expanded}
           onToggle={toggleExpanded}
           profile={profile}
+          roblox={roblox}
           visibleGroups={visibleGroups}
         />
       </motion.aside>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { createElement } from "react"
-import { X } from "lucide-react"
+import { X, AlertTriangle } from "lucide-react"
 
 const COLOR_STYLES = {
   amber: {
@@ -43,10 +43,19 @@ const COLOR_STYLES = {
   },
 }
 
+// Fixed styling for the maintenance banner — not user-configurable like
+// announcement colors, since this represents an actual operational state.
+const MAINTENANCE_STYLE = {
+  bg: "bg-gradient-to-r from-amber-700/30 via-amber-600/20 to-amber-700/30",
+  border: "border-amber-400/30",
+  text: "text-amber-50",
+}
+
 const DISMISS_PREFIX = "yumi-announcement-dismissed:"
 
 export default function AnnouncementBanner() {
   const [announcement, setAnnouncement] = useState(null)
+  const [maintenance, setMaintenance] = useState(null)
   const [dismissed, setDismissed] = useState(true) // default true, only show once confirmed
   const [mounted, setMounted] = useState(false)
 
@@ -57,7 +66,19 @@ export default function AnnouncementBanner() {
         const res = await fetch("/api/site-settings", { cache: "no-store" })
         const j = await res.json().catch(() => ({}))
         if (cancelled) return
-        if (res.ok && j?.ok && j.announcement?.enabled && j.announcement.message) {
+        if (!res.ok || !j?.ok) return
+
+        // Maintenance mode: shown whenever it's enabled, takes priority
+        // over the announcement banner, and is never dismissible since
+        // it reflects the site's actual current state.
+        if (j.maintenance?.enabled && j.maintenance.message) {
+          setMaintenance(j.maintenance)
+          setDismissed(false)
+          requestAnimationFrame(() => setMounted(true))
+          return
+        }
+
+        if (j.announcement?.enabled && j.announcement.message) {
           setAnnouncement(j.announcement)
           const dismissKey = DISMISS_PREFIX + hashMessage(j.announcement.message)
           const alreadyDismissed = localStorage.getItem(dismissKey) === "1"
@@ -85,6 +106,7 @@ export default function AnnouncementBanner() {
   }
 
   function handleDismiss() {
+    // Maintenance banners can't be dismissed.
     if (!announcement) return
     const dismissKey = DISMISS_PREFIX + hashMessage(announcement.message)
     localStorage.setItem(dismissKey, "1")
@@ -92,8 +114,31 @@ export default function AnnouncementBanner() {
     setTimeout(() => setDismissed(true), 220)
   }
 
-  if (!announcement || dismissed) return null
+  if (dismissed || (!announcement && !maintenance)) return null
 
+  // --- Maintenance mode banner ---
+  if (maintenance) {
+    return (
+      <div
+        className={`sticky top-0 z-[100] w-full border-b backdrop-blur-md transition-all duration-300 ease-out ${
+          MAINTENANCE_STYLE.bg
+        } ${MAINTENANCE_STYLE.border} ${MAINTENANCE_STYLE.text} ${
+          mounted ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+        }`}
+      >
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3.5">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />
+            <span className="text-sm font-medium leading-snug sm:text-base">
+              {maintenance.message}
+            </span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // --- Regular announcement banner ---
   const palette = COLOR_STYLES[announcement.color] || COLOR_STYLES.amber
 
   const linkNode = announcement.link

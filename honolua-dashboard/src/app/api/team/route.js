@@ -2,7 +2,7 @@
 // Vercel serverless function — runs server-side, avoids Roblox CORS restrictions.
 import { NextResponse } from "next/server";
 
-const GROUP_ID = 189373609;
+const GROUP_ID = 743137138;
 
 // Define your teams here. Each team lists the Roblox role IDs (not ranks!)
 // that belong to it.

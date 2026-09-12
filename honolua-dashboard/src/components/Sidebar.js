@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -41,28 +42,34 @@ const SIDEBAR_STORAGE_KEY = "yumi-staff-sidebar-expanded"
 const BRAND_GRADIENT = "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)"
 const BRAND_GRADIENT_ROW = "linear-gradient(90deg, #F4B942, #E6736F, #F472B6)"
 
-// ---------------------------------------------------------------------------
-// Section access is gated by numeric Roblox group rank, not a staff-role
-// string. EDIT THESE RANGES to match your group's actual rank numbers —
-// `min`/`max` are inclusive. Employee is set to your 216–223 example;
-// fill in the real ranges for the rest.
-// ---------------------------------------------------------------------------
-const RANK_RANGES = {
-  employee: { min: 216, max: 223 },
-  administration: { min: 224, max: 231 }, // placeholder — edit me
-  management: { min: 232, max: 239 }, // placeholder — edit me
-  executive: { min: 240, max: 255 }, // placeholder — edit me
+const ROLE_LEVELS = {
+  moderator: 0,
+  administrator: 1,
+  manager: 2,
+  executive: 3,
+  owner: 4,
 }
 
-function rankInRange(rank, range) {
-  if (typeof rank !== "number" || Number.isNaN(rank)) return false
-  return rank >= range.min && rank <= range.max
+const ROLE_LABELS = {
+  owner: "Owner",
+  executive: "Executive",
+  manager: "Manager",
+  administrator: "Administrator",
+  moderator: "Moderator",
+}
+
+const ROLE_ACCENTS = {
+  owner: "border-[#F4B942]/40 bg-[#F4B942]/10 text-[#8A6B60]",
+  executive: "border-hibiscus/25 bg-hibiscus/10 text-hibiscus",
+  manager: "border-[#E6736F]/25 bg-[#E6736F]/10 text-[#E6736F]",
+  administrator: "border-lava/15 bg-lava/5 text-lava/60",
+  moderator: "border-lava/10 bg-lava/5 text-lava/45",
 }
 
 const NAV_GROUPS = [
   {
     label: "Employee",
-    rankRange: RANK_RANGES.employee,
+    minLevel: ROLE_LEVELS.moderator,
     items: [
       { href: "/staff", label: "Overview", icon: LayoutGrid },
       { href: "/staff/support", label: "Support", icon: MessageCircle },
@@ -73,7 +80,7 @@ const NAV_GROUPS = [
   },
   {
     label: "Administration",
-    rankRange: RANK_RANGES.administration,
+    minLevel: ROLE_LEVELS.administrator,
     items: [
       { href: "/staff/reports", label: "Reports", icon: AlertTriangle },
       { href: "/staff/users", label: "Users", icon: Users },
@@ -82,7 +89,7 @@ const NAV_GROUPS = [
   },
   {
     label: "Management",
-    rankRange: RANK_RANGES.management,
+    minLevel: ROLE_LEVELS.manager,
     items: [
       { href: "/staff/staff", label: "Staff", icon: Shield },
       { href: "/staff/applications", label: "Applications", icon: ClipboardList },
@@ -93,12 +100,15 @@ const NAV_GROUPS = [
   },
   {
     label: "Executive",
-    rankRange: RANK_RANGES.executive,
+    minLevel: ROLE_LEVELS.executive,
     items: [
-      { href: "/staff/departments", label: "Departments", icon: Layers },
+      { href: "/staff/departments", label: "App. Depts", icon: Layers },
+      { href: "/staff/giveaways", label: "Giveaways", icon: PartyPopper },
       { href: "/staff/updates", label: "Updates", icon: Sparkles },
+      { href: "/staff/ip-bans", label: "IP Bans", icon: KeySquare },
+      { href: "/staff/site-control", label: "Site Control", icon: Power },
       { href: "/staff/audit", label: "Audit Logs", icon: ScrollText },
-      { href: "/staff/site-control", label: "Site Controls", icon: Power },
+      { href: "/staff/bugs", label: "Bug Reports", icon: Bug },
     ],
   },
 ]
@@ -123,33 +133,36 @@ function NavItem({ item, pathname, showLabel = false, index = 0, pillId = "activ
       <Link
         href={item.href}
         className={cn(
-          "relative flex items-center rounded-xl transition-colors duration-200",
-          showLabel ? "gap-3 px-3 py-2.5" : "justify-center p-2.5",
-          active ? "text-reef-navy font-medium" : "text-lava/50 hover:text-reef-navy"
+          "relative flex items-center rounded-md transition-colors duration-200",
+          showLabel ? "gap-3 px-3 py-2" : "justify-center p-2.5",
+          active ? "text-reef-navy" : "text-lava/50 hover:text-reef-navy"
         )}
         title={!showLabel ? item.label : undefined}
       >
         {active ? (
           <motion.div
             layoutId={pillId}
-            className="absolute inset-0 rounded-xl"
-            style={{ background: BRAND_GRADIENT_ROW }}
+            className="absolute inset-0 rounded-md"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(244,185,66,0.12), rgba(230,115,111,0.14), rgba(244,114,182,0.12))",
+            }}
             transition={{ type: "spring", stiffness: 420, damping: 34 }}
           />
         ) : (
           <motion.div
-            className="absolute inset-0 rounded-xl bg-black/[0.035] opacity-0"
+            className="absolute inset-0 rounded-md bg-lava/5 opacity-0"
             whileHover={{ opacity: 1 }}
             transition={{ duration: 0.15 }}
           />
         )}
         <motion.span
           className="relative z-10 flex items-center gap-3"
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.96 }}
-          transition={{ type: "spring", stiffness: 400, damping: 22 }}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.94 }}
+          transition={{ type: "spring", stiffness: 400, damping: 20 }}
         >
-          <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2.25 : 2} />
+          <Icon className="h-[18px] w-[18px] shrink-0" />
           <AnimatePresence initial={false}>
             {showLabel && (
               <motion.span
@@ -202,7 +215,7 @@ function GroupLabel({ children, showLabel }) {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="px-3 pb-2 pt-4 text-[10px] font-medium uppercase tracking-[0.22em] text-lava/30 first:pt-1"
+          className="px-3 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-lava/35 first:pt-1"
         >
           {children}
         </motion.div>
@@ -211,8 +224,10 @@ function GroupLabel({ children, showLabel }) {
   )
 }
 
-function RoleHeader({ username, avatarUrl, roleLabel, showLabel }) {
-  const label = roleLabel || "Staff"
+function RoleHeader({ username, avatarUrl, role, showLabel }) {
+  const roleLabel = ROLE_LABELS[role] || "Staff"
+  const accent = ROLE_ACCENTS[role] || ROLE_ACCENTS.moderator
+  const isElevated = role === "owner" || role === "executive"
 
   if (!showLabel) {
     return (
@@ -222,6 +237,20 @@ function RoleHeader({ username, avatarUrl, roleLabel, showLabel }) {
             <AvatarImage src={avatarUrl || "/avatars/Placeholder.png"} alt={username || "Staff"} />
           </Avatar>
         </motion.div>
+        <AnimatePresence>
+          {isElevated ? (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+              transition={{ type: "spring", stiffness: 500, damping: 20 }}
+              className="absolute -right-0.5 top-2 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-white"
+              style={{ background: BRAND_GRADIENT }}
+            >
+              <Crown className="h-2 w-2 text-white" />
+            </motion.span>
+          ) : null}
+        </AnimatePresence>
       </div>
     )
   }
@@ -235,6 +264,20 @@ function RoleHeader({ username, avatarUrl, roleLabel, showLabel }) {
               <AvatarImage src={avatarUrl || "/avatars/Placeholder.png"} alt={username || "Staff"} />
             </Avatar>
           </motion.div>
+          <AnimatePresence>
+            {isElevated ? (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-white"
+                style={{ background: BRAND_GRADIENT }}
+              >
+                <Crown className="h-2.5 w-2.5 text-white" />
+              </motion.span>
+            ) : null}
+          </AnimatePresence>
         </div>
         <motion.div
           initial={{ opacity: 0, x: -6 }}
@@ -243,8 +286,8 @@ function RoleHeader({ username, avatarUrl, roleLabel, showLabel }) {
           className="min-w-0"
         >
           <div className="truncate text-sm font-medium text-reef-navy">{username || "Staff"}</div>
-          <div className="mt-0.5 inline-flex items-center rounded-full border border-lava/10 bg-lava/5 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-lava/60">
-            {label}
+          <div className={cn("mt-0.5 inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide", accent)}>
+            {roleLabel}
           </div>
         </motion.div>
       </div>
@@ -258,9 +301,11 @@ function MobileSidebarContent({ pathname, logoSrc, profile, visibleGroups }) {
       <div className="flex h-12 flex-col justify-center border-b border-lava/10 px-4">
         <div className="flex items-center gap-2">
           {logoSrc ? (
-            <img
+            <Image
               src={logoSrc}
-              alt="Honolua"
+              alt="Logo"
+              width={72}
+              height={18}
               className="h-4 w-auto object-contain"
             />
           ) : (
@@ -276,7 +321,7 @@ function MobileSidebarContent({ pathname, logoSrc, profile, visibleGroups }) {
       </div>
 
       <div className="border-b border-lava/10">
-        <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} roleLabel={profile?.robloxRank} showLabel />
+        <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} role={profile?.role} showLabel />
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3 scrollbar-hide">
@@ -320,7 +365,7 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
           <div className="flex items-center justify-between">
             <div>
               {logoSrc ? (
-                <img src={logoSrc} alt="Honolua" className="h-5 w-auto object-contain" />
+                <Image src={logoSrc} alt="Logo" width={22} height={22} className="object-contain" />
               ) : (
                 <div
                   className="flex h-6 w-6 items-center justify-center rounded-md text-[10px] font-bold text-white"
@@ -391,7 +436,7 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
       </div>
 
       <div className="border-b border-lava/10">
-        <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} roleLabel={profile?.robloxRank} showLabel={expanded} />
+        <RoleHeader username={profile?.username} avatarUrl={profile?.avatarUrl} role={profile?.role} showLabel={expanded} />
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden p-2 scrollbar-hide">
@@ -425,10 +470,10 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, profile,
 
 export default function StaffSidebar() {
   const pathname = usePathname()
-  const logoSrc = "/typo.png"
+  const logoSrc = "/brand/1.png"
   const [expanded, setExpanded] = useState(false)
   const [hydrated, setHydrated] = useState(false)
-  const [profile, setProfile] = useState({ username: "", avatarUrl: "", robloxRank: "", robloxRankId: null })
+  const [profile, setProfile] = useState({ username: "", avatarUrl: "", role: "" })
 
   useEffect(() => {
     try {
@@ -448,11 +493,7 @@ export default function StaffSidebar() {
           setProfile({
             username: j?.user?.username || "",
             avatarUrl: j?.user?.avatarUrl || "",
-            robloxRank: j?.user?.robloxRank || "",
-            // Numeric Roblox group rank — this is what gates section
-            // visibility below. Make sure /api/auth/me actually returns
-            // this field (e.g. j.user.robloxRankId).
-            robloxRankId: typeof j?.user?.robloxRankId === "number" ? j.user.robloxRankId : null,
+            role: j?.user?.staffRole || "",
           })
         }
       } catch {}
@@ -472,7 +513,8 @@ export default function StaffSidebar() {
     })
   }
 
-  const visibleGroups = NAV_GROUPS.filter((group) => rankInRange(profile.robloxRankId, group.rankRange))
+  const myLevel = ROLE_LEVELS[profile.role] ?? -1
+  const visibleGroups = NAV_GROUPS.filter((group) => myLevel >= group.minLevel)
 
   return (
     <>
@@ -495,12 +537,11 @@ export default function StaffSidebar() {
       </div>
 
       <motion.aside
-          data-sidebar-expanded={hydrated && expanded ? "true" : "false"}
-          initial={false}
-          animate={{ width: hydrated && expanded ? 216 : 56 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          style={{ background: "linear-gradient(180deg, rgba(244,185,66,0.04), rgba(230,115,111,0.02))" }}
-          className="fixed inset-y-0 left-0 z-40 hidden overflow-hidden border-r border-lava/10 bg-white shadow-[1px_0_3px_rgba(0,0,0,0.03)] md:flex md:flex-col"
+        data-sidebar-expanded={hydrated && expanded ? "true" : "false"}
+        initial={false}
+        animate={{ width: hydrated && expanded ? 216 : 56 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="fixed inset-y-0 left-0 z-40 hidden overflow-hidden border-r border-lava/10 bg-white shadow-[1px_0_3px_rgba(0,0,0,0.03)] md:flex md:flex-col"
       >
         <DesktopSidebarContent
           pathname={pathname}

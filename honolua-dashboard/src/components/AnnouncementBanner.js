@@ -1,8 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import { createElement } from "react"
 import { X, AlertTriangle } from "lucide-react"
+
+// Route prefixes where the banner should never show, regardless of
+// maintenance/shutdown/announcement state. Adjust to match your actual
+// staff/admin route structure.
+const HIDDEN_PATH_PREFIXES = ["/staff", "/admin", "/dashboard"]
 
 const COLOR_STYLES = {
   amber: {
@@ -54,12 +60,18 @@ const MAINTENANCE_STYLE = {
 const DISMISS_PREFIX = "yumi-announcement-dismissed:"
 
 export default function AnnouncementBanner() {
+  const pathname = usePathname()
+  const hiddenHere = HIDDEN_PATH_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname?.startsWith(prefix + "/")
+  )
+
   const [announcement, setAnnouncement] = useState(null)
   const [statusBanner, setStatusBanner] = useState(null) // { kind: "shutdown" | "maintenance", message }
   const [dismissed, setDismissed] = useState(true) // default true, only show once confirmed
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    if (hiddenHere) return // don't even fetch on staff/admin routes
     let cancelled = false
     ;(async () => {
       try {
@@ -102,7 +114,7 @@ export default function AnnouncementBanner() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [hiddenHere])
 
   function hashMessage(msg) {
     let hash = 0
@@ -122,7 +134,7 @@ export default function AnnouncementBanner() {
     setTimeout(() => setDismissed(true), 220)
   }
 
-  if (dismissed || (!announcement && !statusBanner)) return null
+  if (hiddenHere || dismissed || (!announcement && !statusBanner)) return null
 
   // --- Maintenance / shutdown banner ---
   if (statusBanner) {

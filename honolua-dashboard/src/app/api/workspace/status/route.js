@@ -3,11 +3,8 @@ import { NextResponse } from "next/server";
 import { getSession, setSessionCookie } from "@/lib/session.js";
 
 const GROUP_ID = "743137138";
-<<<<<<< HEAD
 const MIN_RANK = 216; // strictly above this passes — 216 itself does NOT
-=======
 const MIN_RANK = 169; // strictly above this passes — 216 itself does NOT
->>>>>>> 6649f20af420185886afe5e994cc25cc2050881a
 
 export async function GET(request) {
   const session = getSession(request);

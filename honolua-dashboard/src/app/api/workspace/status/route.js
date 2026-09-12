@@ -3,7 +3,11 @@ import { NextResponse } from "next/server";
 import { getSession, setSessionCookie } from "@/lib/session.js";
 
 const GROUP_ID = "743137138";
+<<<<<<< HEAD
 const MIN_RANK = 216; // strictly above this passes — 216 itself does NOT
+=======
+const MIN_RANK = 169; // strictly above this passes — 216 itself does NOT
+>>>>>>> 6649f20af420185886afe5e994cc25cc2050881a
 
 export async function GET(request) {
   const session = getSession(request);
@@ -17,9 +21,6 @@ export async function GET(request) {
     });
   }
 
-  // Re-check Bloxlink if we've never checked, OR if refresh was requested
-  // and the last check came back not-linked (don't waste a call re-verifying
-  // something we already confirmed true).
   if (session.robloxLinked === undefined || (forceRefresh && !session.robloxLinked)) {
     try {
       const guildId = process.env.DISCORD_GUILD_ID;
@@ -59,8 +60,6 @@ export async function GET(request) {
     }
   }
 
-  // Once Roblox is confirmed linked, fetch (or reuse cached) group rank.
-  // A ?refresh=true request bypasses the cache and re-queries Roblox.
   if (session.robloxLinked && (session.workspaceRank === undefined || forceRefresh)) {
     try {
       const groupRes = await fetch(

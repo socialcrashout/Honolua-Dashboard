@@ -9,13 +9,6 @@ import { Plus, X, Trash2, Sparkles, ImageIcon, Link2 } from "lucide-react"
 const BRAND_GRADIENT = "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)"
 const EASE = [0.16, 1, 0.3, 1]
 
-// TODO: these three calls assume a REST-style /api/staff/updates route that doesn't
-// exist yet:
-//   GET    /api/staff/updates          -> { ok: true, updates: [{ id, title, body, mediaUrl, ctaLabel, ctaUrl, createdAt }] }
-//   POST   /api/staff/updates          -> payload: { title, body, mediaUrl, ctaLabel, ctaUrl }
-//   DELETE /api/staff/updates/:id      -> soft-delete (sets active: false)
-// These now match the real ProductUpdate-backed routes.
-
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleString(undefined, {
     month: "numeric",
@@ -229,7 +222,7 @@ export default function StaffUpdatesPage() {
   async function load() {
     setLoading(true)
     try {
-      const res = await fetch("/api/staff/updates", { cache: "no-store" })
+      const res = await fetch("/api/updates", { cache: "no-store" })
       const j = await res.json().catch(() => ({}))
       if (res.ok && j?.ok) {
         setUpdates(j.updates || [])
@@ -250,7 +243,7 @@ export default function StaffUpdatesPage() {
   async function handleCreate(form) {
     setSubmitting(true)
     try {
-      const res = await fetch("/api/staff/updates", {
+      const res = await fetch("/api/updates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
@@ -276,7 +269,7 @@ export default function StaffUpdatesPage() {
     const prev = updates
     setUpdates((u) => u.filter((x) => x.id !== id))
     try {
-      const res = await fetch(`/api/staff/updates/${id}`, { method: "DELETE" })
+      const res = await fetch(`/api/updates/${id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
     } catch {
       setUpdates(prev)

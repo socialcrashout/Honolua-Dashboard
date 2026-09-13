@@ -794,7 +794,7 @@ export default function DepartmentsPage() {
           selected ? "lg:grid-cols-[1.4fr_1fr_320px]" : "lg:grid-cols-[1fr_320px]"
         }`}
       >
-        <div className="rounded-3xl border border-lava/10 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div className="flex h-full flex-col rounded-3xl border border-lava/10 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: "rgba(230,115,111,0.1)" }}>
@@ -843,7 +843,7 @@ export default function DepartmentsPage() {
             </div>
           </div>
 
-          <div className="mt-5 space-y-2.5">
+          <div className="mt-5 flex-1 space-y-2.5">
             {loading ? (
               <>
                 <div className="h-20 animate-pulse rounded-2xl border border-lava/10 bg-lava/[0.03]" />
@@ -851,7 +851,7 @@ export default function DepartmentsPage() {
                 <div className="h-20 animate-pulse rounded-2xl border border-lava/10 bg-lava/[0.03]" />
               </>
             ) : filtered.length === 0 ? (
-              <div className="rounded-2xl border border-lava/10 bg-lava/[0.02] p-10 text-center text-sm text-lava/40">
+              <div className="flex h-full min-h-[220px] items-center justify-center rounded-2xl border border-lava/10 bg-lava/[0.02] p-10 text-center text-sm text-lava/40">
                 No departments match your search.
               </div>
             ) : (

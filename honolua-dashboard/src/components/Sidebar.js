@@ -109,6 +109,14 @@ function isActive(pathname, href) {
 function NavItem({ item, pathname, showLabel = false, index = 0, pillId = "active-pill" }) {
   const Icon = item.icon
   const active = isActive(pathname, item.href)
+  const [ripples, setRipples] = useState([])
+
+  function spawnRipple(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const id = Date.now()
+    setRipples((r) => [...r, { id, x: e.clientX - rect.left, y: e.clientY - rect.top }])
+    setTimeout(() => setRipples((r) => r.filter((rp) => rp.id !== id)), 500)
+  }
 
   return (
     <motion.div
@@ -118,8 +126,9 @@ function NavItem({ item, pathname, showLabel = false, index = 0, pillId = "activ
     >
       <Link
         href={item.href}
+        onPointerDown={spawnRipple}
         className={cn(
-          "relative flex items-center rounded-md transition-colors duration-200",
+          "relative flex items-center overflow-hidden rounded-md transition-colors duration-200",
           showLabel ? "gap-3 px-3 py-2" : "justify-center p-2.5",
           active ? "text-reef-navy" : "text-lava/50 hover:text-reef-navy"
         )}
@@ -132,8 +141,13 @@ function NavItem({ item, pathname, showLabel = false, index = 0, pillId = "activ
             style={{
               background:
                 "linear-gradient(90deg, rgba(244,185,66,0.12), rgba(230,115,111,0.14), rgba(244,114,182,0.12))",
+              backgroundSize: "200% 100%",
             }}
-            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+            animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
+            transition={{
+              layout: { type: "spring", stiffness: 420, damping: 34 },
+              backgroundPosition: { duration: 6, repeat: Infinity, ease: "linear" },
+            }}
           />
         ) : (
           <motion.div
@@ -142,13 +156,40 @@ function NavItem({ item, pathname, showLabel = false, index = 0, pillId = "activ
             transition={{ duration: 0.15 }}
           />
         )}
+
+        <AnimatePresence>
+          {ripples.map((r) => (
+            <motion.span
+              key={r.id}
+              className="pointer-events-none absolute rounded-full"
+              style={{
+                left: r.x,
+                top: r.y,
+                background: BRAND_GRADIENT_ROW,
+                translateX: "-50%",
+                translateY: "-50%",
+              }}
+              initial={{ width: 0, height: 0, opacity: 0.35 }}
+              animate={{ width: 120, height: 120, opacity: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+            />
+          ))}
+        </AnimatePresence>
+
         <motion.span
           className="relative z-10 flex items-center gap-3"
           whileHover={{ scale: 1.06 }}
           whileTap={{ scale: 0.94 }}
           transition={{ type: "spring", stiffness: 400, damping: 20 }}
         >
-          <Icon className="h-[18px] w-[18px] shrink-0" />
+          <motion.span
+            className="flex shrink-0"
+            whileHover={{ rotate: [0, -8, 8, -4, 0], scale: 1.12 }}
+            transition={{ duration: 0.45, ease: "easeInOut" }}
+          >
+            <Icon className="h-[18px] w-[18px]" />
+          </motion.span>
           <AnimatePresence initial={false}>
             {showLabel && (
               <motion.span
@@ -534,8 +575,10 @@ export default function StaffSidebar() {
     })
   }
 
-  const myLevel = ROLE_LEVELS[profile.role] ?? -1
-  const visibleGroups = NAV_GROUPS.filter((group) => myLevel >= group.minLevel)
+  // TEMP: permission filtering disabled — showing all nav groups regardless of role.
+  // Re-enable by restoring: NAV_GROUPS.filter((group) => myLevel >= group.minLevel)
+  const myLevel = ROLE_LEVELS[(profile.role || "").toLowerCase().trim()] ?? -1
+  const visibleGroups = NAV_GROUPS
 
   return (
     <>

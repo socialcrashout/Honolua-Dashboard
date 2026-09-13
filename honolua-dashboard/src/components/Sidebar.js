@@ -20,16 +20,13 @@ import {
   Mail,
   Menu,
   Handshake,
-  KeySquare,
   ClipboardList,
   Layers,
   Clipboard,
-  PartyPopper,
   CreditCard,
   PanelLeftClose,
   PanelLeftOpen,
   TrendingUp,
-  Bug,
   BarChart3
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -88,13 +85,10 @@ const NAV_GROUPS = [
     label: "Executive",
     minLevel: ROLE_LEVELS.executive,
     items: [
-      { href: "/staff/departments", label: "App. Depts", icon: Layers },
-      { href: "/staff/giveaways", label: "Giveaways", icon: PartyPopper },
+      { href: "/staff/departments", label: "Departments", icon: Layers },
       { href: "/staff/updates", label: "Updates", icon: Sparkles },
-      { href: "/staff/ip-bans", label: "IP Bans", icon: KeySquare },
       { href: "/staff/site-control", label: "Site Control", icon: Power },
       { href: "/staff/audit", label: "Audit Logs", icon: ScrollText },
-      { href: "/staff/bugs", label: "Bug Reports", icon: Bug },
     ],
   },
 ]

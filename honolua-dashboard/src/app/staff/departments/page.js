@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
 import {
@@ -11,6 +12,7 @@ import {
   MessageSquare,
   Code2,
   UserPlus,
+  UserMinus,
   CalendarDays,
   ShieldCheck,
   Settings,
@@ -19,13 +21,18 @@ import {
   Users,
   FileText,
   ChevronRight,
+  ArrowRight,
   Trash2,
   X,
+  Zap,
+  PieChart,
+  Clock,
 } from "lucide-react"
 
 const BRAND_GRADIENT = "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)"
 const EASE = [0.16, 1, 0.3, 1]
 const FILTERS = ["All", "Active", "Restricted"]
+const VIEW_LOGS_HREF = "/staff/audit"
 
 // Maps the `icon` string stored on each department (see lib/Department.js) to a component.
 // Add to this map if you introduce new department icons server-side.
@@ -39,6 +46,48 @@ const ICON_MAP = {
   ShieldCheck,
   Settings,
   Users,
+}
+
+// Maps audit log `action` strings to an icon + tint for the Recent Activity feed.
+const ACTIVITY_ICON_MAP = {
+  department_created: { icon: Plus, color: "#E6736F" },
+  department_archived: { icon: Trash2, color: "#E6736F" },
+  permission_updated: { icon: Shield, color: "#F4B942" },
+  member_added: { icon: UserPlus, color: "#10B981" },
+  member_removed: { icon: UserMinus, color: "#E6736F" },
+}
+
+// Single place every staff action funnels through before it's written to the
+// audit log. Fire-and-forget on purpose — a logging hiccup should never
+// block or fail the action the staff member was actually trying to do.
+async function logAction(action, meta = {}) {
+  try {
+    await fetch("/api/staff/audit/audit-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, meta }),
+    })
+  } catch {
+    // best-effort — swallow errors, the primary action already succeeded
+  }
+}
+
+function actionLabel(action) {
+  return String(action || "")
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ")
+}
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
 }
 
 function StatusPill({ status }) {
@@ -357,6 +406,220 @@ function CreateModal({ open, onClose, onCreate, submitting }) {
   )
 }
 
+function QuickActionRow({ icon: Icon, title, subtitle, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition hover:bg-[#F4B942]/[0.06]"
+    >
+      <span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+        style={{ background: "rgba(244,185,66,0.12)", color: "#B8862B" }}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold text-reef-navy">{title}</span>
+        <span className="block truncate text-xs text-lava/40">{subtitle}</span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-lava/25" />
+    </button>
+  )
+}
+
+function OverviewDonut({ departments }) {
+  const active = departments.filter((d) => d.status === "Active").length
+  const restricted = departments.filter((d) => d.status === "Restricted").length
+  const archived = Math.max(0, departments.length - active - restricted)
+  const total = departments.length
+
+  const R = 40
+  const CIRC = 2 * Math.PI * R
+  const segments = [
+    { value: active, color: "#10B981" },
+    { value: restricted, color: "#F4B942" },
+    { value: archived, color: "rgba(15,23,42,0.10)" },
+  ].filter((s) => s.value > 0)
+
+  let offset = 0
+  const arcs = segments.map((s, i) => {
+    const frac = total > 0 ? s.value / total : 0
+    const dash = frac * CIRC
+    const arc = (
+      <circle
+        key={i}
+        cx="50"
+        cy="50"
+        r={R}
+        fill="none"
+        stroke={s.color}
+        strokeWidth="14"
+        strokeDasharray={`${dash} ${CIRC - dash}`}
+        strokeDashoffset={-offset}
+        strokeLinecap="butt"
+      />
+    )
+    offset += dash
+    return arc
+  })
+
+  return (
+    <div className="flex items-center gap-5">
+      <div className="relative h-24 w-24 shrink-0">
+        <svg viewBox="0 0 100 100" className="h-24 w-24 -rotate-90">
+          <circle cx="50" cy="50" r={R} fill="none" stroke="rgba(15,23,42,0.06)" strokeWidth="14" />
+          {total > 0 ? arcs : null}
+        </svg>
+      </div>
+
+      <div className="flex-1 space-y-1.5">
+        <div className="flex items-center gap-2 text-xs text-lava/60">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: "#10B981" }} />
+          {active} Active
+        </div>
+        <div className="flex items-center gap-2 text-xs text-lava/60">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: "#F4B942" }} />
+          {restricted} Restricted
+        </div>
+        <div className="flex items-center gap-2 text-xs text-lava/60">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-lava/15" />
+          {archived} Archived
+        </div>
+      </div>
+
+      <div className="shrink-0 border-l border-lava/10 pl-5 text-center">
+        <div className="text-2xl font-bold text-reef-navy">{total}</div>
+        <div className="text-[11px] text-lava/40">Total Depts</div>
+      </div>
+    </div>
+  )
+}
+
+function RecentActivity({ refreshKey }) {
+  const [logs, setLogs] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      try {
+        const res = await fetch("/api/staff/audit/audit-log?limit=4", { cache: "no-store" })
+        const j = await res.json().catch(() => ({}))
+        if (!cancelled && res.ok && j?.ok) setLogs(j.logs || [])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [refreshKey])
+
+  return (
+    <div className="space-y-1">
+      {loading ? (
+        <>
+          <div className="h-10 animate-pulse rounded-lg bg-lava/[0.04]" />
+          <div className="h-10 animate-pulse rounded-lg bg-lava/[0.04]" />
+          <div className="h-10 animate-pulse rounded-lg bg-lava/[0.04]" />
+        </>
+      ) : logs.length === 0 ? (
+        <p className="py-3 text-center text-xs text-lava/35">No recent activity.</p>
+      ) : (
+        logs.map((log) => {
+          const cfg = ACTIVITY_ICON_MAP[log.action] || { icon: FileText, color: "#94A3B8" }
+          const Icon = cfg.icon
+          return (
+            <div key={log.id} className="flex items-start gap-3 rounded-lg px-1 py-2">
+              <span
+                className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                style={{ background: `${cfg.color}1A`, color: cfg.color }}
+              >
+                <Icon className="h-3.5 w-3.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-medium text-reef-navy/80">
+                  {log.actor?.robloxUsername || log.actor?.discordUsername || "Someone"}
+                  {" — "}
+                  {actionLabel(log.action)}
+                </span>
+                <span className="block text-[11px] text-lava/35">{timeAgo(log.createdAt)}</span>
+              </span>
+            </div>
+          )
+        })
+      )}
+    </div>
+  )
+}
+
+function Sidebar({ departments, onCreateClick, onAssignMembersClick, onSetPermissionsClick, refreshKey }) {
+  const router = useRouter()
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-lava/10 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div className="flex items-center gap-2">
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-lg"
+            style={{ background: "rgba(244,185,66,0.12)", color: "#B8862B" }}
+          >
+            <Zap className="h-4 w-4" />
+          </span>
+          <h3 className="text-sm font-bold text-reef-navy">Quick Actions</h3>
+        </div>
+        <div className="mt-2 space-y-0.5">
+          <QuickActionRow icon={Plus} title="Create Department" subtitle="Add a new team department" onClick={onCreateClick} />
+          <QuickActionRow icon={UserPlus} title="Assign Members" subtitle="Add staff to departments" onClick={onAssignMembersClick} />
+          <QuickActionRow icon={ShieldCheck} title="Set Permissions" subtitle="Manage role access" onClick={onSetPermissionsClick} />
+          <QuickActionRow icon={FileText} title="View Logs" subtitle="Check recent changes" onClick={() => router.push(VIEW_LOGS_HREF)} />
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-lava/10 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div className="flex items-center gap-2">
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-lg"
+            style={{ background: "rgba(230,115,111,0.1)", color: "#E6736F" }}
+          >
+            <PieChart className="h-4 w-4" />
+          </span>
+          <h3 className="text-sm font-bold text-reef-navy">Department Overview</h3>
+        </div>
+        <div className="mt-4">
+          <OverviewDonut departments={departments} />
+        </div>
+      </div>
+
+      <div className="rounded-3xl border border-lava/10 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{ background: "rgba(244,114,182,0.12)", color: "#C2417F" }}
+            >
+              <Clock className="h-4 w-4" />
+            </span>
+            <h3 className="text-sm font-bold text-reef-navy">Recent Activity</h3>
+          </div>
+          <button
+            onClick={() => router.push(VIEW_LOGS_HREF)}
+            className="flex items-center gap-1 text-xs font-semibold text-[#E6736F] hover:underline"
+          >
+            View All
+            <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
+        <div className="mt-3">
+          <RecentActivity refreshKey={refreshKey} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState([])
   const [loading, setLoading] = useState(true)
@@ -365,6 +628,7 @@ export default function DepartmentsPage() {
   const [filter, setFilter] = useState("All")
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0)
 
   async function load() {
     setLoading(true)
@@ -396,6 +660,12 @@ export default function DepartmentsPage() {
     return matchesQuery && matchesFilter
   })
 
+  // Bumps RecentActivity's refresh key so the sidebar picks up a just-logged
+  // action without a full page reload.
+  function bumpActivity() {
+    setActivityRefreshKey((k) => k + 1)
+  }
+
   async function patchDepartment(id, body) {
     const res = await fetch(`/api/departments/${id}`, {
       method: "PATCH",
@@ -413,9 +683,19 @@ export default function DepartmentsPage() {
 
   async function handleTogglePermission(index) {
     if (!selected) return
+    const permission = selected.permissions[index]
     const updated = await patchDepartment(selected.id, { action: "togglePermission", index })
-    if (updated) replaceDepartment(updated)
-    else toast.error("unable to update permission")
+    if (updated) {
+      replaceDepartment(updated)
+      logAction("permission_updated", {
+        department: selected.name,
+        permission: permission?.label,
+        enabled: !permission?.enabled,
+      })
+      bumpActivity()
+    } else {
+      toast.error("unable to update permission")
+    }
   }
 
   async function handleAddMember(username) {
@@ -424,6 +704,8 @@ export default function DepartmentsPage() {
     if (updated) {
       replaceDepartment(updated)
       toast.success(`added ${username}`)
+      logAction("member_added", { department: selected.name, username })
+      bumpActivity()
       return true
     }
     toast.error("roblox user not found")
@@ -432,9 +714,15 @@ export default function DepartmentsPage() {
 
   async function handleRemoveMember(robloxId) {
     if (!selected) return
+    const member = selected.members.find((m) => m.robloxId === robloxId)
     const updated = await patchDepartment(selected.id, { action: "removeMember", robloxId })
-    if (updated) replaceDepartment(updated)
-    else toast.error("unable to remove member")
+    if (updated) {
+      replaceDepartment(updated)
+      logAction("member_removed", { department: selected.name, username: member?.username })
+      bumpActivity()
+    } else {
+      toast.error("unable to remove member")
+    }
   }
 
   async function handleArchive() {
@@ -442,9 +730,12 @@ export default function DepartmentsPage() {
     try {
       const res = await fetch(`/api/departments/${selected.id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
+      const archivedName = selected.name
       setDepartments((prev) => prev.filter((d) => d.id !== selected.id))
       setSelectedId(null)
       toast.success("department archived")
+      logAction("department_archived", { department: archivedName })
+      bumpActivity()
     } catch {
       toast.error("unable to archive department")
     }
@@ -467,6 +758,8 @@ export default function DepartmentsPage() {
       setSelectedId(j.department.id)
       setCreateOpen(false)
       toast.success("department created")
+      logAction("department_created", { name, description })
+      bumpActivity()
       return true
     } catch {
       toast.error("unable to create department")
@@ -476,9 +769,31 @@ export default function DepartmentsPage() {
     }
   }
 
+  function handleAssignMembersClick() {
+    if (departments.length === 0) {
+      toast.error("create a department first")
+      setCreateOpen(true)
+      return
+    }
+    setSelectedId((prev) => prev || departments[0].id)
+  }
+
+  function handleSetPermissionsClick() {
+    if (departments.length === 0) {
+      toast.error("create a department first")
+      setCreateOpen(true)
+      return
+    }
+    setSelectedId((prev) => prev || departments[0].id)
+  }
+
   return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
+    <div className="mx-auto max-w-7xl px-6 py-10">
+      <div
+        className={`grid grid-cols-1 gap-6 ${
+          selected ? "lg:grid-cols-[1.4fr_1fr_320px]" : "lg:grid-cols-[1fr_320px]"
+        }`}
+      >
         <div className="rounded-3xl border border-lava/10 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -547,9 +862,9 @@ export default function DepartmentsPage() {
           </div>
         </div>
 
-        <div className="lg:sticky lg:top-6 lg:self-start">
-          <AnimatePresence mode="wait">
-            {selected ? (
+        {selected ? (
+          <div className="lg:sticky lg:top-6 lg:self-start">
+            <AnimatePresence mode="wait">
               <DetailPanel
                 dept={selected}
                 onTogglePermission={handleTogglePermission}
@@ -557,8 +872,18 @@ export default function DepartmentsPage() {
                 onRemoveMember={handleRemoveMember}
                 onArchive={handleArchive}
               />
-            ) : null}
-          </AnimatePresence>
+            </AnimatePresence>
+          </div>
+        ) : null}
+
+        <div className="lg:sticky lg:top-6 lg:self-start">
+          <Sidebar
+            departments={departments}
+            onCreateClick={() => setCreateOpen(true)}
+            onAssignMembersClick={handleAssignMembersClick}
+            onSetPermissionsClick={handleSetPermissionsClick}
+            refreshKey={activityRefreshKey}
+          />
         </div>
       </div>
 

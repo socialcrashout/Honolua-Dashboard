@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server"
 import clientPromise from "@/lib/mongodb"
+// TODO: swap this for however you currently read the logged-in staff member
+// elsewhere in the app (e.g. `import { getServerSession } from "next-auth"` +
+// your authOptions, or a custom `getSession(request)` helper). Whatever you
+// use to know "who is this staff member" for other /api/staff routes.
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 const DB_NAME = "honolua"
 const MAX_LIMIT = 100
@@ -54,6 +60,68 @@ export async function GET(request) {
     })
   } catch (err) {
     console.error("audit-log GET error:", err)
+    return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 })
+  }
+}
+
+// Allowlist of actions the UI is allowed to log. Keeps this endpoint from
+// becoming a place any client script can write arbitrary strings into your
+// audit trail. Extend this as you wire up more logged actions.
+const ALLOWED_ACTIONS = new Set([
+  "department_created",
+  "department_archived",
+  "permission_updated",
+  "member_added",
+  "member_removed",
+])
+
+export async function POST(request) {
+  try {
+    const body = await request.json().catch(() => ({}))
+    const { action, meta } = body || {}
+
+    if (!action || typeof action !== "string" || !ALLOWED_ACTIONS.has(action)) {
+      return NextResponse.json({ ok: false, error: "invalid_action" }, { status: 400 })
+    }
+
+    // Identify the actor server-side — never trust an actor identity sent
+    // from the client, or anyone could write audit entries under someone
+    // else's name.
+    const session = await getServerSession(authOptions).catch(() => null)
+    if (!session?.user) {
+      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 })
+    }
+
+    const client = await clientPromise
+    const db = client.db(DB_NAME)
+
+    const doc = {
+      action,
+      meta: meta && typeof meta === "object" ? meta : {},
+      actorDiscordUsername: session.user.discordUsername || session.user.name || "Unknown",
+      actorRobloxUsername: session.user.robloxUsername || null,
+      actorAvatarUrl: session.user.avatarUrl || session.user.image || null,
+      createdAt: new Date(),
+    }
+
+    const result = await db.collection("staffAuditLog").insertOne(doc)
+
+    return NextResponse.json({
+      ok: true,
+      log: {
+        id: result.insertedId.toString(),
+        action: doc.action,
+        createdAt: doc.createdAt,
+        meta: doc.meta,
+        actor: {
+          discordUsername: doc.actorDiscordUsername,
+          robloxUsername: doc.actorRobloxUsername,
+          avatarUrl: doc.actorAvatarUrl,
+        },
+      },
+    })
+  } catch (err) {
+    console.error("audit-log POST error:", err)
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 })
   }
 }

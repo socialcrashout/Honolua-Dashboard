@@ -1,11 +1,6 @@
 import { NextResponse } from "next/server"
 import clientPromise from "@/lib/mongodb"
-// TODO: swap this for however you currently read the logged-in staff member
-// elsewhere in the app (e.g. `import { getServerSession } from "next-auth"` +
-// your authOptions, or a custom `getSession(request)` helper). Whatever you
-// use to know "who is this staff member" for other /api/staff routes.
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/lib/auth"
+import { getUserFromSession } from "@/lib/auth"
 
 const DB_NAME = "honolua"
 const MAX_LIMIT = 100

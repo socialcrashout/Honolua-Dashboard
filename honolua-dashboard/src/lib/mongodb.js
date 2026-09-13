@@ -1,25 +1,24 @@
-import { NextResponse } from "next/server"
-import { dbConnect } from "@/lib/db"
-import { getUserFromSession } from "@/lib/auth"
-import { canManageUpdates, getStaffRoleForUser } from "@/lib/staff"
-import ProductUpdate from "@/models/ProductUpdate"
+import { MongoClient } from "mongodb";
 
-export async function DELETE(request, { params }) {
-  const session = await getUserFromSession()
-  if (!session) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 })
-  if (session.blocked) return NextResponse.json({ ok: false, error: "account_unavailable" }, { status: 403 })
+const uri = process.env.MONGODB_URI;
+const options = {};
 
-  await dbConnect()
-  const role = await getStaffRoleForUser(session.user)
-  if (!canManageUpdates(role)) {
-    return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 })
-  }
+let client;
+let clientPromise;
 
-  const { id } = params
-  const updated = await ProductUpdate.findByIdAndUpdate(id, { active: false }, { new: true })
-  if (!updated) {
-    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 })
-  }
-
-  return NextResponse.json({ ok: true })
+if (!process.env.MONGODB_URI) {
+  throw new Error("Add MONGODB_URI to .env.local");
 }
+
+if (process.env.NODE_ENV === "development") {
+  if (!global._mongoClientPromise) {
+    client = new MongoClient(uri, options);
+    global._mongoClientPromise = client.connect();
+  }
+  clientPromise = global._mongoClientPromise;
+} else {
+  client = new MongoClient(uri, options);
+  clientPromise = client.connect();
+}
+
+export default clientPromise;

@@ -29,7 +29,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   TrendingUp,
-  Bug
+  Bug,
+  BarChart3
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -60,6 +61,7 @@ const NAV_GROUPS = [
       { href: "/staff/macros", label: "Macros", icon: Clipboard },
       { href: "/staff/payroll", label: "Payroll", icon: CreditCard },
       { href: "/staff/loa", label: "Leave of Absence", icon: CalendarClock },
+      { href: "/staff/site-stats", label: "Site Stats", icon: BarChart3 },
     ],
   },
   {

@@ -82,7 +82,7 @@ const NAV_GROUPS = [
     ],
   },
   {
-    label: "Executive",
+    label: "Leadership",
     minLevel: ROLE_LEVELS.executive,
     items: [
       { href: "/staff/departments", label: "Departments", icon: Layers },

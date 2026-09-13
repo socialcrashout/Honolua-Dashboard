@@ -851,7 +851,7 @@ export default function DepartmentsPage() {
                 <div className="h-20 animate-pulse rounded-2xl border border-lava/10 bg-lava/[0.03]" />
               </>
             ) : filtered.length === 0 ? (
-              <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-lava/10 bg-lava/[0.02] p-10 text-center text-sm text-lava/40">
+              <div className="rounded-2xl border border-lava/10 bg-lava/[0.02] py-10 text-center text-sm text-lava/40">
                 No departments match your search.
               </div>
             ) : (

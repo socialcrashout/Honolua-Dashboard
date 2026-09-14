@@ -1,56 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { fetchDiscordStats, fetchRobloxStats } from "./statsActions";
 
-const DISCORD_INVITE_CODE = "8Am56ckPFP";
-const ROBLOX_GROUP_ID = "743137138";
-const STAFF_MIN_RANK = 140;
+const STAFF_MIN_RANK = 100;
 const POLL_INTERVAL_MS = 60_000;
 
-
-async function fetchDiscordStats() {
-  "use server";
-  try {
-    const res = await fetch(
-      `https://discord.com/api/v10/invites/${DISCORD_INVITE_CODE}?with_counts=true`,
-      { cache: "no-store" }
-    );
-    if (!res.ok) throw new Error(`discord fetch failed: ${res.status}`);
-    const data = await res.json();
-    return { memberCount: data.approximate_member_count ?? null };
-  } catch (err) {
-    console.error("[fetchDiscordStats]", err);
-    return { error: true };
-  }
-}
-
-async function fetchRobloxStats() {
-  "use server";
-  try {
-    const [groupRes, rolesRes] = await Promise.all([
-      fetch(`https://groups.roblox.com/v1/groups/${ROBLOX_GROUP_ID}`, {
-        cache: "no-store",
-      }),
-      fetch(`https://groups.roblox.com/v1/groups/${ROBLOX_GROUP_ID}/roles`, {
-        cache: "no-store",
-      }),
-    ]);
-    if (!groupRes.ok || !rolesRes.ok) {
-      throw new Error(
-        `roblox fetch failed: group=${groupRes.status} roles=${rolesRes.status}`
-      );
-    }
-    const group = await groupRes.json();
-    const rolesData = await rolesRes.json();
-    const staffCount = (rolesData.roles ?? [])
-      .filter((r) => r.rank >= STAFF_MIN_RANK)
-      .reduce((sum, r) => sum + (r.memberCount ?? 0), 0);
-    return { memberCount: group.memberCount ?? null, staffCount };
-  } catch (err) {
-    console.error("[fetchRobloxStats]", err);
-    return { error: true };
-  }
-}
+// fetchDiscordStats / fetchRobloxStats are Server Actions imported from
+// ./statsActions.js (marked "use server" in that file). Calling them from
+// here still runs the actual fetch on the server, so the Roblox/Discord
+// API calls never touch the browser — no CORS. A "use client" file can't
+// define "use server" functions itself, so they have to live in their own
+// small file, but the actions are otherwise indistinguishable from local
+// async functions from this component's point of view.
 
 function useCountUp(target, { duration = 1200, formatter = (n) => n.toLocaleString() } = {}) {
   const [display, setDisplay] = useState(target ?? 0);

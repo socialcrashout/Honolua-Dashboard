@@ -73,7 +73,7 @@ if (!tokenRes.ok) {
 
     const joinedTimestamp = await fetchGuildJoinedTimestamp(discordUser.id);
 
-    const session = getSession(request);
+    const session = getSession(request) || {};
     session.discordId = discordUser.id;
     session.discordUsername = discordUser.username;
     session.discordAvatar = discordUser.avatar

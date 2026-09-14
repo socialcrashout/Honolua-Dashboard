@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { dbConnect } from "@/lib/db"
 import { getUserFromSession } from "@/lib/auth"
 import { canManageUpdates, getStaffRoleForUser } from "@/lib/staff"
-import ProductUpdate from "@/lib/ProductUpdate"
+import ProductUpdate from "@/model/ProductUpdate"
 
 export async function GET() {
   const session = await getUserFromSession()

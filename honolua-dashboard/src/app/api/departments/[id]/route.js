@@ -45,7 +45,7 @@ export async function PATCH(request, { params }) {
   const { error } = await requireStaff()
   if (error) return error
 
-  const { id } = params
+  const { id } = await params
   const payload = await request.json().catch(() => null)
 
   const department = await Department.findById(id)
@@ -93,7 +93,7 @@ export async function DELETE(request, { params }) {
   const { error } = await requireStaff()
   if (error) return error
 
-  const { id } = params
+  const { id } = await params
   const updated = await Department.findByIdAndUpdate(id, { status: "Archived" }, { new: true })
   if (!updated) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 })

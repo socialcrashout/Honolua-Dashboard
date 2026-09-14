@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchDiscordStats, fetchRobloxStats } from "./statsActions";
 
-const STAFF_MIN_RANK = 100;
+const STAFF_MIN_RANK = 140;
 const POLL_INTERVAL_MS = 60_000;
 
 // fetchDiscordStats / fetchRobloxStats are Server Actions imported from
@@ -229,7 +229,7 @@ export default function LiveStats() {
     {
       header: "Staff Team",
       value: staffCount,
-      label: `Ranked ${STAFF_MIN_RANK}+`,
+      label: "Total staff members",
       live: !staffError,
       error: staffError,
     },

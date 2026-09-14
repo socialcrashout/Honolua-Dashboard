@@ -14,7 +14,7 @@ export async function DELETE(request, { params }) {
   if (session.blocked) return NextResponse.json({ ok: false, error: "account_unavailable" }, { status: 403 })
 
   await dbConnect()
-  const role = await getStaffRoleForUser(session.user)
+  const role = await getStaffRoleForUser(session)
   if (!canManageUpdates(role)) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 })
   }

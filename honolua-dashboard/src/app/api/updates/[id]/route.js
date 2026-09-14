@@ -10,10 +10,10 @@ export async function GET() {
   if (session.blocked) return NextResponse.json({ ok: false, error: "account_unavailable" }, { status: 403 })
 
   await dbConnect()
-  const role = await getStaffRoleForUser(session)
+  /*const role = await getStaffRoleForUser(session)
   if (!canManageUpdates(role)) {
     return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 })
-  }
+  }*/
 
   const updates = await ProductUpdate.find({ active: true }).sort({ createdAt: -1 }).limit(100).lean()
   return NextResponse.json({

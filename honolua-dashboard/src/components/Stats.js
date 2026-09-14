@@ -3,9 +3,54 @@
 import { useEffect, useRef, useState } from "react";
 
 const DISCORD_INVITE_CODE = "8Am56ckPFP";
-const ROBLOX_GROUP_ID = "189373609";
-const STAFF_MIN_RANK = 100;
+const ROBLOX_GROUP_ID = "743137138";
+const STAFF_MIN_RANK = 140;
 const POLL_INTERVAL_MS = 60_000;
+
+
+async function fetchDiscordStats() {
+  "use server";
+  try {
+    const res = await fetch(
+      `https://discord.com/api/v10/invites/${DISCORD_INVITE_CODE}?with_counts=true`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) throw new Error(`discord fetch failed: ${res.status}`);
+    const data = await res.json();
+    return { memberCount: data.approximate_member_count ?? null };
+  } catch (err) {
+    console.error("[fetchDiscordStats]", err);
+    return { error: true };
+  }
+}
+
+async function fetchRobloxStats() {
+  "use server";
+  try {
+    const [groupRes, rolesRes] = await Promise.all([
+      fetch(`https://groups.roblox.com/v1/groups/${ROBLOX_GROUP_ID}`, {
+        cache: "no-store",
+      }),
+      fetch(`https://groups.roblox.com/v1/groups/${ROBLOX_GROUP_ID}/roles`, {
+        cache: "no-store",
+      }),
+    ]);
+    if (!groupRes.ok || !rolesRes.ok) {
+      throw new Error(
+        `roblox fetch failed: group=${groupRes.status} roles=${rolesRes.status}`
+      );
+    }
+    const group = await groupRes.json();
+    const rolesData = await rolesRes.json();
+    const staffCount = (rolesData.roles ?? [])
+      .filter((r) => r.rank >= STAFF_MIN_RANK)
+      .reduce((sum, r) => sum + (r.memberCount ?? 0), 0);
+    return { memberCount: group.memberCount ?? null, staffCount };
+  } catch (err) {
+    console.error("[fetchRobloxStats]", err);
+    return { error: true };
+  }
+}
 
 function useCountUp(target, { duration = 1200, formatter = (n) => n.toLocaleString() } = {}) {
   const [display, setDisplay] = useState(target ?? 0);
@@ -40,32 +85,6 @@ function useCountUp(target, { duration = 1200, formatter = (n) => n.toLocaleStri
   }, [target, duration]);
 
   return target === null || target === undefined ? "—" : formatter(Math.round(display));
-}
-
-async function fetchDiscordTotalMembers(inviteCode) {
-  const res = await fetch(
-    `https://discord.com/api/v10/invites/${inviteCode}?with_counts=true`
-  );
-  if (!res.ok) throw new Error("bad invite code or expired");
-  const data = await res.json();
-  return data.approximate_member_count ?? null;
-}
-
-async function fetchRobloxGroup(groupId) {
-  const res = await fetch(`https://groups.roblox.com/v1/groups/${groupId}`);
-  if (!res.ok) throw new Error("bad roblox group id");
-  const data = await res.json();
-  return data.memberCount ?? null;
-}
-
-async function fetchRobloxStaffCount(groupId, minRank) {
-  const res = await fetch(`https://groups.roblox.com/v1/groups/${groupId}/roles`);
-  if (!res.ok) throw new Error("bad roblox roles fetch");
-  const data = await res.json();
-  const roles = data.roles ?? [];
-  return roles
-    .filter((r) => r.rank >= minRank)
-    .reduce((sum, r) => sum + (r.memberCount ?? 0), 0);
 }
 
 function DropText({ text, play, delayStart = 0, staggerMs = 45 }) {
@@ -198,34 +217,27 @@ export default function LiveStats() {
     let cancelled = false;
 
     async function refresh() {
-      try {
-        const total = await fetchDiscordTotalMembers(DISCORD_INVITE_CODE);
-        if (!cancelled) {
-          setDiscordTotal(total);
+      const discord = await fetchDiscordStats();
+      if (!cancelled) {
+        if (discord.error) {
+          setDiscordError(true);
+        } else {
+          setDiscordTotal(discord.memberCount);
           setDiscordError(false);
         }
-      } catch {
-        if (!cancelled) setDiscordError(true);
       }
 
-      try {
-        const members = await fetchRobloxGroup(ROBLOX_GROUP_ID);
-        if (!cancelled) {
-          setRobloxMembers(members);
+      const roblox = await fetchRobloxStats();
+      if (!cancelled) {
+        if (roblox.error) {
+          setRobloxError(true);
+          setStaffError(true);
+        } else {
+          setRobloxMembers(roblox.memberCount);
           setRobloxError(false);
-        }
-      } catch {
-        if (!cancelled) setRobloxError(true);
-      }
-
-      try {
-        const staff = await fetchRobloxStaffCount(ROBLOX_GROUP_ID, STAFF_MIN_RANK);
-        if (!cancelled) {
-          setStaffCount(staff);
+          setStaffCount(roblox.staffCount);
           setStaffError(false);
         }
-      } catch {
-        if (!cancelled) setStaffError(true);
       }
     }
 

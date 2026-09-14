@@ -1,9 +1,10 @@
-const MIN_MANAGE_RANK = 169; // same threshold as workspace/status — adjust if roles should differ
+// lib/staff.js
+const MIN_MANAGE_RANK = 169; // same threshold as workspace/status
 
 export async function getStaffRoleForUser(user) {
-  return user?.workspaceRoleName || null;
+  return user?.workspaceRank ?? 0;
 }
 
-export function canManageUpdates(session) {
-  return (session?.workspaceRank ?? 0) > MIN_MANAGE_RANK;
+export function canManageUpdates(rank) {
+  return (rank ?? 0) > MIN_MANAGE_RANK;
 }

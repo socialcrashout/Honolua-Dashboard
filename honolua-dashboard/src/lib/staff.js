@@ -1,13 +1,9 @@
-// Guessed shape: session.user.role is a string like "owner", "admin", "staff", or "member".
-// If your app stores roles differently (e.g. a separate staff collection, or a list of
-// Discord IDs), swap out getStaffRoleForUser's body below — everything else stays the same.
-
-const CAN_MANAGE_UPDATES = new Set(["owner", "admin", "staff"])
+const MIN_MANAGE_RANK = 169; // same threshold as workspace/status — adjust if roles should differ
 
 export async function getStaffRoleForUser(user) {
-  return user?.role || null
+  return user?.workspaceRoleName || null;
 }
 
-export function canManageUpdates(role) {
-  return CAN_MANAGE_UPDATES.has(role)
+export function canManageUpdates(session) {
+  return (session?.workspaceRank ?? 0) > MIN_MANAGE_RANK;
 }

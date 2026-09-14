@@ -6,7 +6,7 @@ const GROUP_ID = "743137138";
 const MIN_RANK = 169; // strictly above this passes — 216 itself does NOT
 
 export async function GET(request) {
-  const session = getSession(request);
+  const session = getSession(request) || {};
   const forceRefresh = request.nextUrl.searchParams.get("refresh") === "true";
 
   if (!session.discordId) {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { dbConnect } from "@/lib/db"
 import { getUserFromSession } from "@/lib/auth"
 import { canManageUpdates, getStaffRoleForUser } from "@/lib/staff"
-import ProductUpdate from "@/lib/ProductUpdate"
+import ProductUpdate from "@/model/ProductUpdate"
 
 // Soft delete: the GET handler only returns { active: true } updates, so
 // flipping this to false is enough to remove it from the list without

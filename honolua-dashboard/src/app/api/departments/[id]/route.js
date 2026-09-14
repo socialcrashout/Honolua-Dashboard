@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import { dbConnect } from "@/lib/db"
 import { getUserFromSession } from "@/lib/auth"
 import { canManageUpdates, getStaffRoleForUser } from "@/lib/staff"
-import Department from "@/lib/Department"
+import Department from "@/model/Department"
 import { getRobloxUserByUsername, getAvatarHeadshots } from "@/lib/roblox"
 
 async function requireStaff() {

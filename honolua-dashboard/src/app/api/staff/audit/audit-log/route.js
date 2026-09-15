@@ -68,6 +68,12 @@ const ALLOWED_ACTIONS = new Set([
   "permission_updated",
   "member_added",
   "member_removed",
+  // Trigger automation actions
+  "trigger_created",
+  "trigger_updated",
+  "trigger_deleted",
+  "trigger_enabled",
+  "trigger_disabled",
 ])
 
 export async function POST(request) {
@@ -82,8 +88,12 @@ export async function POST(request) {
     // Identify the actor server-side — never trust an actor identity sent
     // from the client, or anyone could write audit entries under someone
     // else's name.
-    const session = await getServerSession(authOptions).catch(() => null)
-    if (!session?.user) {
+    // NOTE: this previously called an unimported getServerSession(authOptions),
+    // which would have thrown on every request. Swapped for the actual
+    // getUserFromSession helper this file already imports (same one used
+    // by /api/auth/me).
+    const user = await getUserFromSession(request).catch(() => null)
+    if (!user) {
       return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 })
     }
 
@@ -93,9 +103,9 @@ export async function POST(request) {
     const doc = {
       action,
       meta: meta && typeof meta === "object" ? meta : {},
-      actorDiscordUsername: session.user.discordUsername || session.user.name || "Unknown",
-      actorRobloxUsername: session.user.robloxUsername || null,
-      actorAvatarUrl: session.user.avatarUrl || session.user.image || null,
+      actorDiscordUsername: user.discordUsername || user.username || user.name || "Unknown",
+      actorRobloxUsername: user.robloxUsername || null,
+      actorAvatarUrl: user.avatarUrl || user.image || null,
       createdAt: new Date(),
     }
 

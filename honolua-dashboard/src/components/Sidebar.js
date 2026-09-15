@@ -91,6 +91,13 @@ const NAV_GROUPS = [
       { href: "/staff/audit", label: "Audit Logs", icon: ScrollText },
     ],
   },
+  {
+    label: "Automation",
+    minLevel: ROLE_LEVELS.executive,
+    items: [
+      { href: "/staff/triggers", label: "Triggers", icon: Zap },
+    ],
+  },
 ]
 
 const FOOTER_ITEMS = [{ href: "/dashboard", label: "Back", icon: ArrowLeft }]

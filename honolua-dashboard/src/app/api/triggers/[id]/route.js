@@ -1,5 +1,7 @@
 import dbConnect from "@/lib/mongoose";
 import Trigger from "@/model/Trigger";
+import { logStaffAction } from "@/lib/audit"; // ⚠️ confirm this path matches your project
+import { getUserFromSession } from "@/lib/auth";
 
 export async function GET(_req, { params }) {
   await dbConnect();
@@ -24,6 +26,17 @@ export async function PATCH(req, { params }) {
       { new: true, runValidators: true }
     );
     if (!trigger) return Response.json({ ok: false, error: "Not found" }, { status: 404 });
+
+    const keys = Object.keys(body);
+    const isPureToggle = keys.length === 1 && keys[0] === "enabled";
+
+    const user = await getUserFromSession(req).catch(() => null);
+    await logStaffAction({
+      session: { discordId: user?.discordId, discordUsername: user?.username || user?.discordUsername },
+      action: isPureToggle ? (body.enabled ? "trigger_enabled" : "trigger_disabled") : "trigger_updated",
+      meta: { triggerId: trigger._id.toString(), name: trigger.name },
+    });
+
     return Response.json({ ok: true, trigger });
   } catch (err) {
     if (err?.code === 11000) {
@@ -37,9 +50,17 @@ export async function PATCH(req, { params }) {
   }
 }
 
-export async function DELETE(_req, { params }) {
+export async function DELETE(req, { params }) {
   await dbConnect();
   const trigger = await Trigger.findByIdAndDelete(params.id);
   if (!trigger) return Response.json({ ok: false, error: "Not found" }, { status: 404 });
+
+  const user = await getUserFromSession(req).catch(() => null);
+  await logStaffAction({
+    session: { discordId: user?.discordId, discordUsername: user?.username || user?.discordUsername },
+    action: "trigger_deleted",
+    meta: { triggerId: params.id, name: trigger.name },
+  });
+
   return Response.json({ ok: true });
 }

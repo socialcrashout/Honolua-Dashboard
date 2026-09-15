@@ -1,5 +1,7 @@
 import dbConnect from "@/lib/mongoose";
 import Trigger from "@/model/Trigger";
+import { logStaffAction } from "@/lib/audit"; // ⚠️ confirm this path matches your project
+import { getUserFromSession } from "@/lib/auth";
 
 // Swap this for however you currently resolve "which server" a staff
 // session belongs to — hardcoding a single guild here to match the rest
@@ -40,6 +42,14 @@ export async function POST(req) {
       guildId: GUILD_ID,
       name: body.name.trim().toLowerCase(),
     });
+
+    const user = await getUserFromSession(req).catch(() => null);
+    await logStaffAction({
+      session: { discordId: user?.discordId, discordUsername: user?.username || user?.discordUsername },
+      action: "trigger_created",
+      meta: { triggerId: trigger._id.toString(), name: trigger.name },
+    });
+
     return Response.json({ ok: true, trigger }, { status: 201 });
   } catch (err) {
     if (err?.code === 11000) {

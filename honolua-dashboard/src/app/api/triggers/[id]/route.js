@@ -1,5 +1,5 @@
 import dbConnect from "@/lib/mongoose";
-import Trigger from "@/models/Trigger";
+import Trigger from "@/model/Trigger";
 
 export async function GET(_req, { params }) {
   await dbConnect();

@@ -1,5 +1,5 @@
 import dbConnect from "@/lib/mongoose";
-import Trigger from "@/models/Trigger";
+import Trigger from "@/model/Trigger";
 
 // Swap this for however you currently resolve "which server" a staff
 // session belongs to — hardcoding a single guild here to match the rest

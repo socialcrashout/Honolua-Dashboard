@@ -126,21 +126,22 @@ function Avatar({ member, size = 36 }) {
 function DepartmentRow({ dept, active, onClick }) {
   const Icon = ICON_MAP[dept.icon] || Users
   return (
-    <motion.button
-      layout
+    <button
       onClick={onClick}
-      whileHover={{ y: -1 }}
-      className={`flex w-full items-center gap-4 rounded-2xl border p-4 text-left transition ${
-        active
-          ? "border-[#E6736F]/25 bg-[#E6736F]/[0.05] shadow-[0_2px_10px_rgba(230,115,111,0.08)]"
-          : "border-lava/10 bg-white hover:border-lava/20"
+      className={`group relative flex w-full items-center gap-4 py-4 pl-5 pr-4 text-left transition ${
+        active ? "bg-lava/[0.035]" : "hover:bg-lava/[0.02]"
       }`}
     >
+      <span
+        className="absolute inset-y-2 left-0 w-[3px] rounded-full transition-opacity"
+        style={{ background: dept.color, opacity: active ? 1 : 0 }}
+      />
+
       <div
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
         style={{ background: `${dept.color}1A`, color: dept.color }}
       >
-        <Icon className="h-5 w-5" />
+        <Icon className="h-4.5 w-4.5" />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -150,21 +151,19 @@ function DepartmentRow({ dept, active, onClick }) {
 
       <div className="hidden shrink-0 items-center gap-1.5 text-xs text-lava/40 sm:flex">
         <Users className="h-3.5 w-3.5" />
-        {dept.members.length} members
+        {dept.members.length}
       </div>
 
       <StatusPill status={dept.status} />
-    </motion.button>
+    </button>
   )
 }
 
 function SettingsLink({ icon: Icon, label }) {
   return (
-    <button className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left transition hover:bg-lava/[0.03]">
+    <button className="flex w-full items-center justify-between rounded-xl px-1 py-3 text-left transition hover:bg-lava/[0.03]">
       <span className="flex items-center gap-3">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-lava/5 text-reef-navy/70">
-          <Icon className="h-4 w-4" />
-        </span>
+        <Icon className="h-4 w-4 text-lava/40" />
         <span className="text-sm font-medium text-reef-navy">{label}</span>
       </span>
       <ChevronRight className="h-4 w-4 text-lava/25" />
@@ -189,14 +188,12 @@ function Toggle({ enabled, onChange }) {
   )
 }
 
-function StatBlock({ icon: Icon, value, label }) {
+function StatInline({ icon: Icon, value, label }) {
   return (
-    <div className="rounded-2xl border border-lava/10 bg-lava/[0.02] p-3 text-center">
-      <div className="flex items-center justify-center gap-1.5">
-        <Icon className="h-4 w-4 text-lava/40" />
-        <span className="text-base font-bold text-reef-navy">{value}</span>
-      </div>
-      <div className="mt-0.5 text-[11px] text-lava/40">{label}</div>
+    <div className="flex items-center gap-2">
+      <Icon className="h-4 w-4 text-lava/35" />
+      <span className="text-sm font-bold text-reef-navy">{value}</span>
+      <span className="text-xs text-lava/40">{label}</span>
     </div>
   )
 }
@@ -250,85 +247,91 @@ function DetailPanel({ dept, onTogglePermission, onAddMember, onRemoveMember, on
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -12 }}
       transition={{ duration: 0.25, ease: EASE }}
-      className="flex h-full flex-col rounded-3xl border border-lava/10 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+      className="flex h-full flex-col overflow-hidden rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
     >
-      <div className="flex items-start gap-4">
-        <div
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl"
-          style={{ background: `${dept.color}1A`, color: dept.color }}
-        >
-          <Icon className="h-6 w-6" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-reef-navy">{dept.name}</h2>
-            <StatusPill status={dept.status} />
+      <div className="px-6 pb-5 pt-6" style={{ background: `linear-gradient(180deg, ${dept.color}14, transparent)` }}>
+        <div className="flex items-start gap-4">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: `${dept.color}22`, color: dept.color }}
+          >
+            <Icon className="h-5 w-5" />
           </div>
-          <p className="mt-1 text-sm text-lava/50">{dept.description}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-reef-navy">{dept.name}</h2>
+              <StatusPill status={dept.status} />
+            </div>
+            <p className="mt-1 text-sm text-lava/50">{dept.description}</p>
+          </div>
         </div>
       </div>
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        <StatBlock icon={Users} value={dept.members.length} label="Members" />
-        <StatBlock icon={Shield} value={dept.permissions.filter((p) => p.enabled).length} label="Permissions" />
-        <StatBlock icon={Settings} value={dept.permissions.length} label="Settings" />
-      </div>
-
-      <div className="mt-6">
-        <div className="mb-1 text-sm font-semibold text-reef-navy">Department Settings</div>
-        <div className="mt-1 space-y-0.5">
-          <SettingsLink icon={Pencil} label="Edit Department" />
-          <SettingsLink icon={Shield} label="Manage Permissions" />
-          <SettingsLink icon={FileText} label="View Logs" />
+      <div className="flex-1 px-6 pb-6">
+        <div className="flex items-center gap-5 border-b border-lava/8 py-4">
+          <StatInline icon={Users} value={dept.members.length} label="Members" />
+          <span className="h-4 w-px bg-lava/10" />
+          <StatInline icon={Shield} value={dept.permissions.filter((p) => p.enabled).length} label="Permissions" />
+          <span className="h-4 w-px bg-lava/10" />
+          <StatInline icon={Settings} value={dept.permissions.length} label="Settings" />
         </div>
-      </div>
 
-      <div className="mt-6">
-        <div className="text-sm font-semibold text-reef-navy">Members</div>
+        <div className="mt-2">
+          <div className="mb-1 pt-4 text-sm font-semibold text-reef-navy">Department Settings</div>
+          <div className="space-y-0.5">
+            <SettingsLink icon={Pencil} label="Edit Department" />
+            <SettingsLink icon={Shield} label="Manage Permissions" />
+            <SettingsLink icon={FileText} label="View Logs" />
+          </div>
+        </div>
 
-        {dept.members.length === 0 ? (
-          <p className="mt-2 text-xs text-lava/40">No members assigned yet.</p>
-        ) : (
-          <div className="mt-3 space-y-2">
-            {dept.members.map((m) => (
-              <div key={m.robloxId} className="flex items-center gap-2.5 rounded-xl border border-lava/10 px-2.5 py-2">
-                <Avatar member={m} size={32} />
-                <span className="flex-1 truncate text-sm text-reef-navy/80">{m.username}</span>
-                <button
-                  onClick={() => onRemoveMember(m.robloxId)}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg text-lava/30 transition hover:bg-[#E6736F]/10 hover:text-[#E6736F]"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+        <div className="mt-6">
+          <div className="text-sm font-semibold text-reef-navy">Members</div>
+
+          {dept.members.length === 0 ? (
+            <p className="mt-2 text-xs text-lava/40">No members assigned yet.</p>
+          ) : (
+            <div className="mt-3 divide-y divide-lava/8 border-y border-lava/8">
+              {dept.members.map((m) => (
+                <div key={m.robloxId} className="flex items-center gap-2.5 py-2.5">
+                  <Avatar member={m} size={30} />
+                  <span className="flex-1 truncate text-sm text-reef-navy/80">{m.username}</span>
+                  <button
+                    onClick={() => onRemoveMember(m.robloxId)}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-lava/30 transition hover:bg-[#E6736F]/10 hover:text-[#E6736F]"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <AddMemberRow onAdd={handleAdd} adding={addingMember} />
+        </div>
+
+        <div className="mt-6 flex-1">
+          <div className="text-sm font-semibold text-reef-navy">Permissions</div>
+          <div className="mt-3 divide-y divide-lava/8">
+            {dept.permissions.map((p, i) => (
+              <div key={p.label} className="flex items-center justify-between py-2.5">
+                <span className="text-sm text-reef-navy/80">{p.label}</span>
+                <Toggle enabled={p.enabled} onChange={() => onTogglePermission(i)} />
               </div>
             ))}
           </div>
-        )}
-
-        <AddMemberRow onAdd={handleAdd} adding={addingMember} />
-      </div>
-
-      <div className="mt-6 flex-1">
-        <div className="text-sm font-semibold text-reef-navy">Permissions</div>
-        <div className="mt-3 space-y-1">
-          {dept.permissions.map((p, i) => (
-            <div key={p.label} className="flex items-center justify-between rounded-xl px-1 py-2">
-              <span className="text-sm text-reef-navy/80">{p.label}</span>
-              <Toggle enabled={p.enabled} onChange={() => onTogglePermission(i)} />
-            </div>
-          ))}
         </div>
-      </div>
 
-      <motion.button
-        onClick={onArchive}
-        whileHover={{ scale: 1.01 }}
-        whileTap={{ scale: 0.98 }}
-        className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#E6736F]/20 bg-[#E6736F]/[0.06] text-sm font-semibold text-[#E6736F] transition hover:bg-[#E6736F]/10"
-      >
-        <Trash2 className="h-4 w-4" />
-        Archive Department
-      </motion.button>
+        <motion.button
+          onClick={onArchive}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+          className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#E6736F]/20 bg-[#E6736F]/[0.06] text-sm font-semibold text-[#E6736F] transition hover:bg-[#E6736F]/10"
+        >
+          <Trash2 className="h-4 w-4" />
+          Archive Department
+        </motion.button>
+      </div>
     </motion.div>
   )
 }
@@ -366,7 +369,7 @@ function CreateModal({ open, onClose, onCreate, submitting }) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 12, scale: 0.98 }}
               transition={{ duration: 0.25, ease: EASE }}
-              className="w-full max-w-sm rounded-2xl border border-lava/10 bg-white p-6 shadow-xl"
+              className="w-full max-w-sm rounded-[24px] border border-lava/10 bg-white p-6 shadow-xl"
             >
               <h2 className="text-lg font-semibold text-reef-navy">New Department</h2>
               <div className="mt-4 space-y-3">
@@ -406,23 +409,14 @@ function CreateModal({ open, onClose, onCreate, submitting }) {
   )
 }
 
-function QuickActionRow({ icon: Icon, title, subtitle, onClick }) {
+function QuickActionPill({ icon: Icon, label, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition hover:bg-[#F4B942]/[0.06]"
+      className="inline-flex items-center gap-2 rounded-full border border-lava/10 bg-lava/[0.03] px-3.5 py-2 text-xs font-semibold text-reef-navy transition hover:border-[#F4B942]/40 hover:bg-[#F4B942]/[0.08]"
     >
-      <span
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-        style={{ background: "rgba(244,185,66,0.12)", color: "#B8862B" }}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-reef-navy">{title}</span>
-        <span className="block truncate text-xs text-lava/40">{subtitle}</span>
-      </span>
-      <ChevronRight className="h-4 w-4 shrink-0 text-lava/25" />
+      <Icon className="h-3.5 w-3.5 text-[#B8862B]" />
+      {label}
     </button>
   )
 }
@@ -559,33 +553,23 @@ function Sidebar({ departments, onCreateClick, onAssignMembersClick, onSetPermis
   const router = useRouter()
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-3xl border border-lava/10 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <div className="overflow-hidden rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="border-b border-lava/8 p-5">
         <div className="flex items-center gap-2">
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-lg"
-            style={{ background: "rgba(244,185,66,0.12)", color: "#B8862B" }}
-          >
-            <Zap className="h-4 w-4" />
-          </span>
+          <Zap className="h-4 w-4 text-[#B8862B]" />
           <h3 className="text-sm font-bold text-reef-navy">Quick Actions</h3>
         </div>
-        <div className="mt-2 space-y-0.5">
-          <QuickActionRow icon={Plus} title="Create Department" subtitle="Add a new team department" onClick={onCreateClick} />
-          <QuickActionRow icon={UserPlus} title="Assign Members" subtitle="Add staff to departments" onClick={onAssignMembersClick} />
-          <QuickActionRow icon={ShieldCheck} title="Set Permissions" subtitle="Manage role access" onClick={onSetPermissionsClick} />
-          <QuickActionRow icon={FileText} title="View Logs" subtitle="Check recent changes" onClick={() => router.push(VIEW_LOGS_HREF)} />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <QuickActionPill icon={Plus} label="Create Department" onClick={onCreateClick} />
+          <QuickActionPill icon={UserPlus} label="Assign Members" onClick={onAssignMembersClick} />
+          <QuickActionPill icon={ShieldCheck} label="Set Permissions" onClick={onSetPermissionsClick} />
+          <QuickActionPill icon={FileText} label="View Logs" onClick={() => router.push(VIEW_LOGS_HREF)} />
         </div>
       </div>
 
-      <div className="rounded-3xl border border-lava/10 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="border-b border-lava/8 p-5">
         <div className="flex items-center gap-2">
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-lg"
-            style={{ background: "rgba(230,115,111,0.1)", color: "#E6736F" }}
-          >
-            <PieChart className="h-4 w-4" />
-          </span>
+          <PieChart className="h-4 w-4 text-[#E6736F]" />
           <h3 className="text-sm font-bold text-reef-navy">Department Overview</h3>
         </div>
         <div className="mt-4">
@@ -593,15 +577,10 @@ function Sidebar({ departments, onCreateClick, onAssignMembersClick, onSetPermis
         </div>
       </div>
 
-      <div className="rounded-3xl border border-lava/10 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-lg"
-              style={{ background: "rgba(244,114,182,0.12)", color: "#C2417F" }}
-            >
-              <Clock className="h-4 w-4" />
-            </span>
+            <Clock className="h-4 w-4 text-[#C2417F]" />
             <h3 className="text-sm font-bold text-reef-navy">Recent Activity</h3>
           </div>
           <button
@@ -794,70 +773,72 @@ export default function DepartmentsPage() {
           selected ? "lg:grid-cols-[1.4fr_1fr_320px]" : "lg:grid-cols-[1fr_320px]"
         }`}
       >
-        <div className="flex flex-col rounded-3xl border border-lava/10 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: "rgba(230,115,111,0.1)" }}>
-                <Users className="h-5 w-5" style={{ color: "#E6736F" }} />
+        <div className="flex flex-col overflow-hidden rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div className="p-6 pb-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: "rgba(230,115,111,0.1)" }}>
+                  <Users className="h-5 w-5" style={{ color: "#E6736F" }} />
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-reef-navy">Departments</h1>
+                  <p className="text-xs text-lava/45">Create, manage, and organize your team departments.</p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-reef-navy">Departments</h1>
-                <p className="text-xs text-lava/45">Create, manage, and organize your team departments.</p>
+              <motion.button
+                onClick={() => setCreateOpen(true)}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white shadow-sm"
+                style={{ background: BRAND_GRADIENT }}
+              >
+                <Plus className="h-4 w-4" />
+                Create Department
+              </motion.button>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <div className="relative min-w-[180px] flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-lava/30" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search departments..."
+                  className="h-10 w-full rounded-full border border-lava/10 bg-lava/[0.03] pl-10 pr-3 text-sm text-reef-navy outline-none transition placeholder:text-lava/30 focus:border-hibiscus/40"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 rounded-full border border-lava/10 bg-lava/[0.02] p-1">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      filter === f ? "text-white shadow-sm" : "text-lava/45 hover:text-reef-navy"
+                    }`}
+                    style={filter === f ? { background: BRAND_GRADIENT } : undefined}
+                  >
+                    {f}
+                  </button>
+                ))}
               </div>
             </div>
-            <motion.button
-              onClick={() => setCreateOpen(true)}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white shadow-sm"
-              style={{ background: BRAND_GRADIENT }}
-            >
-              <Plus className="h-4 w-4" />
-              Create Department
-            </motion.button>
           </div>
 
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <div className="relative min-w-[180px] flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-lava/30" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search departments..."
-                className="h-10 w-full rounded-xl border border-lava/10 bg-lava/[0.03] pl-10 pr-3 text-sm text-reef-navy outline-none transition placeholder:text-lava/30 focus:border-hibiscus/40"
-              />
-            </div>
-            <div className="flex items-center gap-1.5 rounded-xl border border-lava/10 bg-lava/[0.02] p-1">
-              {FILTERS.map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                    filter === f ? "text-white shadow-sm" : "text-lava/45 hover:text-reef-navy"
-                  }`}
-                  style={filter === f ? { background: BRAND_GRADIENT } : undefined}
-                >
-                  {f}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-5 space-y-2.5">
+          <div className="mt-5">
             {loading ? (
-              <>
-                <div className="h-20 animate-pulse rounded-2xl border border-lava/10 bg-lava/[0.03]" />
-                <div className="h-20 animate-pulse rounded-2xl border border-lava/10 bg-lava/[0.03]" />
-                <div className="h-20 animate-pulse rounded-2xl border border-lava/10 bg-lava/[0.03]" />
-              </>
-            ) : filtered.length === 0 ? (
-              <div className="rounded-2xl border border-lava/10 bg-lava/[0.02] py-10 text-center text-sm text-lava/40">
-                No departments match your search.
+              <div className="divide-y divide-lava/8">
+                <div className="h-[72px] animate-pulse bg-lava/[0.04]" />
+                <div className="h-[72px] animate-pulse bg-lava/[0.04]" />
+                <div className="h-[72px] animate-pulse bg-lava/[0.04]" />
               </div>
+            ) : filtered.length === 0 ? (
+              <div className="px-6 py-10 text-center text-sm text-lava/40">No departments match your search.</div>
             ) : (
-              filtered.map((dept) => (
-                <DepartmentRow key={dept.id} dept={dept} active={dept.id === selectedId} onClick={() => setSelectedId(dept.id)} />
-              ))
+              <div className="divide-y divide-lava/8 pb-2">
+                {filtered.map((dept) => (
+                  <DepartmentRow key={dept.id} dept={dept} active={dept.id === selectedId} onClick={() => setSelectedId(dept.id)} />
+                ))}
+              </div>
             )}
           </div>
         </div>

@@ -127,7 +127,7 @@ export default function Dashboard() {
                     : "Here's what's happening across the team today."}
                 </p>
               </div>
-              <div className="flex items-center gap-2 bg-white/70 backdrop-blur border border-stone-200 rounded-xl px-4 py-2 text-sm text-stone-600">
+              <div className="flex items-center gap-2 rounded-full border border-stone-200 bg-white/70 backdrop-blur px-4 py-2 text-sm text-stone-600">
                 <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
                   <rect x="3" y="4" width="18" height="17" rx="2" stroke="#78716C" strokeWidth="1.6"/>
                   <path d="M3 9h18M8 2v4M16 2v4" stroke="#78716C" strokeWidth="1.6" strokeLinecap="round"/>
@@ -136,33 +136,32 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Stat cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              {stats.map((s) => (
-                <div
-                  key={s.label}
-                  className="bg-white/70 backdrop-blur border border-stone-200 rounded-2xl p-5 shadow-sm"
-                >
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-4 ${s.iconBg}`}>
-                    {s.icon}
+            {/* Stats — one banded panel, divided, instead of four identical cards */}
+            <div className="mb-8 overflow-hidden rounded-[28px] border border-stone-200 bg-white/70 backdrop-blur shadow-sm">
+              <div className="grid grid-cols-1 divide-y divide-stone-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+                {stats.map((s) => (
+                  <div key={s.label} className="p-5">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-4 ${s.iconBg}`}>
+                      {s.icon}
+                    </div>
+                    <p className="text-stone-500 text-sm">{s.label}</p>
+                    <p className="text-3xl font-bold text-stone-900 mt-1">{s.value}</p>
+                    <p className="text-xs text-stone-400 mt-2">{s.delta}</p>
                   </div>
-                  <p className="text-stone-500 text-sm">{s.label}</p>
-                  <p className="text-3xl font-bold text-stone-900 mt-1">{s.value}</p>
-                  <p className="text-xs text-stone-400 mt-2">{s.delta}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {/* Activity + Quick links */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bg-white/70 backdrop-blur border border-stone-200 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
+              <div className="lg:col-span-2 overflow-hidden rounded-[28px] border border-stone-200 bg-white/70 backdrop-blur shadow-sm">
+                <div className="flex items-center justify-between p-6 pb-4">
                   <h2 className="text-lg font-semibold text-stone-900">Recent Activity</h2>
-                  <button className="text-sm text-amber-700 hover:text-amber-800">
+                  <button className="text-sm font-semibold text-amber-700 hover:text-amber-800">
                     View all
                   </button>
                 </div>
-                <div className="divide-y divide-stone-100">
+                <div className="divide-y divide-stone-100 px-6 pb-2">
                   {activity.map((a, i) => (
                     <div key={i} className="flex items-center justify-between py-3">
                       <div className="flex items-center gap-3">
@@ -185,16 +184,15 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="bg-white/70 backdrop-blur border border-stone-200 rounded-2xl p-6 shadow-sm">
+              <div className="rounded-[28px] border border-stone-200 bg-white/70 backdrop-blur p-6 shadow-sm">
                 <h2 className="text-lg font-semibold text-stone-900 mb-4">Quick Links</h2>
-                <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
                   {quickLinks.map((q) => (
                     <button
                       key={q.label}
-                      className="w-full flex items-center justify-between bg-stone-50 hover:bg-amber-50 border border-stone-200 rounded-xl px-4 py-3 text-sm text-stone-700 transition-colors"
+                      className="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-stone-50 px-3.5 py-2 text-xs font-semibold text-stone-700 transition hover:border-amber-300 hover:bg-amber-50"
                     >
                       {q.label}
-                      <span className="text-stone-400">→</span>
                     </button>
                   ))}
                 </div>

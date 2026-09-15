@@ -89,12 +89,6 @@ const NAV_GROUPS = [
       { href: "/staff/updates", label: "Updates", icon: Megaphone },
       { href: "/staff/site-control", label: "Site Control", icon: Power },
       { href: "/staff/audit", label: "Audit Logs", icon: ScrollText },
-    ],
-  },
-  {
-    label: "Automation",
-    minLevel: ROLE_LEVELS.executive,
-    items: [
       { href: "/staff/triggers", label: "Triggers", icon: Zap },
     ],
   },

@@ -1,793 +1,874 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 import {
   Plus,
   Search,
-  ArrowLeft,
-  ChevronRight,
-  Pencil,
-  Shield,
-  ShieldCheck,
-  Users,
-  FileText,
-  Trash2,
-  Archive,
-  X,
-  Check,
   Headphones,
   Megaphone,
   MessageSquare,
   Code2,
-  Settings2,
-  CalendarDays,
-  AlertTriangle,
   UserPlus,
-  MoreHorizontal,
+  UserMinus,
+  CalendarDays,
+  ShieldCheck,
+  Settings,
+  Pencil,
+  Shield,
+  Users,
+  FileText,
+  ChevronRight,
+  ArrowRight,
+  Trash2,
+  X,
+  Zap,
+  PieChart,
+  Clock,
 } from "lucide-react"
 
-/* ────────────────────────────────────────────────────────────────
-   Tokens — tropical-ops palette. Keep these names when you port
-   this back into Honolua Dashboard's tailwind config:
-     ink        -> reef-navy
-     inkMuted   -> lava
-     hibiscus   -> hibiscus
-     gradient   -> BRAND_GRADIENT
-   ──────────────────────────────────────────────────────────────── */
-const C = {
-  bg: "#FBF6EF",
-  card: "#FFFFFF",
-  ink: "#152A3A",
-  inkMuted: "#7A6A61",
-  border: "rgba(21,42,58,0.10)",
-  borderSoft: "rgba(21,42,58,0.06)",
-  gold: "#F4B942",
-  coral: "#E6736F",
-  hibiscus: "#F0568C",
-  teal: "#0E9C8F",
-  danger: "#E14B41",
-  gradient: "linear-gradient(135deg, #F4B942 0%, #E6736F 55%, #F0568C 100%)",
-}
-
-const FONT_DISPLAY = "'Fraunces', ui-serif, Georgia, serif"
-const FONT_BODY = "'Manrope', ui-sans-serif, system-ui, sans-serif"
+const BRAND_GRADIENT = "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)"
 const EASE = [0.16, 1, 0.3, 1]
+const FILTERS = ["All", "Active", "Restricted"]
+const VIEW_LOGS_HREF = "/staff/audit"
 
-const ICON_MAP = { Headphones, Megaphone, MessageSquare, Code2, ShieldCheck, Users, Settings2, CalendarDays }
-const ICON_CHOICES = Object.keys(ICON_MAP)
-const SWATCHES = ["#F4B942", "#E6736F", "#F0568C", "#0E9C8F", "#8B6FD1", "#3B82C4"]
-
-const DEFAULT_PERMISSIONS = [
-  { label: "View Staff List", enabled: true },
-  { label: "Manage Roles", enabled: false },
-  { label: "Access Logs", enabled: false },
-  { label: "Manage Department", enabled: false },
-]
-
-/* ────────────────────────────────────────────────────────────────
-   Mock data — swap for your real /api/departments and Roblox
-   group-members endpoints when wiring this in.
-   ──────────────────────────────────────────────────────────────── */
-const ROSTER = [
-  { id: "r1", username: "krishsoham", rank: "Head Admin", robloxId: "48213092" },
-  { id: "r2", username: "camoblamoo", rank: "Moderator", robloxId: "91820234" },
-  { id: "r3", username: "islandbreeze22", rank: "Moderator", robloxId: "10293845" },
-  { id: "r4", username: "tikimaster", rank: "Support", robloxId: "77123456" },
-  { id: "r5", username: "waveridr", rank: "Support", robloxId: "55901234" },
-  { id: "r6", username: "kona_dev", rank: "Developer", robloxId: "33221100" },
-  { id: "r7", username: "pineapple_pete", rank: "Member", robloxId: "10029384" },
-  { id: "r8", username: "lanikai_lu", rank: "Member", robloxId: "20938475" },
-  { id: "r9", username: "surfsupsam", rank: "Support", robloxId: "40129384" },
-  { id: "r10", username: "reefwalker", rank: "Moderator", robloxId: "60293841" },
-]
-
-const INITIAL_DEPARTMENTS = [
-  {
-    id: "d1",
-    name: "Support",
-    description: "Handles player tickets and in-game reports.",
-    icon: "Headphones",
-    color: "#E6736F",
-    status: "Active",
-    members: [ROSTER[3], ROSTER[4], ROSTER[8]],
-    permissions: DEFAULT_PERMISSIONS.map((p) => ({ ...p })),
-  },
-  {
-    id: "d2",
-    name: "Moderation",
-    description: "Keeps chat and the group clean.",
-    icon: "ShieldCheck",
-    color: "#0E9C8F",
-    status: "Active",
-    members: [ROSTER[1], ROSTER[2], ROSTER[9]],
-    permissions: [
-      { label: "View Staff List", enabled: true },
-      { label: "Manage Roles", enabled: true },
-      { label: "Access Logs", enabled: true },
-      { label: "Manage Department", enabled: false },
-    ],
-  },
-  {
-    id: "d3",
-    name: "Announcements",
-    description: "Posts news and event updates.",
-    icon: "Megaphone",
-    color: "#F4B942",
-    status: "Restricted",
-    members: [],
-    permissions: DEFAULT_PERMISSIONS.map((p) => ({ ...p })),
-  },
-]
-
-/* ──────────────────────────────────────────────────────────────── */
-
-function hashHue(str) {
-  let h = 0
-  for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h)
-  return Math.abs(h) % 360
+// Maps the `icon` string stored on each department (see lib/Department.js) to a component.
+// Add to this map if you introduce new department icons server-side.
+const ICON_MAP = {
+  Headphones,
+  Megaphone,
+  MessageSquare,
+  Code2,
+  UserPlus,
+  CalendarDays,
+  ShieldCheck,
+  Settings,
+  Users,
 }
 
-function Avatar({ member, size = 44, live = true }) {
-  const hue = hashHue(member.robloxId || member.username || "?")
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <div
-        className="flex h-full w-full items-center justify-center rounded-xl text-sm font-bold text-white"
-        style={{ background: `linear-gradient(145deg, hsl(${hue},68%,58%), hsl(${hue + 28},68%,46%))` }}
-      >
-        {member.username?.[0]?.toUpperCase() || "?"}
-      </div>
-      {live ? (
-        <span
-          title="Synced with Roblox"
-          className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2"
-          style={{ background: C.teal, borderColor: C.card }}
-        />
-      ) : null}
-    </div>
-  )
+// Maps audit log `action` strings to an icon + tint for the Recent Activity feed.
+const ACTIVITY_ICON_MAP = {
+  department_created: { icon: Plus, color: "#E6736F" },
+  department_archived: { icon: Trash2, color: "#E6736F" },
+  permission_updated: { icon: Shield, color: "#F4B942" },
+  member_added: { icon: UserPlus, color: "#10B981" },
+  member_removed: { icon: UserMinus, color: "#E6736F" },
+}
+
+// Single place every staff action funnels through before it's written to the
+// audit log. Fire-and-forget on purpose — a logging hiccup should never
+// block or fail the action the staff member was actually trying to do.
+async function logAction(action, meta = {}) {
+  try {
+    await fetch("/api/staff/audit/audit-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, meta }),
+    })
+  } catch {
+    // best-effort — swallow errors, the primary action already succeeded
+  }
+}
+
+function actionLabel(action) {
+  return String(action || "")
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ")
+}
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return "just now"
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
 }
 
 function StatusPill({ status }) {
-  const map = {
-    Active: { bg: "rgba(14,156,143,0.12)", fg: C.teal },
-    Restricted: { bg: "rgba(244,185,66,0.16)", fg: "#9C6E12" },
-    Archived: { bg: C.borderSoft, fg: C.inkMuted },
-  }
-  const s = map[status] || map.Archived
-  return (
-    <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: s.bg, color: s.fg }}>
-      {status}
-    </span>
-  )
+  const styles =
+    status === "Active"
+      ? "bg-emerald-50 text-emerald-600"
+      : status === "Restricted"
+      ? "bg-[#F4B942]/10 text-[#B8862B]"
+      : "bg-lava/5 text-lava/40"
+  return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${styles}`}>{status}</span>
 }
 
-function IconBadge({ icon, color, size = 44 }) {
-  const Icon = ICON_MAP[icon] || Users
+function Avatar({ member, size = 36 }) {
+  const dim = { width: size, height: size }
+  if (member.avatarUrl) {
+    return (
+      <img
+        src={member.avatarUrl}
+        alt={member.username}
+        style={dim}
+        className="shrink-0 rounded-full border-2 border-white object-cover"
+      />
+    )
+  }
+  // Fallback while Roblox's thumbnail is still generating, or if the lookup failed
   return (
     <div
-      className="flex shrink-0 items-center justify-center rounded-xl"
-      style={{ width: size, height: size, background: `${color}1E`, color }}
+      style={dim}
+      className="flex shrink-0 items-center justify-center rounded-full border-2 border-white bg-lava/10 text-xs font-bold text-lava/50"
     >
-      <Icon style={{ width: size * 0.45, height: size * 0.45 }} />
+      {member.username?.[0]?.toUpperCase() || "?"}
     </div>
   )
 }
 
-function TopBar({ title, subtitle, onBack, right }) {
+function DepartmentRow({ dept, active, onClick }) {
+  const Icon = ICON_MAP[dept.icon] || Users
   return (
-    <div className="sticky top-0 z-20 flex items-center gap-3 border-b px-4 py-3.5 backdrop-blur" style={{ background: "rgba(251,246,239,0.9)", borderColor: C.borderSoft }}>
-      {onBack ? (
-        <button onClick={onBack} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition active:scale-95" style={{ background: C.borderSoft, color: C.ink }}>
-          <ArrowLeft className="h-4.5 w-4.5" />
-        </button>
-      ) : null}
-      <div className="min-w-0 flex-1">
-        <h1 className="truncate text-[17px] font-bold leading-tight" style={{ color: C.ink }}>{title}</h1>
-        {subtitle ? <p className="truncate text-xs" style={{ color: C.inkMuted }}>{subtitle}</p> : null}
-      </div>
-      {right}
-    </div>
-  )
-}
-
-function GradientButton({ children, onClick, full, disabled, icon: Icon }) {
-  return (
-    <motion.button
+    <button
       onClick={onClick}
-      disabled={disabled}
-      whileTap={{ scale: 0.97 }}
-      className={`flex h-11 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-bold text-white shadow-sm disabled:opacity-50 ${full ? "w-full" : ""}`}
-      style={{ background: C.gradient }}
+      className={`group relative flex w-full items-center gap-4 py-4 pl-5 pr-4 text-left transition ${
+        active ? "bg-lava/[0.035]" : "hover:bg-lava/[0.02]"
+      }`}
     >
-      {Icon ? <Icon className="h-4 w-4" /> : null}
-      {children}
-    </motion.button>
+      <span
+        className="absolute inset-y-2 left-0 w-[3px] rounded-full transition-opacity"
+        style={{ background: dept.color, opacity: active ? 1 : 0 }}
+      />
+
+      <div
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+        style={{ background: `${dept.color}1A`, color: dept.color }}
+      >
+        <Icon className="h-4.5 w-4.5" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-semibold text-reef-navy">{dept.name}</div>
+        <div className="mt-0.5 truncate text-xs text-lava/45">{dept.description}</div>
+      </div>
+
+      <div className="hidden shrink-0 items-center gap-1.5 text-xs text-lava/40 sm:flex">
+        <Users className="h-3.5 w-3.5" />
+        {dept.members.length}
+      </div>
+
+      <StatusPill status={dept.status} />
+    </button>
   )
 }
 
-function Toast({ message }) {
+function SettingsLink({ icon: Icon, label }) {
   return (
-    <AnimatePresence>
-      {message ? (
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 12 }}
-          className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 rounded-full px-4 py-2.5 text-sm font-semibold text-white shadow-lg"
-          style={{ background: C.ink }}
-        >
-          {message}
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+    <button className="flex w-full items-center justify-between rounded-xl px-1 py-3 text-left transition hover:bg-lava/[0.03]">
+      <span className="flex items-center gap-3">
+        <Icon className="h-4 w-4 text-lava/40" />
+        <span className="text-sm font-medium text-reef-navy">{label}</span>
+      </span>
+      <ChevronRight className="h-4 w-4 text-lava/25" />
+    </button>
   )
 }
 
-function ConfirmSheet({ open, tone = "danger", title, message, confirmLabel, onConfirm, onCancel }) {
-  const accent = tone === "danger" ? C.danger : C.gold
+function Toggle({ enabled, onChange }) {
+  return (
+    <button
+      onClick={onChange}
+      className="relative h-6 w-11 shrink-0 rounded-full transition"
+      style={{ background: enabled ? "#F4B942" : "rgba(0,0,0,0.08)" }}
+    >
+      <motion.span
+        layout
+        transition={{ duration: 0.2, ease: EASE }}
+        className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm"
+        style={{ left: enabled ? "22px" : "2px" }}
+      />
+    </button>
+  )
+}
+
+function StatInline({ icon: Icon, value, label }) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon className="h-4 w-4 text-lava/35" />
+      <span className="text-sm font-bold text-reef-navy">{value}</span>
+      <span className="text-xs text-lava/40">{label}</span>
+    </div>
+  )
+}
+
+function AddMemberRow({ onAdd, adding }) {
+  const [username, setUsername] = useState("")
+
+  async function submit() {
+    if (!username.trim()) return
+    const ok = await onAdd(username.trim())
+    if (ok) setUsername("")
+  }
+
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <input
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && submit()}
+        placeholder="Roblox username..."
+        className="h-9 flex-1 rounded-lg border border-lava/10 bg-lava/[0.03] px-3 text-sm text-reef-navy outline-none placeholder:text-lava/30 focus:border-hibiscus/40"
+      />
+      <button
+        onClick={submit}
+        disabled={adding}
+        className="flex h-9 shrink-0 items-center gap-1 rounded-lg px-3 text-xs font-semibold text-white disabled:opacity-60"
+        style={{ background: BRAND_GRADIENT }}
+      >
+        <Plus className="h-3.5 w-3.5" />
+        Add
+      </button>
+    </div>
+  )
+}
+
+function DetailPanel({ dept, onTogglePermission, onAddMember, onRemoveMember, onArchive }) {
+  const Icon = ICON_MAP[dept.icon] || Users
+  const [addingMember, setAddingMember] = useState(false)
+
+  async function handleAdd(username) {
+    setAddingMember(true)
+    const ok = await onAddMember(username)
+    setAddingMember(false)
+    return ok
+  }
+
+  return (
+    <motion.div
+      key={dept.id}
+      initial={{ opacity: 0, x: 12 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -12 }}
+      transition={{ duration: 0.25, ease: EASE }}
+      className="flex h-full flex-col overflow-hidden rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]"
+    >
+      <div className="px-6 pb-5 pt-6" style={{ background: `linear-gradient(180deg, ${dept.color}14, transparent)` }}>
+        <div className="flex items-start gap-4">
+          <div
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
+            style={{ background: `${dept.color}22`, color: dept.color }}
+          >
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-reef-navy">{dept.name}</h2>
+              <StatusPill status={dept.status} />
+            </div>
+            <p className="mt-1 text-sm text-lava/50">{dept.description}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 px-6 pb-6">
+        <div className="flex items-center gap-5 border-b border-lava/8 py-4">
+          <StatInline icon={Users} value={dept.members.length} label="Members" />
+          <span className="h-4 w-px bg-lava/10" />
+          <StatInline icon={Shield} value={dept.permissions.filter((p) => p.enabled).length} label="Permissions" />
+          <span className="h-4 w-px bg-lava/10" />
+          <StatInline icon={Settings} value={dept.permissions.length} label="Settings" />
+        </div>
+
+        <div className="mt-2">
+          <div className="mb-1 pt-4 text-sm font-semibold text-reef-navy">Department Settings</div>
+          <div className="space-y-0.5">
+            <SettingsLink icon={Pencil} label="Edit Department" />
+            <SettingsLink icon={Shield} label="Manage Permissions" />
+            <SettingsLink icon={FileText} label="View Logs" />
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <div className="text-sm font-semibold text-reef-navy">Members</div>
+
+          {dept.members.length === 0 ? (
+            <p className="mt-2 text-xs text-lava/40">No members assigned yet.</p>
+          ) : (
+            <div className="mt-3 divide-y divide-lava/8 border-y border-lava/8">
+              {dept.members.map((m) => (
+                <div key={m.robloxId} className="flex items-center gap-2.5 py-2.5">
+                  <Avatar member={m} size={30} />
+                  <span className="flex-1 truncate text-sm text-reef-navy/80">{m.username}</span>
+                  <button
+                    onClick={() => onRemoveMember(m.robloxId)}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-lava/30 transition hover:bg-[#E6736F]/10 hover:text-[#E6736F]"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <AddMemberRow onAdd={handleAdd} adding={addingMember} />
+        </div>
+
+        <div className="mt-6 flex-1">
+          <div className="text-sm font-semibold text-reef-navy">Permissions</div>
+          <div className="mt-3 divide-y divide-lava/8">
+            {dept.permissions.map((p, i) => (
+              <div key={p.label} className="flex items-center justify-between py-2.5">
+                <span className="text-sm text-reef-navy/80">{p.label}</span>
+                <Toggle enabled={p.enabled} onChange={() => onTogglePermission(i)} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <motion.button
+          onClick={onArchive}
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+          className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#E6736F]/20 bg-[#E6736F]/[0.06] text-sm font-semibold text-[#E6736F] transition hover:bg-[#E6736F]/10"
+        >
+          <Trash2 className="h-4 w-4" />
+          Archive Department
+        </motion.button>
+      </div>
+    </motion.div>
+  )
+}
+
+function CreateModal({ open, onClose, onCreate, submitting }) {
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
+
+  async function submit() {
+    if (!name.trim()) {
+      toast.error("name is required")
+      return
+    }
+    const ok = await onCreate({ name: name.trim(), description: description.trim() })
+    if (ok) {
+      setName("")
+      setDescription("")
+    }
+  }
+
   return (
     <AnimatePresence>
       {open ? (
         <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onCancel} className="fixed inset-0 z-40" style={{ background: "rgba(21,42,58,0.35)" }} />
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 30 }}
-            transition={{ duration: 0.22, ease: EASE }}
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-w-md rounded-t-3xl p-6 sm:bottom-8 sm:rounded-3xl"
-            style={{ background: C.card }}
-          >
-            <div className="flex h-11 w-11 items-center justify-center rounded-full" style={{ background: `${accent}1A`, color: accent }}>
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <h3 className="mt-3 text-lg font-bold" style={{ color: C.ink, fontFamily: FONT_DISPLAY }}>{title}</h3>
-            <p className="mt-1 text-sm" style={{ color: C.inkMuted }}>{message}</p>
-            <div className="mt-5 flex gap-2">
-              <button onClick={onCancel} className="h-11 flex-1 rounded-xl text-sm font-semibold" style={{ background: C.borderSoft, color: C.ink }}>
-                Cancel
-              </button>
-              <button onClick={onConfirm} className="h-11 flex-1 rounded-xl text-sm font-bold text-white" style={{ background: accent }}>
-                {confirmLabel}
-              </button>
-            </div>
-          </motion.div>
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-40 bg-reef-navy/20 backdrop-blur-sm"
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              transition={{ duration: 0.25, ease: EASE }}
+              className="w-full max-w-sm rounded-[24px] border border-lava/10 bg-white p-6 shadow-xl"
+            >
+              <h2 className="text-lg font-semibold text-reef-navy">New Department</h2>
+              <div className="mt-4 space-y-3">
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Department name"
+                  className="h-11 w-full rounded-xl border border-lava/10 bg-lava/[0.03] px-3.5 text-sm outline-none placeholder:text-lava/30 focus:border-hibiscus/40"
+                />
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Short description"
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-lava/10 bg-lava/[0.03] px-3.5 py-2.5 text-sm outline-none placeholder:text-lava/30 focus:border-hibiscus/40"
+                />
+              </div>
+              <div className="mt-5 flex justify-end gap-2">
+                <button onClick={onClose} className="rounded-xl px-4 py-2.5 text-sm font-medium text-lava/50 hover:bg-lava/5">
+                  Cancel
+                </button>
+                <motion.button
+                  onClick={submit}
+                  disabled={submitting}
+                  whileTap={{ scale: 0.97 }}
+                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                  style={{ background: BRAND_GRADIENT }}
+                >
+                  {submitting ? "Creating..." : "Create"}
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
         </>
       ) : null}
     </AnimatePresence>
   )
 }
 
-function PageShell({ children }) {
+function QuickActionPill({ icon: Icon, label, onClick }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 16 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -16 }}
-      transition={{ duration: 0.22, ease: EASE }}
-      className="min-h-screen pb-10"
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-2 rounded-full border border-lava/10 bg-lava/[0.03] px-3.5 py-2 text-xs font-semibold text-reef-navy transition hover:border-[#F4B942]/40 hover:bg-[#F4B942]/[0.08]"
     >
-      {children}
-    </motion.div>
+      <Icon className="h-3.5 w-3.5 text-[#B8862B]" />
+      {label}
+    </button>
   )
 }
 
-/* ───────────────────────── List view ───────────────────────── */
-
-function ListView({ departments, onOpen, onCreate }) {
-  const [query, setQuery] = useState("")
-  const [filter, setFilter] = useState("All")
-
-  const filtered = departments.filter((d) => {
-    const matchQ = d.name.toLowerCase().includes(query.toLowerCase())
-    const matchF = filter === "All" || d.status === filter
-    return matchQ && matchF
-  })
-
+function OverviewDonut({ departments }) {
   const active = departments.filter((d) => d.status === "Active").length
   const restricted = departments.filter((d) => d.status === "Restricted").length
+  const archived = Math.max(0, departments.length - active - restricted)
+  const total = departments.length
+
+  const R = 40
+  const CIRC = 2 * Math.PI * R
+  const segments = [
+    { value: active, color: "#10B981" },
+    { value: restricted, color: "#F4B942" },
+    { value: archived, color: "rgba(15,23,42,0.10)" },
+  ].filter((s) => s.value > 0)
+
+  let offset = 0
+  const arcs = segments.map((s, i) => {
+    const frac = total > 0 ? s.value / total : 0
+    const dash = frac * CIRC
+    const arc = (
+      <circle
+        key={i}
+        cx="50"
+        cy="50"
+        r={R}
+        fill="none"
+        stroke={s.color}
+        strokeWidth="14"
+        strokeDasharray={`${dash} ${CIRC - dash}`}
+        strokeDashoffset={-offset}
+        strokeLinecap="butt"
+      />
+    )
+    offset += dash
+    return arc
+  })
 
   return (
-    <PageShell>
-      <div className="px-5 pt-6">
-        <p className="text-xs font-bold uppercase tracking-wide" style={{ color: C.coral, opacity: 0.8 }} />
-        <h1 className="text-[26px] font-semibold leading-tight" style={{ color: C.ink, fontFamily: FONT_DISPLAY }}>
-          Departments
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: C.inkMuted }}>
-          Organize your staff into teams and control what each one can do.
-        </p>
+    <div className="flex items-center gap-5">
+      <div className="relative h-24 w-24 shrink-0">
+        <svg viewBox="0 0 100 100" className="h-24 w-24 -rotate-90">
+          <circle cx="50" cy="50" r={R} fill="none" stroke="rgba(15,23,42,0.06)" strokeWidth="14" />
+          {total > 0 ? arcs : null}
+        </svg>
+      </div>
 
-        <div className="mt-4 flex gap-2">
-          <div className="flex-1 rounded-2xl border p-3.5" style={{ borderColor: C.borderSoft, background: C.card }}>
-            <div className="text-xl font-bold" style={{ color: C.ink }}>{departments.length}</div>
-            <div className="text-[11px]" style={{ color: C.inkMuted }}>Total</div>
-          </div>
-          <div className="flex-1 rounded-2xl border p-3.5" style={{ borderColor: C.borderSoft, background: C.card }}>
-            <div className="text-xl font-bold" style={{ color: C.teal }}>{active}</div>
-            <div className="text-[11px]" style={{ color: C.inkMuted }}>Active</div>
-          </div>
-          <div className="flex-1 rounded-2xl border p-3.5" style={{ borderColor: C.borderSoft, background: C.card }}>
-            <div className="text-xl font-bold" style={{ color: "#9C6E12" }}>{restricted}</div>
-            <div className="text-[11px]" style={{ color: C.inkMuted }}>Restricted</div>
-          </div>
+      <div className="flex-1 space-y-1.5">
+        <div className="flex items-center gap-2 text-xs text-lava/60">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: "#10B981" }} />
+          {active} Active
         </div>
-
-        <div className="mt-4">
-          <GradientButton full icon={Plus} onClick={onCreate}>Create Department</GradientButton>
+        <div className="flex items-center gap-2 text-xs text-lava/60">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: "#F4B942" }} />
+          {restricted} Restricted
         </div>
-
-        <div className="mt-4 flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: C.inkMuted }} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search departments"
-              className="h-11 w-full rounded-full border pl-10 pr-4 text-sm outline-none"
-              style={{ borderColor: C.border, background: C.card, color: C.ink }}
-            />
-          </div>
-        </div>
-
-        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
-          {["All", "Active", "Restricted"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className="shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition"
-              style={f === filter ? { background: C.gradient, color: "#fff" } : { background: C.card, color: C.inkMuted, border: `1px solid ${C.border}` }}
-            >
-              {f}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 text-xs text-lava/60">
+          <span className="h-2 w-2 shrink-0 rounded-full bg-lava/15" />
+          {archived} Archived
         </div>
       </div>
 
-      <div className="mt-5 px-5">
-        {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-dashed py-12 text-center" style={{ borderColor: C.border }}>
-            <p className="text-sm font-semibold" style={{ color: C.ink }}>No departments here yet</p>
-            <p className="mt-1 text-xs" style={{ color: C.inkMuted }}>Try a different search, or create a new one.</p>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {filtered.map((d) => (
-              <button
-                key={d.id}
-                onClick={() => onOpen(d.id)}
-                className="flex w-full items-center gap-3.5 rounded-2xl border p-3.5 text-left transition active:scale-[0.99]"
-                style={{ borderColor: C.borderSoft, background: C.card }}
-              >
-                <IconBadge icon={d.icon} color={d.color} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate text-[15px] font-bold" style={{ color: C.ink }}>{d.name}</span>
-                  </div>
-                  <p className="mt-0.5 truncate text-xs" style={{ color: C.inkMuted }}>{d.description}</p>
-                  <div className="mt-1.5 flex items-center gap-2">
-                    <span className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: C.inkMuted }}>
-                      <Users className="h-3 w-3" /> {d.members.length}
-                    </span>
-                    <StatusPill status={d.status} />
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0" style={{ color: C.inkMuted }} />
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="shrink-0 border-l border-lava/10 pl-5 text-center">
+        <div className="text-2xl font-bold text-reef-navy">{total}</div>
+        <div className="text-[11px] text-lava/40">Total Depts</div>
       </div>
-    </PageShell>
+    </div>
   )
 }
 
-/* ──────────────────────── Form (create / edit) ──────────────────────── */
+function RecentActivity({ refreshKey }) {
+  const [logs, setLogs] = useState([])
+  const [loading, setLoading] = useState(true)
 
-function FormView({ mode, initial, onBack, onSubmit }) {
-  const [name, setName] = useState(initial?.name || "")
-  const [description, setDescription] = useState(initial?.description || "")
-  const [icon, setIcon] = useState(initial?.icon || ICON_CHOICES[0])
-  const [color, setColor] = useState(initial?.color || SWATCHES[0])
-  const [error, setError] = useState("")
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      try {
+        const res = await fetch("/api/staff/audit/audit-log?limit=4", { cache: "no-store" })
+        const j = await res.json().catch(() => ({}))
+        if (!cancelled && res.ok && j?.ok) setLogs(j.logs || [])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [refreshKey])
 
-  function submit() {
-    if (!name.trim()) {
-      setError("Give this department a name.")
+  return (
+    <div className="space-y-1">
+      {loading ? (
+        <>
+          <div className="h-10 animate-pulse rounded-lg bg-lava/[0.04]" />
+          <div className="h-10 animate-pulse rounded-lg bg-lava/[0.04]" />
+          <div className="h-10 animate-pulse rounded-lg bg-lava/[0.04]" />
+        </>
+      ) : logs.length === 0 ? (
+        <p className="py-3 text-center text-xs text-lava/35">No recent activity.</p>
+      ) : (
+        logs.map((log) => {
+          const cfg = ACTIVITY_ICON_MAP[log.action] || { icon: FileText, color: "#94A3B8" }
+          const Icon = cfg.icon
+          return (
+            <div key={log.id} className="flex items-start gap-3 rounded-lg px-1 py-2">
+              <span
+                className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
+                style={{ background: `${cfg.color}1A`, color: cfg.color }}
+              >
+                <Icon className="h-3.5 w-3.5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-medium text-reef-navy/80">
+                  {log.actor?.robloxUsername || log.actor?.discordUsername || "Someone"}
+                  {" — "}
+                  {actionLabel(log.action)}
+                </span>
+                <span className="block text-[11px] text-lava/35">{timeAgo(log.createdAt)}</span>
+              </span>
+            </div>
+          )
+        })
+      )}
+    </div>
+  )
+}
+
+function Sidebar({ departments, onCreateClick, onAssignMembersClick, onSetPermissionsClick, refreshKey }) {
+  const router = useRouter()
+
+  return (
+    <div className="overflow-hidden rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <div className="border-b border-lava/8 p-5">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-[#B8862B]" />
+          <h3 className="text-sm font-bold text-reef-navy">Quick Actions</h3>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <QuickActionPill icon={Plus} label="Create Department" onClick={onCreateClick} />
+          <QuickActionPill icon={UserPlus} label="Assign Members" onClick={onAssignMembersClick} />
+          <QuickActionPill icon={ShieldCheck} label="Set Permissions" onClick={onSetPermissionsClick} />
+          <QuickActionPill icon={FileText} label="View Logs" onClick={() => router.push(VIEW_LOGS_HREF)} />
+        </div>
+      </div>
+
+      <div className="border-b border-lava/8 p-5">
+        <div className="flex items-center gap-2">
+          <PieChart className="h-4 w-4 text-[#E6736F]" />
+          <h3 className="text-sm font-bold text-reef-navy">Department Overview</h3>
+        </div>
+        <div className="mt-4">
+          <OverviewDonut departments={departments} />
+        </div>
+      </div>
+
+      <div className="p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-[#C2417F]" />
+            <h3 className="text-sm font-bold text-reef-navy">Recent Activity</h3>
+          </div>
+          <button
+            onClick={() => router.push(VIEW_LOGS_HREF)}
+            className="flex items-center gap-1 text-xs font-semibold text-[#E6736F] hover:underline"
+          >
+            View All
+            <ArrowRight className="h-3 w-3" />
+          </button>
+        </div>
+        <div className="mt-3">
+          <RecentActivity refreshKey={refreshKey} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function DepartmentsPage() {
+  const [departments, setDepartments] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [selectedId, setSelectedId] = useState(null)
+  const [query, setQuery] = useState("")
+  const [filter, setFilter] = useState("All")
+  const [createOpen, setCreateOpen] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0)
+
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await fetch("/api/departments", { cache: "no-store" })
+      const j = await res.json().catch(() => ({}))
+      if (res.ok && j?.ok) {
+        setDepartments(j.departments || [])
+        setSelectedId((prev) => prev || j.departments?.[0]?.id || null)
+      } else {
+        toast.error("unable to load departments")
+      }
+    } catch {
+      toast.error("unable to load departments")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    load()
+  }, [])
+
+  const selected = departments.find((d) => d.id === selectedId)
+
+  const filtered = departments.filter((d) => {
+    const matchesQuery = d.name.toLowerCase().includes(query.toLowerCase())
+    const matchesFilter = filter === "All" || d.status === filter
+    return matchesQuery && matchesFilter
+  })
+
+  // Bumps RecentActivity's refresh key so the sidebar picks up a just-logged
+  // action without a full page reload.
+  function bumpActivity() {
+    setActivityRefreshKey((k) => k + 1)
+  }
+
+  async function patchDepartment(id, body) {
+    const res = await fetch(`/api/departments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    const j = await res.json().catch(() => ({}))
+    if (!res.ok || !j?.ok) return null
+    return j.department
+  }
+
+  function replaceDepartment(updated) {
+    setDepartments((prev) => prev.map((d) => (d.id === updated.id ? updated : d)))
+  }
+
+  async function handleTogglePermission(index) {
+    if (!selected) return
+    const permission = selected.permissions[index]
+    const updated = await patchDepartment(selected.id, { action: "togglePermission", index })
+    if (updated) {
+      replaceDepartment(updated)
+      logAction("permission_updated", {
+        department: selected.name,
+        permission: permission?.label,
+        enabled: !permission?.enabled,
+      })
+      bumpActivity()
+    } else {
+      toast.error("unable to update permission")
+    }
+  }
+
+  async function handleAddMember(username) {
+    if (!selected) return false
+    const updated = await patchDepartment(selected.id, { action: "addMember", username })
+    if (updated) {
+      replaceDepartment(updated)
+      toast.success(`added ${username}`)
+      logAction("member_added", { department: selected.name, username })
+      bumpActivity()
+      return true
+    }
+    toast.error("roblox user not found")
+    return false
+  }
+
+  async function handleRemoveMember(robloxId) {
+    if (!selected) return
+    const member = selected.members.find((m) => m.robloxId === robloxId)
+    const updated = await patchDepartment(selected.id, { action: "removeMember", robloxId })
+    if (updated) {
+      replaceDepartment(updated)
+      logAction("member_removed", { department: selected.name, username: member?.username })
+      bumpActivity()
+    } else {
+      toast.error("unable to remove member")
+    }
+  }
+
+  async function handleArchive() {
+    if (!selected) return
+    try {
+      const res = await fetch(`/api/departments/${selected.id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error()
+      const archivedName = selected.name
+      setDepartments((prev) => prev.filter((d) => d.id !== selected.id))
+      setSelectedId(null)
+      toast.success("department archived")
+      logAction("department_archived", { department: archivedName })
+      bumpActivity()
+    } catch {
+      toast.error("unable to archive department")
+    }
+  }
+
+  async function handleCreate({ name, description }) {
+    setCreating(true)
+    try {
+      const res = await fetch("/api/departments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j?.ok) {
+        toast.error("unable to create department")
+        return false
+      }
+      setDepartments((prev) => [...prev, j.department])
+      setSelectedId(j.department.id)
+      setCreateOpen(false)
+      toast.success("department created")
+      logAction("department_created", { name, description })
+      bumpActivity()
+      return true
+    } catch {
+      toast.error("unable to create department")
+      return false
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  function handleAssignMembersClick() {
+    if (departments.length === 0) {
+      toast.error("create a department first")
+      setCreateOpen(true)
       return
     }
-    onSubmit({ name: name.trim(), description: description.trim(), icon, color })
+    setSelectedId((prev) => prev || departments[0].id)
+  }
+
+  function handleSetPermissionsClick() {
+    if (departments.length === 0) {
+      toast.error("create a department first")
+      setCreateOpen(true)
+      return
+    }
+    setSelectedId((prev) => prev || departments[0].id)
   }
 
   return (
-    <PageShell>
-      <TopBar title={mode === "create" ? "New department" : "Edit department"} onBack={onBack} />
-
-      <div className="space-y-5 px-5 py-5">
-        <div className="flex justify-center">
-          <IconBadge icon={icon} color={color} size={64} />
-        </div>
-
-        <div>
-          <label className="text-xs font-bold" style={{ color: C.inkMuted }}>Name</label>
-          <input
-            value={name}
-            onChange={(e) => { setName(e.target.value); setError("") }}
-            placeholder="e.g. Support"
-            className="mt-1.5 h-12 w-full rounded-xl border px-3.5 text-[15px] outline-none"
-            style={{ borderColor: error ? C.danger : C.border, background: C.card, color: C.ink }}
-          />
-          {error ? <p className="mt-1 text-xs font-semibold" style={{ color: C.danger }}>{error}</p> : null}
-        </div>
-
-        <div>
-          <label className="text-xs font-bold" style={{ color: C.inkMuted }}>Description</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            placeholder="What does this team handle?"
-            className="mt-1.5 w-full resize-none rounded-xl border px-3.5 py-3 text-sm outline-none"
-            style={{ borderColor: C.border, background: C.card, color: C.ink }}
-          />
-        </div>
-
-        <div>
-          <label className="text-xs font-bold" style={{ color: C.inkMuted }}>Icon</label>
-          <div className="mt-2 grid grid-cols-4 gap-2">
-            {ICON_CHOICES.map((key) => {
-              const Ic = ICON_MAP[key]
-              const on = icon === key
-              return (
-                <button
-                  key={key}
-                  onClick={() => setIcon(key)}
-                  className="flex h-14 items-center justify-center rounded-xl border transition"
-                  style={{ borderColor: on ? color : C.border, background: on ? `${color}1A` : C.card, color: on ? color : C.inkMuted }}
-                >
-                  <Ic className="h-5 w-5" />
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-bold" style={{ color: C.inkMuted }}>Color</label>
-          <div className="mt-2 flex gap-2.5">
-            {SWATCHES.map((sw) => (
-              <button
-                key={sw}
-                onClick={() => setColor(sw)}
-                className="flex h-10 w-10 items-center justify-center rounded-full"
-                style={{ background: sw, boxShadow: sw === color ? `0 0 0 3px ${C.card}, 0 0 0 5px ${sw}` : "none" }}
-              >
-                {sw === color ? <Check className="h-4 w-4 text-white" /> : null}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="pt-2">
-          <GradientButton full onClick={submit}>{mode === "create" ? "Create department" : "Save changes"}</GradientButton>
-        </div>
-      </div>
-    </PageShell>
-  )
-}
-
-/* ─────────────────────── Assign members ─────────────────────── */
-
-function AssignMembersView({ dept, roster, onBack, onAdd }) {
-  const [query, setQuery] = useState("")
-  const [selected, setSelected] = useState(new Set())
-
-  const existingIds = new Set(dept.members.map((m) => m.id))
-  const candidates = roster.filter((m) => !existingIds.has(m.id) && m.username.toLowerCase().includes(query.toLowerCase()))
-
-  function toggle(id) {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      return next
-    })
-  }
-
-  return (
-    <PageShell>
-      <TopBar title="Assign members" subtitle={`From your Roblox group — into ${dept.name}`} onBack={onBack} />
-
-      <div className="px-5 pt-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: C.inkMuted }} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search group members"
-            className="h-11 w-full rounded-full border pl-10 pr-4 text-sm outline-none"
-            style={{ borderColor: C.border, background: C.card, color: C.ink }}
-          />
-        </div>
-      </div>
-
-      <div className="mt-3 space-y-2 px-5 pb-28">
-        {candidates.length === 0 ? (
-          <p className="py-10 text-center text-sm" style={{ color: C.inkMuted }}>Everyone matching that search is already assigned.</p>
-        ) : (
-          candidates.map((m) => {
-            const on = selected.has(m.id)
-            return (
-              <button
-                key={m.id}
-                onClick={() => toggle(m.id)}
-                className="flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition"
-                style={{ borderColor: on ? C.hibiscus : C.borderSoft, background: on ? `${C.hibiscus}0D` : C.card }}
-              >
-                <Avatar member={m} size={40} />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-bold" style={{ color: C.ink }}>{m.username}</div>
-                  <div className="text-[11px]" style={{ color: C.inkMuted }}>#{m.robloxId} · {m.rank}</div>
+    <div className="mx-auto max-w-7xl px-6 py-10">
+      <div
+        className={`grid grid-cols-1 gap-6 lg:items-start ${
+          selected ? "lg:grid-cols-[1.4fr_1fr_320px]" : "lg:grid-cols-[1fr_320px]"
+        }`}
+      >
+        <div className="flex flex-col overflow-hidden rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div className="p-6 pb-0">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: "rgba(230,115,111,0.1)" }}>
+                  <Users className="h-5 w-5" style={{ color: "#E6736F" }} />
                 </div>
-                <div
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2"
-                  style={{ borderColor: on ? C.hibiscus : C.border, background: on ? C.hibiscus : "transparent" }}
-                >
-                  {on ? <Check className="h-3.5 w-3.5 text-white" /> : null}
+                <div>
+                  <h1 className="text-xl font-bold text-reef-navy">Departments</h1>
+                  <p className="text-xs text-lava/45">Create, manage, and organize your team departments.</p>
                 </div>
-              </button>
-            )
-          })
-        )}
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 border-t p-4" style={{ background: "rgba(251,246,239,0.92)", borderColor: C.borderSoft, backdropFilter: "blur(6px)" }}>
-        <div className="mx-auto max-w-md">
-          <GradientButton full disabled={selected.size === 0} onClick={() => onAdd(Array.from(selected))}>
-            {selected.size === 0 ? "Select members to add" : `Add ${selected.size} member${selected.size > 1 ? "s" : ""}`}
-          </GradientButton>
-        </div>
-      </div>
-    </PageShell>
-  )
-}
-
-/* ───────────────────────── Detail view ───────────────────────── */
-
-function DetailView({ dept, onBack, onEdit, onAssign, onRemoveMember, onTogglePermission, onArchive, onDelete, onRestore }) {
-  const [confirm, setConfirm] = useState(null) // 'archive' | 'delete' | null
-
-  return (
-    <PageShell>
-      <TopBar
-        title={dept.name}
-        onBack={onBack}
-        right={
-          <button onClick={onEdit} className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: C.borderSoft, color: C.ink }}>
-            <Pencil className="h-4 w-4" />
-          </button>
-        }
-      />
-
-      <div className="px-5 pb-24 pt-5">
-        <div className="flex items-start gap-3.5">
-          <IconBadge icon={dept.icon} color={dept.color} size={52} />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-bold" style={{ color: C.ink, fontFamily: FONT_DISPLAY }}>{dept.name}</h2>
-              <StatusPill status={dept.status} />
-            </div>
-            <p className="mt-1 text-sm" style={{ color: C.inkMuted }}>{dept.description || "No description yet."}</p>
-          </div>
-        </div>
-
-        <div className="mt-5 flex divide-x rounded-2xl border py-3" style={{ borderColor: C.borderSoft, background: C.card }}>
-          <div className="flex-1 text-center">
-            <div className="text-base font-bold" style={{ color: C.ink }}>{dept.members.length}</div>
-            <div className="text-[11px]" style={{ color: C.inkMuted }}>Members</div>
-          </div>
-          <div className="flex-1 text-center">
-            <div className="text-base font-bold" style={{ color: C.ink }}>{dept.permissions.filter((p) => p.enabled).length}</div>
-            <div className="text-[11px]" style={{ color: C.inkMuted }}>Permissions</div>
-          </div>
-        </div>
-
-        <div className="mt-7 flex items-center justify-between">
-          <h3 className="text-sm font-bold" style={{ color: C.ink }}>Members</h3>
-          <button onClick={onAssign} className="flex items-center gap-1 text-xs font-bold" style={{ color: C.hibiscus }}>
-            <UserPlus className="h-3.5 w-3.5" /> Assign
-          </button>
-        </div>
-
-        {dept.members.length === 0 ? (
-          <div className="mt-3 rounded-2xl border border-dashed py-8 text-center" style={{ borderColor: C.border }}>
-            <p className="text-sm font-semibold" style={{ color: C.ink }}>No members yet</p>
-            <p className="mt-1 text-xs" style={{ color: C.inkMuted }}>Pull staff straight from your Roblox group.</p>
-            <button onClick={onAssign} className="mt-3 text-xs font-bold" style={{ color: C.hibiscus }}>Assign members →</button>
-          </div>
-        ) : (
-          <div className="mt-3 space-y-2">
-            {dept.members.map((m) => (
-              <div key={m.id} className="flex items-center gap-3 rounded-2xl border p-3" style={{ borderColor: C.borderSoft, background: C.card }}>
-                <Avatar member={m} size={44} />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-bold" style={{ color: C.ink }}>{m.username}</div>
-                  <div className="text-[11px]" style={{ color: C.inkMuted }}>#{m.robloxId}{m.rank ? ` · ${m.rank}` : ""}</div>
-                </div>
-                <button
-                  onClick={() => onRemoveMember(m.id)}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition"
-                  style={{ color: C.inkMuted }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = `${C.danger}14`; e.currentTarget.style.color = C.danger }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = C.inkMuted }}
-                >
-                  <X className="h-4 w-4" />
-                </button>
               </div>
-            ))}
-          </div>
-        )}
-
-        <h3 className="mt-7 text-sm font-bold" style={{ color: C.ink }}>Permissions</h3>
-        <div className="mt-3 divide-y rounded-2xl border" style={{ borderColor: C.borderSoft, background: C.card }}>
-          {dept.permissions.map((p, i) => (
-            <div key={p.label} className="flex items-center justify-between px-4 py-3.5" style={{ borderColor: C.borderSoft }}>
-              <span className="text-sm font-medium" style={{ color: C.ink }}>{p.label}</span>
-              <button
-                onClick={() => onTogglePermission(i)}
-                className="relative h-6 w-11 shrink-0 rounded-full transition"
-                style={{ background: p.enabled ? C.gold : C.borderSoft }}
+              <motion.button
+                onClick={() => setCreateOpen(true)}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white shadow-sm"
+                style={{ background: BRAND_GRADIENT }}
               >
-                <motion.span layout transition={{ duration: 0.18, ease: EASE }} className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow" style={{ left: p.enabled ? 22 : 2 }} />
-              </button>
+                <Plus className="h-4 w-4" />
+                Create Department
+              </motion.button>
             </div>
-          ))}
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <div className="relative min-w-[180px] flex-1">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-lava/30" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search departments..."
+                  className="h-10 w-full rounded-full border border-lava/10 bg-lava/[0.03] pl-10 pr-3 text-sm text-reef-navy outline-none transition placeholder:text-lava/30 focus:border-hibiscus/40"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 rounded-full border border-lava/10 bg-lava/[0.02] p-1">
+                {FILTERS.map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                      filter === f ? "text-white shadow-sm" : "text-lava/45 hover:text-reef-navy"
+                    }`}
+                    style={filter === f ? { background: BRAND_GRADIENT } : undefined}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5">
+            {loading ? (
+              <div className="divide-y divide-lava/8">
+                <div className="h-[72px] animate-pulse bg-lava/[0.04]" />
+                <div className="h-[72px] animate-pulse bg-lava/[0.04]" />
+                <div className="h-[72px] animate-pulse bg-lava/[0.04]" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="px-6 py-10 text-center text-sm text-lava/40">No departments match your search.</div>
+            ) : (
+              <div className="divide-y divide-lava/8 pb-2">
+                {filtered.map((dept) => (
+                  <DepartmentRow key={dept.id} dept={dept} active={dept.id === selectedId} onClick={() => setSelectedId(dept.id)} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <h3 className="mt-7 text-sm font-bold" style={{ color: C.danger }}>Danger zone</h3>
-        <div className="mt-3 space-y-2">
-          {dept.status === "Archived" ? (
-            <button onClick={onRestore} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border text-sm font-bold" style={{ borderColor: C.teal, color: C.teal }}>
-              <Archive className="h-4 w-4" /> Restore department
-            </button>
-          ) : (
-            <button onClick={() => setConfirm("archive")} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border text-sm font-bold" style={{ borderColor: C.border, color: C.ink }}>
-              <Archive className="h-4 w-4" /> Archive department
-            </button>
-          )}
-          <button onClick={() => setConfirm("delete")} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border text-sm font-bold" style={{ borderColor: `${C.danger}55`, color: C.danger }}>
-            <Trash2 className="h-4 w-4" /> Delete department
-          </button>
+        {selected ? (
+          <div className="lg:sticky lg:top-6 lg:self-start">
+            <AnimatePresence mode="wait">
+              <DetailPanel
+                dept={selected}
+                onTogglePermission={handleTogglePermission}
+                onAddMember={handleAddMember}
+                onRemoveMember={handleRemoveMember}
+                onArchive={handleArchive}
+              />
+            </AnimatePresence>
+          </div>
+        ) : null}
+
+        <div className="lg:sticky lg:top-6 lg:self-start">
+          <Sidebar
+            departments={departments}
+            onCreateClick={() => setCreateOpen(true)}
+            onAssignMembersClick={handleAssignMembersClick}
+            onSetPermissionsClick={handleSetPermissionsClick}
+            refreshKey={activityRefreshKey}
+          />
         </div>
       </div>
 
-      <ConfirmSheet
-        open={confirm === "archive"}
-        tone="neutral"
-        title="Archive this department?"
-        message="Members stay assigned, but the department is hidden from active lists until you restore it."
-        confirmLabel="Archive"
-        onCancel={() => setConfirm(null)}
-        onConfirm={() => { onArchive(); setConfirm(null) }}
-      />
-      <ConfirmSheet
-        open={confirm === "delete"}
-        tone="danger"
-        title="Delete this department?"
-        message="This removes it and its permission settings for good. Members simply lose this assignment — their accounts aren't affected."
-        confirmLabel="Delete"
-        onCancel={() => setConfirm(null)}
-        onConfirm={() => { onDelete(); setConfirm(null) }}
-      />
-    </PageShell>
-  )
-}
-
-/* ─────────────────────────── App ─────────────────────────── */
-
-export default function App() {
-  const [departments, setDepartments] = useState(INITIAL_DEPARTMENTS)
-  const [view, setView] = useState({ name: "list" })
-  const [toast, setToast] = useState("")
-
-  function flash(msg) {
-    setToast(msg)
-    setTimeout(() => setToast(""), 2200)
-  }
-
-  const selected = view.id ? departments.find((d) => d.id === view.id) : null
-
-  function updateDept(id, patch) {
-    setDepartments((prev) => prev.map((d) => (d.id === id ? { ...d, ...patch } : d)))
-  }
-
-  return (
-    <div style={{ background: C.bg, fontFamily: FONT_BODY, minHeight: "100vh" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@500;600;700;800&display=swap');`}</style>
-
-      <div className="mx-auto max-w-md">
-        <AnimatePresence mode="wait">
-          {view.name === "list" && (
-            <ListView
-              key="list"
-              departments={departments}
-              onOpen={(id) => setView({ name: "detail", id })}
-              onCreate={() => setView({ name: "create" })}
-            />
-          )}
-
-          {view.name === "create" && (
-            <FormView
-              key="create"
-              mode="create"
-              onBack={() => setView({ name: "list" })}
-              onSubmit={(data) => {
-                const id = `d${Date.now()}`
-                const dept = { id, ...data, status: "Active", members: [], permissions: DEFAULT_PERMISSIONS.map((p) => ({ ...p })) }
-                setDepartments((prev) => [...prev, dept])
-                flash(`${dept.name} created`)
-                setView({ name: "detail", id })
-              }}
-            />
-          )}
-
-          {view.name === "edit" && selected && (
-            <FormView
-              key="edit"
-              mode="edit"
-              initial={selected}
-              onBack={() => setView({ name: "detail", id: selected.id })}
-              onSubmit={(data) => {
-                updateDept(selected.id, data)
-                flash("Changes saved")
-                setView({ name: "detail", id: selected.id })
-              }}
-            />
-          )}
-
-          {view.name === "detail" && selected && (
-            <DetailView
-              key={`detail-${selected.id}`}
-              dept={selected}
-              onBack={() => setView({ name: "list" })}
-              onEdit={() => setView({ name: "edit", id: selected.id })}
-              onAssign={() => setView({ name: "assign", id: selected.id })}
-              onRemoveMember={(mid) => {
-                updateDept(selected.id, { members: selected.members.filter((m) => m.id !== mid) })
-              }}
-              onTogglePermission={(i) => {
-                const permissions = selected.permissions.map((p, idx) => (idx === i ? { ...p, enabled: !p.enabled } : p))
-                updateDept(selected.id, { permissions })
-              }}
-              onArchive={() => { updateDept(selected.id, { status: "Archived" }); flash("Department archived") }}
-              onRestore={() => { updateDept(selected.id, { status: "Active" }); flash("Department restored") }}
-              onDelete={() => {
-                setDepartments((prev) => prev.filter((d) => d.id !== selected.id))
-                flash("Department deleted")
-                setView({ name: "list" })
-              }}
-            />
-          )}
-
-          {view.name === "assign" && selected && (
-            <AssignMembersView
-              key={`assign-${selected.id}`}
-              dept={selected}
-              roster={ROSTER}
-              onBack={() => setView({ name: "detail", id: selected.id })}
-              onAdd={(ids) => {
-                const added = ROSTER.filter((m) => ids.includes(m.id))
-                updateDept(selected.id, { members: [...selected.members, ...added] })
-                flash(`Added ${added.length} member${added.length > 1 ? "s" : ""}`)
-                setView({ name: "detail", id: selected.id })
-              }}
-            />
-          )}
-        </AnimatePresence>
-      </div>
-
-      <Toast message={toast} />
+      <CreateModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={handleCreate} submitting={creating} />
     </div>
   )
 }

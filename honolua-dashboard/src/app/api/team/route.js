@@ -49,10 +49,16 @@ const ALL_ROLE_IDS = Object.keys(ROLE_ID_TO_TEAM).map(Number);
 
 export async function GET() {
   try {
+    console.log("/api/team GET start", { GROUP_ID, teamCount: TEAMS.length });
     // 1. Get all group roles, keep only the ones we've assigned to a team
     const rolesRes = await fetch(`https://groups.roblox.com/v1/groups/${GROUP_ID}/roles`);
-    if (!rolesRes.ok) throw new Error("Failed to fetch group roles");
+    if (!rolesRes.ok) {
+      console.error("Failed to fetch group roles", { status: rolesRes.status, statusText: rolesRes.statusText });
+      throw new Error("Failed to fetch group roles");
+    }
     const rolesData = await rolesRes.json();
+
+    console.log("/api/team roles fetched", { rolesFound: rolesData.roles?.length || 0 });
 
     const eligibleRoles = rolesData.roles.filter((r) =>
       ALL_ROLE_IDS.includes(r.id)
@@ -68,8 +74,13 @@ export async function GET() {
           cursor ? `&cursor=${cursor}` : ""
         }`;
         const usersRes = await fetch(url);
-        if (!usersRes.ok) break;
+        if (!usersRes.ok) {
+          console.error("Failed to fetch users for role", { roleId: role.id, status: usersRes.status, statusText: usersRes.statusText });
+          break;
+        }
         const usersData = await usersRes.json();
+
+        console.log("/api/team role page", { roleId: role.id, roleName: role.name, usersFetched: usersData.data.length, nextCursor: !!usersData.nextPageCursor });
 
         members.push(
           ...usersData.data.map((u) => ({
@@ -87,6 +98,8 @@ export async function GET() {
       } while (cursor);
     }
 
+    console.log("/api/team members total", { totalMembers: members.length });
+
     // 3. Batch-fetch live avatar headshots (max 100 ids per request)
     const avatarMap = {};
     const userIds = members.map((m) => m.userId);
@@ -97,12 +110,17 @@ export async function GET() {
         ","
       )}&size=420x420&format=Png&isCircular=false`;
       const thumbRes = await fetch(thumbUrl);
-      if (!thumbRes.ok) continue;
+      if (!thumbRes.ok) {
+        console.error("Failed to fetch thumbnails for batch", { batchSize: batch.length, status: thumbRes.status, statusText: thumbRes.statusText });
+        continue;
+      }
       const thumbData = await thumbRes.json();
       thumbData.data.forEach((d) => {
         avatarMap[d.targetId] = d.imageUrl;
       });
     }
+
+    console.log("/api/team avatars fetched", { avatarCount: Object.keys(avatarMap).length });
 
     const withAvatars = members.map((m) => ({
       ...m,
@@ -116,6 +134,9 @@ export async function GET() {
         .filter((m) => m.teamKey === team.key)
         .sort((a, b) => b.rank - a.rank);
     }
+
+    const groupedCounts = Object.fromEntries(Object.keys(grouped).map((k) => [k, grouped[k].length]));
+    console.log("/api/team grouped counts", { groupedCounts });
 
     // Cache on Vercel's edge for 5 min, serve stale for 10 min while revalidating —
     // keeps avatars/roster fresh without hammering Roblox on every visit.

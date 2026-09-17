@@ -1,3 +1,9 @@
+// src/app/api/guilds/[guildId]/channels/route.js
+//
+// Fetches a guild's channels straight from Discord's REST API using your
+// bot token — no dependency on your bot process being reachable from the
+// website. Adjust BOT_TOKEN_ENV below if your .env uses a different name.
+
 const BOT_TOKEN =
   process.env.DISCORD_BOT_TOKEN || process.env.DISCORD_TOKEN || process.env.BOT_TOKEN;
 
@@ -11,14 +17,20 @@ function buildCategoryNameMap(rawChannels) {
   return map;
 }
 
-export async function GET(request, { params }) {
-  const { guildId } = params;
+export async function GET(request, context) {
+  // Next.js 15+ makes route params async — awaiting here also works fine
+  // on older versions where params is already a plain object.
+  const { guildId } = await context.params;
 
   if (!BOT_TOKEN) {
     return Response.json(
       { ok: false, error: "Missing bot token — set DISCORD_BOT_TOKEN in your environment." },
       { status: 500 }
     );
+  }
+
+  if (!guildId || !/^\d+$/.test(guildId)) {
+    return Response.json({ ok: false, error: `Invalid guildId param: ${guildId}` }, { status: 400 });
   }
 
   try {

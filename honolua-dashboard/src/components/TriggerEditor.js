@@ -38,6 +38,12 @@ const TOKENS = [
 
 const CATEGORIES = ["Applications", "Members", "Moderation", "System", "Economy", "Events", "General"];
 
+// Temporary fallback so the pickers work without extra route/context
+// wiring. Once this page has a real way to know the active server
+// (route param, context, etc.), pass it in as the `guildId` prop
+// instead and this constant stops being used.
+const FALLBACK_GUILD_ID = "1516264096209834065";
+
 const TABS = [
   { key: "basic", label: "Basic", icon: Settings },
   { key: "content", label: "Content", icon: MessageSquare },
@@ -564,7 +570,7 @@ export default function TriggerEditor({ triggerId, guildId: guildIdProp }) {
   // Prefer an explicit prop from the parent page. Fall back to common
   // route-param names in case this page already sits under a
   // [guildId] or [serverId] segment.
-  const guildId = guildIdProp || params?.guildId || params?.serverId || null;
+  const guildId = guildIdProp || params?.guildId || params?.serverId || FALLBACK_GUILD_ID;
   const { channels, roles, status: guildDataStatus } = useGuildData(guildId);
 
   const isNew = !triggerId;

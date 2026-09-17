@@ -250,7 +250,11 @@ function TokenChips({ onInsert }) {
 // a quieter way of marking a section than the usual dashboard-kit look.
 function Card({ title, icon: Icon, accent = "rgba(230,115,111,0.4)", right, children }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-lava/10 bg-white/70 p-5 pl-6">
+    // No overflow-hidden here on purpose — the role/channel picker
+    // dropdowns are absolutely-positioned children that need to be able
+    // to render outside this card's box. The accent bar is rounded on
+    // its own (rounded-full), so it doesn't need a clipped parent.
+    <div className="relative rounded-2xl border border-lava/10 bg-white/70 p-5 pl-6">
       <span className="absolute inset-y-4 left-0 w-[3px] rounded-full" style={{ background: accent }} />
       {(title || right) && (
         <div className="mb-4 flex items-center justify-between gap-2">

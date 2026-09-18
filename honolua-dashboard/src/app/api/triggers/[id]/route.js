@@ -51,15 +51,17 @@ export async function PATCH(req, { params }) {
 }
 
 export async function DELETE(req, { params }) {
+  const { id } = await params;
+
   await dbConnect();
-  const trigger = await Trigger.findByIdAndDelete(params.id);
+  const trigger = await Trigger.findByIdAndDelete(id);
   if (!trigger) return Response.json({ ok: false, error: "Not found" }, { status: 404 });
 
   const user = await getUserFromSession(req).catch(() => null);
   await logStaffAction({
     session: { discordId: user?.discordId, discordUsername: user?.username || user?.discordUsername },
     action: "trigger_deleted",
-    meta: { triggerId: params.id, name: trigger.name },
+    meta: { triggerId: id, name: trigger.name },
   });
 
   return Response.json({ ok: true });

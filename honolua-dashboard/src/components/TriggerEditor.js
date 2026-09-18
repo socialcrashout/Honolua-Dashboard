@@ -22,10 +22,14 @@ import {
   Search,
   Check,
   ChevronDown,
+  ChevronUp,
   ShieldCheck,
   Minus,
   Link2,
   Palette,
+  Type,
+  Image as ImageIcon,
+  PanelLeft,
 } from "lucide-react";
 
 const BRAND_GRADIENT = "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)";
@@ -82,6 +86,16 @@ const ACCENT_PRESETS = [
   { label: "Sky", value: "#5AA9E6" },
 ];
 
+// The block palette for the Discohook-style content builder. Each block
+// type is a self-contained, reorderable unit inside container.components.
+const BLOCK_TYPES = [
+  { type: "text", label: "Text", icon: Type },
+  { type: "section", label: "Section", icon: PanelLeft },
+  { type: "image", label: "Image", icon: ImageIcon },
+  { type: "separator", label: "Separator", icon: Minus },
+  { type: "buttons", label: "Buttons", icon: Link2 },
+];
+
 function flowMeta(type) {
   return FLOW_ACTIONS.find((f) => f.type === type);
 }
@@ -105,6 +119,66 @@ function makeId() {
     : `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+// Splits **bold** segments out of plain text for the message preview,
+// same lightweight convention used elsewhere in the app (no markdown lib).
+function renderInline(text) {
+  if (!text) return null;
+  const parts = String(text).split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
+
+function newBlock(type) {
+  const base = { id: makeId(), type };
+  switch (type) {
+    case "text":
+      return { ...base, content: "" };
+    case "section":
+      return { ...base, content: "", accessoryType: "thumbnail", thumbnailUrl: "", buttonLabel: "", buttonUrl: "" };
+    case "image":
+      return { ...base, url: "" };
+    case "separator":
+      return { ...base, spacing: "small", divider: true };
+    case "buttons":
+      return { ...base, buttons: [] };
+    default:
+      return base;
+  }
+}
+
+// Converts an older, fixed-shape container (headerText/bodyText/footerText/
+// separators/linkButtons) into the new ordered `components` array, so
+// triggers saved before this rebuild still load and render correctly.
+function migrateContainer(container) {
+  if (!container) return { enabled: false, accentColor: null, components: [] };
+  if (Array.isArray(container.components)) {
+    return { enabled: !!container.enabled, accentColor: container.accentColor ?? null, components: container.components };
+  }
+
+  const components = [];
+  if (container.headerText) components.push({ ...newBlock("text"), content: `**${container.headerText}**` });
+  if (container.separatorAfterHeader) components.push(newBlock("separator"));
+  if (container.bodyText) components.push({ ...newBlock("text"), content: container.bodyText });
+  if (container.separatorBeforeImage) components.push(newBlock("separator"));
+  if (container.imageUrl) components.push({ ...newBlock("image"), url: container.imageUrl });
+  if (container.separatorBeforeFooter) components.push(newBlock("separator"));
+  if (container.footerText || container.showTimestamp) {
+    let content = container.footerText || "";
+    if (container.showTimestamp) content += (content ? " · " : "") + "{timestamp}";
+    components.push({ ...newBlock("text"), content });
+  }
+  if (Array.isArray(container.linkButtons) && container.linkButtons.length > 0) {
+    components.push({ ...newBlock("buttons"), buttons: container.linkButtons });
+  }
+
+  return { enabled: !!container.enabled, accentColor: container.accentColor ?? null, components };
+}
+
 const DEFAULT_TRIGGER = {
   name: "",
   enabled: true,
@@ -116,15 +190,7 @@ const DEFAULT_TRIGGER = {
   container: {
     enabled: false,
     accentColor: null,
-    headerText: "",
-    separatorAfterHeader: false,
-    bodyText: "",
-    separatorBeforeImage: false,
-    imageUrl: "",
-    separatorBeforeFooter: false,
-    footerText: "",
-    showTimestamp: false,
-    linkButtons: [],
+    components: [],
   },
   advanced: {
     cooldownSeconds: 0,
@@ -565,6 +631,292 @@ function AccentColorPicker({ value, onChange }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Discohook-style block builder                                       */
+/* ------------------------------------------------------------------ */
+
+// Shared shell every block type renders inside: type label, reorder
+// arrows, delete — then the type-specific fields as children.
+function BlockShell({ label, icon: Icon, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onRemove, children }) {
+  return (
+    <div className="rounded-xl border border-lava/10 bg-white p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-lava/40">
+          <Icon className="h-3.5 w-3.5" /> {label}
+        </span>
+        <div className="flex items-center gap-0.5">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={!canMoveUp}
+            className="rounded p-1 text-lava/35 transition hover:bg-lava/5 hover:text-reef-navy disabled:opacity-25 disabled:hover:bg-transparent"
+          >
+            <ChevronUp className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={!canMoveDown}
+            className="rounded p-1 text-lava/35 transition hover:bg-lava/5 hover:text-reef-navy disabled:opacity-25 disabled:hover:bg-transparent"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="ml-1 rounded p-1 text-lava/35 transition hover:bg-[#E6736F]/10 hover:text-[#E6736F]"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function TextBlockFields({ block, onChange }) {
+  return (
+    <>
+      <textarea
+        value={block.content}
+        onChange={(e) => onChange({ content: e.target.value })}
+        placeholder="Text for this block… supports **bold**"
+        rows={3}
+        className={`${inputCls} resize-y`}
+      />
+      <TokenChips onInsert={(t) => onChange({ content: `${block.content || ""}${t}` })} />
+    </>
+  );
+}
+
+function SectionBlockFields({ block, onChange }) {
+  return (
+    <div className="space-y-3">
+      <textarea
+        value={block.content}
+        onChange={(e) => onChange({ content: e.target.value })}
+        placeholder="Section text — pairs with a thumbnail or button on the right"
+        rows={2}
+        className={`${inputCls} resize-y`}
+      />
+      <TokenChips onInsert={(t) => onChange({ content: `${block.content || ""}${t}` })} />
+
+      <div className="flex gap-1.5">
+        {["thumbnail", "button"].map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => onChange({ accessoryType: t })}
+            className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition ${
+              block.accessoryType === t
+                ? "border-[#E6736F] bg-[#E6736F]/10 text-[#E6736F]"
+                : "border-lava/10 text-lava/45 hover:text-reef-navy"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {block.accessoryType === "thumbnail" ? (
+        <input
+          value={block.thumbnailUrl}
+          onChange={(e) => onChange({ thumbnailUrl: e.target.value })}
+          placeholder="https://… (thumbnail image URL)"
+          className={inputCls}
+        />
+      ) : (
+        <div className="flex gap-2">
+          <input
+            value={block.buttonLabel}
+            onChange={(e) => onChange({ buttonLabel: e.target.value })}
+            placeholder="Button label"
+            className={`${inputCls} sm:w-40`}
+          />
+          <input
+            value={block.buttonUrl}
+            onChange={(e) => onChange({ buttonUrl: e.target.value })}
+            placeholder="https://…"
+            className={inputCls}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ImageBlockFields({ block, onChange }) {
+  return (
+    <input
+      value={block.url}
+      onChange={(e) => onChange({ url: e.target.value })}
+      placeholder="https://…"
+      className={inputCls}
+    />
+  );
+}
+
+function SeparatorBlockFields({ block, onChange }) {
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <div className="flex gap-1.5">
+        {["small", "large"].map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => onChange({ spacing: s })}
+            className={`rounded-full border px-3 py-1 text-xs font-medium capitalize transition ${
+              block.spacing === s
+                ? "border-[#E6736F] bg-[#E6736F]/10 text-[#E6736F]"
+                : "border-lava/10 text-lava/45 hover:text-reef-navy"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      <label className="flex items-center gap-1.5 text-xs text-reef-navy/70">
+        <input
+          type="checkbox"
+          checked={block.divider}
+          onChange={(e) => onChange({ divider: e.target.checked })}
+          className="h-3.5 w-3.5 rounded border-lava/20"
+        />
+        Show divider line
+      </label>
+    </div>
+  );
+}
+
+function ButtonsBlockFields({ block, onChange }) {
+  function addButton() {
+    if (block.buttons.length >= 5) return;
+    onChange({ buttons: [...block.buttons, { id: makeId(), label: "", url: "" }] });
+  }
+  function updateButton(id, patch) {
+    onChange({ buttons: block.buttons.map((b) => (b.id === id ? { ...b, ...patch } : b)) });
+  }
+  function removeButton(id) {
+    onChange({ buttons: block.buttons.filter((b) => b.id !== id) });
+  }
+
+  return (
+    <div>
+      {block.buttons.length === 0 ? (
+        <p className="text-xs text-lava/40">No buttons yet — add one below.</p>
+      ) : (
+        <div className="space-y-2">
+          {block.buttons.map((btn) => (
+            <div key={btn.id} className="flex items-center gap-2">
+              <input
+                value={btn.label}
+                onChange={(e) => updateButton(btn.id, { label: e.target.value })}
+                placeholder="Button label"
+                className={`${inputCls} sm:w-40`}
+              />
+              <input
+                value={btn.url}
+                onChange={(e) => updateButton(btn.id, { url: e.target.value })}
+                placeholder="https://…"
+                className={inputCls}
+              />
+              <button
+                type="button"
+                onClick={() => removeButton(btn.id)}
+                className="shrink-0 text-lava/30 hover:text-[#E6736F]"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={addButton}
+        disabled={block.buttons.length >= 5}
+        className="mt-2.5 flex items-center gap-1.5 text-sm font-medium text-[#E6736F] disabled:opacity-40"
+      >
+        <Plus className="h-3.5 w-3.5" /> Add button ({block.buttons.length}/5)
+      </button>
+    </div>
+  );
+}
+
+function BlockEditor({ block, onChange }) {
+  const meta = BLOCK_TYPES.find((b) => b.type === block.type);
+  return (
+    <>
+      {block.type === "text" && <TextBlockFields block={block} onChange={onChange} />}
+      {block.type === "section" && <SectionBlockFields block={block} onChange={onChange} />}
+      {block.type === "image" && <ImageBlockFields block={block} onChange={onChange} />}
+      {block.type === "separator" && <SeparatorBlockFields block={block} onChange={onChange} />}
+      {block.type === "buttons" && <ButtonsBlockFields block={block} onChange={onChange} />}
+    </>
+  );
+}
+
+// Renders one component block exactly as it will appear in the actual
+// Discord message — used by the Preview tab, in order.
+function BlockPreview({ block }) {
+  if (block.type === "text") {
+    return <p className="whitespace-pre-wrap text-sm text-reef-navy/80">{renderInline(block.content) || <span className="text-lava/35">Empty text block</span>}</p>;
+  }
+  if (block.type === "section") {
+    return (
+      <div className="flex items-start gap-3">
+        <p className="min-w-0 flex-1 whitespace-pre-wrap text-sm text-reef-navy/80">
+          {renderInline(block.content) || <span className="text-lava/35">Empty section</span>}
+        </p>
+        {block.accessoryType === "thumbnail" && block.thumbnailUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={block.thumbnailUrl} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+        ) : block.accessoryType === "button" && block.buttonLabel ? (
+          <span className="flex shrink-0 items-center gap-1 rounded-lg border border-lava/15 bg-white px-2.5 py-1.5 text-xs font-medium text-reef-navy/80">
+            <Link2 className="h-3 w-3 text-lava/40" /> {block.buttonLabel}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+  if (block.type === "image") {
+    return block.url ? (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={block.url} alt="" className="max-h-48 w-full rounded-lg object-cover" />
+    ) : (
+      <div className="flex h-24 items-center justify-center rounded-lg border border-dashed border-lava/15 text-xs text-lava/35">
+        No image URL set
+      </div>
+    );
+  }
+  if (block.type === "separator") {
+    return (
+      <div className={block.spacing === "large" ? "py-3" : "py-1"}>
+        {block.divider && <div className="h-px bg-lava/10" />}
+      </div>
+    );
+  }
+  if (block.type === "buttons") {
+    return block.buttons.length === 0 ? (
+      <p className="text-xs text-lava/35">No buttons added</p>
+    ) : (
+      <div className="flex flex-wrap gap-1.5">
+        {block.buttons.map((b) => (
+          <span
+            key={b.id}
+            className="flex items-center gap-1 rounded-lg border border-lava/15 bg-white px-2.5 py-1.5 text-xs font-medium text-reef-navy/80"
+          >
+            <Link2 className="h-3 w-3 text-lava/40" />
+            {b.label || "Button"}
+          </span>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
 /* Main editor                                                         */
 /* ------------------------------------------------------------------ */
 
@@ -591,8 +943,9 @@ export default function TriggerEditor({ triggerId, guildId: guildIdProp }) {
       const res = await fetch(`/api/triggers/${triggerId}`);
       const j = await res.json();
       if (j.ok) {
-        setTrigger(j.trigger);
-        setInitial(j.trigger);
+        const migrated = { ...j.trigger, container: migrateContainer(j.trigger.container) };
+        setTrigger(migrated);
+        setInitial(migrated);
       }
       setLoading(false);
     })();
@@ -609,46 +962,41 @@ export default function TriggerEditor({ triggerId, guildId: guildIdProp }) {
   function updateAdvanced(patch) {
     setTrigger((prev) => ({ ...prev, advanced: { ...prev.advanced, ...patch } }));
   }
-
   function insertToken(field, token) {
     setTrigger((prev) => ({ ...prev, [field]: `${prev[field] || ""}${token}` }));
   }
-  function insertContainerToken(field, token) {
-    setTrigger((prev) => ({
-      ...prev,
-      container: { ...prev.container, [field]: `${prev.container[field] || ""}${token}` },
-    }));
-  }
 
-  function addLinkButton() {
+  // Block CRUD + reordering for the Components V2 builder
+  function addBlock(type) {
+    setTrigger((prev) => ({
+      ...prev,
+      container: { ...prev.container, components: [...prev.container.components, newBlock(type)] },
+    }));
+  }
+  function updateBlock(id, patch) {
+    setTrigger((prev) => ({
+      ...prev,
+      container: {
+        ...prev.container,
+        components: prev.container.components.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+      },
+    }));
+  }
+  function removeBlock(id) {
+    setTrigger((prev) => ({
+      ...prev,
+      container: { ...prev.container, components: prev.container.components.filter((c) => c.id !== id) },
+    }));
+  }
+  function moveBlock(id, direction) {
     setTrigger((prev) => {
-      if (prev.container.linkButtons.length >= 5) return prev;
-      return {
-        ...prev,
-        container: {
-          ...prev.container,
-          linkButtons: [...prev.container.linkButtons, { id: makeId(), label: "", url: "" }],
-        },
-      };
+      const arr = [...prev.container.components];
+      const idx = arr.findIndex((c) => c.id === id);
+      const swapWith = direction === "up" ? idx - 1 : idx + 1;
+      if (idx === -1 || swapWith < 0 || swapWith >= arr.length) return prev;
+      [arr[idx], arr[swapWith]] = [arr[swapWith], arr[idx]];
+      return { ...prev, container: { ...prev.container, components: arr } };
     });
-  }
-  function updateLinkButton(id, patch) {
-    setTrigger((prev) => ({
-      ...prev,
-      container: {
-        ...prev.container,
-        linkButtons: prev.container.linkButtons.map((b) => (b.id === id ? { ...b, ...patch } : b)),
-      },
-    }));
-  }
-  function removeLinkButton(id) {
-    setTrigger((prev) => ({
-      ...prev,
-      container: {
-        ...prev.container,
-        linkButtons: prev.container.linkButtons.filter((b) => b.id !== id),
-      },
-    }));
   }
 
   function addFlow(type) {
@@ -806,7 +1154,7 @@ export default function TriggerEditor({ triggerId, guildId: guildIdProp }) {
               {activeTab === "basic" && (
                 <>
                   <Card title="Message Content" icon={MessageSquare}>
-                    <Field label="Message">
+                    <Field label="Message" hint="Used when the Components V2 container below is off">
                       <textarea
                         value={trigger.message}
                         onChange={(e) => update({ message: e.target.value })}
@@ -869,7 +1217,7 @@ export default function TriggerEditor({ triggerId, guildId: guildIdProp }) {
                           Send as Components V2 container
                         </h3>
                         <p className="mt-0.5 text-sm text-lava/50">
-                          Styled message using Discord's newer layout components
+                          Build the message from blocks, like Discohook — order matters
                         </p>
                       </div>
                       <Switch
@@ -891,147 +1239,58 @@ export default function TriggerEditor({ triggerId, guildId: guildIdProp }) {
                         </p>
                       </Card>
 
-                      <Card title="Container" icon={Wand2}>
-                        <div className="space-y-4">
-                          <Field label="Header text">
-                            <input
-                              value={trigger.container.headerText}
-                              onChange={(e) => updateContainer({ headerText: e.target.value })}
-                              placeholder="Bold heading at the top of the container"
-                              className={inputCls}
-                            />
-                          </Field>
-
-                          <div className="flex items-center justify-between rounded-xl border border-dashed border-lava/15 px-4 py-2.5">
-                            <span className="flex items-center gap-1.5 text-sm text-reef-navy/70">
-                              <Minus className="h-3.5 w-3.5 text-lava/40" /> Separator after header
-                            </span>
-                            <Switch
-                              checked={trigger.container.separatorAfterHeader}
-                              onChange={(v) => updateContainer({ separatorAfterHeader: v })}
-                              size="sm"
-                            />
-                          </div>
-
-                          <Field label="Body text">
-                            <textarea
-                              value={trigger.container.bodyText}
-                              onChange={(e) => updateContainer({ bodyText: e.target.value })}
-                              placeholder="Main body text inside the container…"
-                              rows={5}
-                              className={`${inputCls} resize-y`}
-                            />
-                            <TokenChips onInsert={(t) => insertContainerToken("bodyText", t)} />
-                          </Field>
-
-                          <div className="flex items-center justify-between rounded-xl border border-dashed border-lava/15 px-4 py-2.5">
-                            <span className="flex items-center gap-1.5 text-sm text-reef-navy/70">
-                              <Minus className="h-3.5 w-3.5 text-lava/40" /> Separator before image
-                            </span>
-                            <Switch
-                              checked={trigger.container.separatorBeforeImage}
-                              onChange={(v) => updateContainer({ separatorBeforeImage: v })}
-                              size="sm"
-                            />
-                          </div>
-
-                          <Field label="Image URL">
-                            <input
-                              value={trigger.container.imageUrl}
-                              onChange={(e) => updateContainer({ imageUrl: e.target.value })}
-                              placeholder="https://…"
-                              className={inputCls}
-                            />
-                          </Field>
-                        </div>
-                      </Card>
-
-                      <Card title="Footer" icon={Hash}>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between rounded-xl border border-dashed border-lava/15 px-4 py-2.5">
-                            <span className="flex items-center gap-1.5 text-sm text-reef-navy/70">
-                              <Minus className="h-3.5 w-3.5 text-lava/40" /> Separator before footer
-                            </span>
-                            <Switch
-                              checked={trigger.container.separatorBeforeFooter}
-                              onChange={(v) => updateContainer({ separatorBeforeFooter: v })}
-                              size="sm"
-                            />
-                          </div>
-                          <Field label="Footer text">
-                            <input
-                              value={trigger.container.footerText}
-                              onChange={(e) => updateContainer({ footerText: e.target.value })}
-                              placeholder="Footer text…"
-                              className={inputCls}
-                            />
-                          </Field>
-                          <div className="flex items-center justify-between rounded-xl border border-lava/10 px-4 py-3">
-                            <div>
-                              <span className="block text-sm text-reef-navy/80">Show timestamp</span>
-                              <span className="text-xs text-lava/45">Appends the current time to the footer</span>
-                            </div>
-                            <Switch
-                              checked={trigger.container.showTimestamp}
-                              onChange={(v) => updateContainer({ showTimestamp: v })}
-                              size="sm"
-                            />
-                          </div>
-                        </div>
-                      </Card>
-
                       <Card
-                        title="Link Buttons"
-                        icon={Link2}
-                        right={
-                          <span className="text-xs text-lava/40">{trigger.container.linkButtons.length}/5</span>
-                        }
+                        title="Blocks"
+                        icon={Wand2}
+                        right={<span className="text-xs text-lava/40">{trigger.container.components.length} block{trigger.container.components.length === 1 ? "" : "s"}</span>}
                       >
-                        {trigger.container.linkButtons.length === 0 ? (
-                          <div className="rounded-xl border border-dashed border-lava/15 py-8 text-center text-sm text-lava/40">
-                            No link buttons added yet
-                            <p className="mt-0.5 text-xs text-lava/35">Buttons appear below the message and open a URL when clicked</p>
+                        <div className="mb-4 flex flex-wrap gap-2">
+                          {BLOCK_TYPES.map((bt) => {
+                            const Icon = bt.icon;
+                            return (
+                              <button
+                                key={bt.type}
+                                type="button"
+                                onClick={() => addBlock(bt.type)}
+                                className="flex items-center gap-1.5 rounded-full border border-lava/10 bg-lava/[0.03] px-3 py-1.5 text-xs font-medium text-reef-navy transition hover:border-[#E6736F]/40 hover:bg-[#E6736F]/[0.06]"
+                              >
+                                <Icon className="h-3.5 w-3.5 text-[#E6736F]" />
+                                {bt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {trigger.container.components.length === 0 ? (
+                          <div className="rounded-xl border border-dashed border-lava/15 py-10 text-center text-sm text-lava/40">
+                            No blocks yet — add one above to start building
                           </div>
                         ) : (
-                          <div className="space-y-2">
-                            {trigger.container.linkButtons.map((btn) => (
-                              <div key={btn.id} className="flex items-center gap-2">
-                                <input
-                                  value={btn.label}
-                                  onChange={(e) => updateLinkButton(btn.id, { label: e.target.value })}
-                                  placeholder="Button label"
-                                  className={`${inputCls} sm:w-40`}
-                                />
-                                <input
-                                  value={btn.url}
-                                  onChange={(e) => updateLinkButton(btn.id, { url: e.target.value })}
-                                  placeholder="https://…"
-                                  className={inputCls}
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => removeLinkButton(btn.id)}
-                                  className="shrink-0 text-lava/30 hover:text-[#E6736F]"
+                          <div className="space-y-3">
+                            {trigger.container.components.map((block, i) => {
+                              const meta = BLOCK_TYPES.find((b) => b.type === block.type);
+                              return (
+                                <BlockShell
+                                  key={block.id}
+                                  label={meta.label}
+                                  icon={meta.icon}
+                                  canMoveUp={i > 0}
+                                  canMoveDown={i < trigger.container.components.length - 1}
+                                  onMoveUp={() => moveBlock(block.id, "up")}
+                                  onMoveDown={() => moveBlock(block.id, "down")}
+                                  onRemove={() => removeBlock(block.id)}
                                 >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </div>
-                            ))}
+                                  <BlockEditor block={block} onChange={(patch) => updateBlock(block.id, patch)} />
+                                </BlockShell>
+                              );
+                            })}
                           </div>
                         )}
-                        <button
-                          type="button"
-                          onClick={addLinkButton}
-                          disabled={trigger.container.linkButtons.length >= 5}
-                          className="mt-3 flex items-center gap-1.5 text-sm font-medium text-[#E6736F] disabled:opacity-40"
-                        >
-                          <Plus className="h-3.5 w-3.5" /> Add button
-                        </button>
                       </Card>
                     </>
                   ) : (
                     <div className="rounded-2xl border border-dashed border-lava/15 bg-white/40 py-14 text-center text-sm text-lava/40">
-                      Enable the container toggle above to configure its appearance
+                      Enable the container toggle above to start building blocks
                     </div>
                   )}
                 </>
@@ -1201,49 +1460,13 @@ export default function TriggerEditor({ triggerId, guildId: guildIdProp }) {
                               {trigger.container.accentColor && (
                                 <span className="w-1 shrink-0" style={{ background: trigger.container.accentColor }} />
                               )}
-                              <div className="min-w-0 flex-1 p-4">
-                                {trigger.container.headerText && (
-                                  <p className="mb-1.5 text-sm font-bold text-reef-navy">
-                                    {trigger.container.headerText}
-                                  </p>
-                                )}
-                                {trigger.container.separatorAfterHeader && <div className="my-2 h-px bg-lava/10" />}
-
-                                <p className="whitespace-pre-wrap text-sm text-reef-navy/80">
-                                  {trigger.container.bodyText || "Main body text inside the container…"}
-                                </p>
-
-                                {trigger.container.separatorBeforeImage && <div className="my-3 h-px bg-lava/10" />}
-                                {trigger.container.imageUrl && (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={trigger.container.imageUrl}
-                                    alt=""
-                                    className="mt-2 max-h-48 w-full rounded-lg object-cover"
-                                  />
-                                )}
-
-                                {trigger.container.separatorBeforeFooter && <div className="my-3 h-px bg-lava/10" />}
-                                {(trigger.container.footerText || trigger.container.showTimestamp) && (
-                                  <p className="mt-3 text-xs text-lava/40">
-                                    {trigger.container.footerText}
-                                    {trigger.container.footerText && trigger.container.showTimestamp ? " · " : ""}
-                                    {trigger.container.showTimestamp ? "Today at 12:00 PM" : ""}
-                                  </p>
-                                )}
-
-                                {trigger.container.linkButtons.length > 0 && (
-                                  <div className="mt-3 flex flex-wrap gap-1.5">
-                                    {trigger.container.linkButtons.map((b) => (
-                                      <span
-                                        key={b.id}
-                                        className="flex items-center gap-1 rounded-lg border border-lava/15 bg-white px-2.5 py-1.5 text-xs font-medium text-reef-navy/80"
-                                      >
-                                        <Link2 className="h-3 w-3 text-lava/40" />
-                                        {b.label || "Button"}
-                                      </span>
-                                    ))}
-                                  </div>
+                              <div className="min-w-0 flex-1 space-y-2 p-4">
+                                {trigger.container.components.length === 0 ? (
+                                  <p className="text-sm text-lava/35">No blocks added yet</p>
+                                ) : (
+                                  trigger.container.components.map((block) => (
+                                    <BlockPreview key={block.id} block={block} />
+                                  ))
                                 )}
                               </div>
                             </div>

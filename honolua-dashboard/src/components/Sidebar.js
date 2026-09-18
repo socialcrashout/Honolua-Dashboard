@@ -53,7 +53,7 @@ const NAV_GROUPS = [
     label: "Employee",
     minLevel: ROLE_LEVELS.moderator,
     items: [
-      { href: "/staff", label: "Overview", icon: LayoutDashboard },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/staff/support", label: "Support", icon: MessageCircleQuestion },
       { href: "/staff/macros", label: "Macros", icon: Zap },
       { href: "/staff/payroll", label: "Payroll", icon: Wallet },
@@ -97,7 +97,7 @@ const NAV_GROUPS = [
 const FOOTER_ITEMS = [{ href: "/", label: "Back", icon: ArrowLeft }]
 
 function isActive(pathname, href) {
-  if (href === "/staff") return pathname === "/staff"
+  if (href === "/dashboard") return pathname === "/dashboard"
   return pathname === href || pathname.startsWith(href + "/")
 }
 

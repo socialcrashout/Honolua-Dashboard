@@ -119,7 +119,7 @@ export async function GET() {
       if (!team) continue;
       let cursor = "";
       do {
-        const url = `https://groups.roblox.com/v1/groups/${GROUP_ID}/roles/${role.id}/users?limit=100${
+        const url = `https://groups.roblox.com/v1/groups/${GROUP_ID}/roles/${role.id}/users?limit=100&sortOrder=Asc${
           cursor ? `&cursor=${cursor}` : ""
         }`;
         const usersRes = await fetch(url);

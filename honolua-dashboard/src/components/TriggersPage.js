@@ -111,17 +111,14 @@ function RowMenu({ trigger, onDuplicate, onDelete }) {
   );
 }
 
-function TriggerRow({ trigger, index, onToggle, onDuplicate, onDelete }) {
+function TriggerRow({ trigger, onToggle, onDuplicate, onDelete }) {
   const meta = categoryMeta(trigger.category);
   const Icon = meta.icon;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.03, duration: 0.2 }}
-      className="flex items-center gap-4 rounded-2xl border border-lava/10 bg-white/70 px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-shadow hover:shadow-[0_8px_20px_rgba(0,0,0,0.05)]"
-    >
+    <div className="group relative flex items-center gap-4 py-3.5 pl-5 pr-4 transition hover:bg-lava/[0.02]">
+      <span className="absolute inset-y-2.5 left-0 w-[3px] rounded-full opacity-0 transition-opacity group-hover:opacity-100" style={{ background: meta.color }} />
+
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
         style={{ background: `${meta.color}1F`, color: meta.color }}
@@ -148,7 +145,7 @@ function TriggerRow({ trigger, index, onToggle, onDuplicate, onDelete }) {
       <Switch checked={trigger.enabled} onChange={(v) => onToggle(trigger, v)} />
 
       <RowMenu trigger={trigger} onDuplicate={onDuplicate} onDelete={onDelete} />
-    </motion.div>
+    </div>
   );
 }
 
@@ -278,29 +275,34 @@ export default function TriggersPage() {
         </Link>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="overflow-hidden rounded-[28px] border border-lava/10 bg-white/70 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         {loading && triggers.length === 0 ? (
-          <div className="rounded-2xl border border-lava/10 bg-white/50 py-16 text-center text-sm text-lava/40">
-            Loading triggers…
-          </div>
+          <div className="py-16 text-center text-sm text-lava/40">Loading triggers…</div>
         ) : triggers.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-lava/15 bg-white/40 py-16 text-center">
+          <div className="py-16 text-center">
             <p className="text-sm font-medium text-reef-navy/70">No triggers yet</p>
             <p className="mt-1 text-sm text-lava/45">
               Create one to have the bot respond automatically.
             </p>
           </div>
         ) : (
-          triggers.map((trigger, i) => (
-            <TriggerRow
-              key={trigger._id}
-              trigger={trigger}
-              index={i}
-              onToggle={handleToggle}
-              onDuplicate={handleDuplicate}
-              onDelete={handleDelete}
-            />
-          ))
+          <div className="divide-y divide-lava/8">
+            {triggers.map((trigger, i) => (
+              <motion.div
+                key={trigger._id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03, duration: 0.2 }}
+              >
+                <TriggerRow
+                  trigger={trigger}
+                  onToggle={handleToggle}
+                  onDuplicate={handleDuplicate}
+                  onDelete={handleDelete}
+                />
+              </motion.div>
+            ))}
+          </div>
         )}
       </div>
     </div>

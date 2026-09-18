@@ -1,5 +1,6 @@
 import TriggerEditor from "@/components/TriggerEditor";
 
-export default function Page({ params }) {
-  return <TriggerEditor triggerId={params.id} />;
+export default async function Page({ params }) {
+  const { id } = await params;
+  return <TriggerEditor triggerId={id} />;
 }

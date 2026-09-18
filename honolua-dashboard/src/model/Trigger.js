@@ -1,3 +1,4 @@
+//model/Trigger.js
 import mongoose, { Schema } from "mongoose";
 
 // Flow action types available in the "Flows" tab. Keep this list in sync
@@ -25,15 +26,17 @@ const FlowSchema = new Schema(
   { _id: false }
 );
 
+// Components V2 container: an ordered stack of blocks (text, section,
+// image, separator, buttons) built in the editor's Discohook-style
+// builder. Each block's shape varies by type (see TriggerEditor.js), so
+// this is stored as Mixed rather than a strict per-field sub-schema —
+// Mixed is never stripped by Mongoose's strict-mode field filtering,
+// which is what was silently dropping every block before this change.
 const ContainerSchema = new Schema(
   {
     enabled: { type: Boolean, default: false },
-    headerText: { type: String, default: "" },
-    bodyText: { type: String, default: "" },
-    imageUrl: { type: String, default: "" },
-    showDivider: { type: Boolean, default: false },
-    footerText: { type: String, default: "" },
-    showTimestamp: { type: Boolean, default: false },
+    accentColor: { type: String, default: null },
+    components: { type: [Schema.Types.Mixed], default: [] },
   },
   { _id: false }
 );

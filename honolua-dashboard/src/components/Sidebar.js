@@ -94,7 +94,7 @@ const NAV_GROUPS = [
   },
 ]
 
-const FOOTER_ITEMS = [{ href: "/dashboard", label: "Back", icon: ArrowLeft }]
+const FOOTER_ITEMS = [{ href: "/", label: "Back", icon: ArrowLeft }]
 
 function isActive(pathname, href) {
   if (href === "/staff") return pathname === "/staff"

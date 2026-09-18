@@ -4,8 +4,10 @@ import { logStaffAction } from "@/lib/audit"; // ⚠️ confirm this path matche
 import { getUserFromSession } from "@/lib/auth";
 
 export async function GET(_req, { params }) {
+  const { id } = await params;
+
   await dbConnect();
-  const trigger = await Trigger.findById(params.id).lean();
+  const trigger = await Trigger.findById(id).lean();
   if (!trigger) return Response.json({ ok: false, error: "Not found" }, { status: 404 });
   return Response.json({ ok: true, trigger });
 }
@@ -13,6 +15,8 @@ export async function GET(_req, { params }) {
 // Partial update — used for full edits from the editor AND for the quick
 // enabled/disabled toggle on the list page (just send { enabled }).
 export async function PATCH(req, { params }) {
+  const { id } = await params;
+
   await dbConnect();
   const body = await req.json().catch(() => null);
   if (!body) return Response.json({ ok: false, error: "Invalid body" }, { status: 400 });
@@ -21,7 +25,7 @@ export async function PATCH(req, { params }) {
 
   try {
     const trigger = await Trigger.findByIdAndUpdate(
-      params.id,
+      id,
       { $set: body },
       { new: true, runValidators: true }
     );

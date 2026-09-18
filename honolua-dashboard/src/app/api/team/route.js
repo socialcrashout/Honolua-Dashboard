@@ -124,7 +124,14 @@ export async function GET() {
         }`;
         const usersRes = await fetch(url);
         if (!usersRes.ok) {
-          console.error("Failed to fetch users for role", { roleId: role.id, status: usersRes.status, statusText: usersRes.statusText });
+          const bodyText = await usersRes.text().catch(() => "<could not read body>");
+          console.error("Failed to fetch users for role", {
+            roleId: role.id,
+            url,
+            status: usersRes.status,
+            statusText: usersRes.statusText,
+            body: bodyText,
+          });
           break;
         }
         const usersData = await usersRes.json();

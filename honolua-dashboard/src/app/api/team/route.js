@@ -17,59 +17,51 @@ const TEAMS = [
   {
     key: "leadership",
     label: "Leadership Team",
-    ranks: [255, 253, 251, 248, 246, 244],
+    ranks: [255, 253, 251, 248, 246, 242],
     roleIds: [],
+    roleNames: ["Owner", "Co-owner", "President", "Vice President", "Island Head Developer", "Board of Directors"],
   },
   {
     key: "executive",
     label: "Executive Team",
-    ranks: [242, 188, 185, 183, 180],
+    ranks: [188, 185, 183, 180],
     roleIds: [],
+    roleNames: ["Executive Director", "Executive Officer", "Executive Assistant", "Executive Intern"],
   },
   {
     key: "management",
     label: "Management Team",
     ranks: [178, 175, 172, 169],
     roleIds: [],
+    roleNames: ["Restaurant Manager", "Assistant Manager", "Restaurant Supervisor", "Restaurant Assistant"],
   },
   {
     key: "ownership",
     label: "Ownership Team",
     ranks: [],
-    roleIds: [
-      534788067, // Vice Chairperson
-      533420089, // Developer
-      543554019, // Automation
-      553418083, // Chairman
-      533896073, // Holder
-    ],
+    roleIds: [],
+    roleNames: ["Island Developer"],
   },
   {
     key: "corporate",
     label: "Corporate Team",
     ranks: [],
-    roleIds: [
-      532298077, // Junior Director
-      535386066, // Senior Director
-      532346082, // Head Director
-      532736129, // Corporate Intern
-      532422121, // Junior Corporate
-      533788115, // Senior Corporate
-      533732073, // Head Corporate
-      533348091, // Director Of Staff Management
-      532338071, // Chief Public Relations Officer
-      534132120, // Administrative Director
-      539888069, // Presidential Assistant
-    ],
+    roleIds: [],
+    roleNames: [],
   },
 ];
 
-// Flatten to quick lookups: roleId -> team, and rank -> team
+// Flatten to quick lookups: roleId -> team, role name -> team, and rank -> team.
+// Role names are prioritized because Roblox ranks can repeat across different roles.
 const ROLE_ID_TO_TEAM = {};
+const ROLE_NAME_TO_TEAM = {};
 const RANK_TO_TEAM = {};
 for (const team of TEAMS) {
   for (const id of team.roleIds || []) {
     ROLE_ID_TO_TEAM[id] = team;
+  }
+  for (const name of team.roleNames || []) {
+    ROLE_NAME_TO_TEAM[name] = team;
   }
   for (const rank of team.ranks || []) {
     RANK_TO_TEAM[rank] = team;
@@ -77,10 +69,11 @@ for (const team of TEAMS) {
 }
 
 const ALL_ROLE_IDS = Object.keys(ROLE_ID_TO_TEAM).map(Number);
+const ALL_ROLE_NAMES = Object.keys(ROLE_NAME_TO_TEAM);
 const ALL_RANKS = Object.keys(RANK_TO_TEAM).map(Number);
 
 function teamForRole(role) {
-  return ROLE_ID_TO_TEAM[role.id] || RANK_TO_TEAM[role.rank] || null;
+  return ROLE_ID_TO_TEAM[role.id] || ROLE_NAME_TO_TEAM[role.name] || RANK_TO_TEAM[role.rank] || null;
 }
 
 export async function GET() {
@@ -105,7 +98,7 @@ export async function GET() {
     );
 
     const eligibleRoles = rolesData.roles.filter(
-      (r) => ALL_ROLE_IDS.includes(r.id) || ALL_RANKS.includes(r.rank)
+      (r) => ALL_ROLE_IDS.includes(r.id) || ALL_ROLE_NAMES.includes(r.name) || ALL_RANKS.includes(r.rank)
     );
     console.log("/api/team eligibleRoles", {
       count: eligibleRoles.length,

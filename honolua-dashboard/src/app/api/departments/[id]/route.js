@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { dbConnect } from "@/lib/db"
 import { getUserFromSession } from "@/lib/auth"
 import { canManageUpdates, getStaffRoleForUser } from "@/lib/staff"
+import { logStaffAction } from "@/lib/audit"
 import Department from "@/model/Department"
 import { getRobloxUserByUsername, getAvatarHeadshots } from "@/lib/roblox"
 
@@ -20,6 +21,10 @@ async function requireStaff() {
     return { error: NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 }) }
   }*/
   return { session }
+}
+
+function actorFromSession(session) {
+  return { discordId: session?.discordId, discordUsername: session?.username || session?.discordUsername }
 }
 
 async function serialize(department) {
@@ -42,7 +47,7 @@ async function serialize(department) {
 
 // Supports payload.action: "addMember" | "removeMember" | "togglePermission" | (default: field edit)
 export async function PATCH(request, { params }) {
-  const { error } = await requireStaff()
+  const { error, session } = await requireStaff()
   if (error) return error
 
   const { id } = await params
@@ -52,6 +57,8 @@ export async function PATCH(request, { params }) {
   if (!department) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 })
   }
+
+  const actor = actorFromSession(session)
 
   if (payload?.action === "addMember") {
     const username = payload.username?.trim()
@@ -68,21 +75,58 @@ export async function PATCH(request, { params }) {
     if (!alreadyMember) {
       department.members.push({ username: robloxUser.username, robloxId: robloxUser.robloxId })
       await department.save()
+
+      await logStaffAction({
+        session: actor,
+        action: "member_added",
+        meta: { departmentId: id, department: department.name, username: robloxUser.username },
+      })
     }
   } else if (payload?.action === "removeMember") {
+    const removed = department.members.find((m) => m.robloxId === payload.robloxId)
     department.members = department.members.filter((m) => m.robloxId !== payload.robloxId)
     await department.save()
+
+    await logStaffAction({
+      session: actor,
+      action: "member_removed",
+      meta: { departmentId: id, department: department.name, username: removed?.username },
+    })
   } else if (payload?.action === "togglePermission") {
     const perm = department.permissions[payload.index]
     if (perm) {
       perm.enabled = !perm.enabled
       await department.save()
+
+      await logStaffAction({
+        session: actor,
+        action: "permission_updated",
+        meta: { departmentId: id, department: department.name, permission: perm.label, enabled: perm.enabled },
+      })
     }
   } else {
-    if (payload?.name !== undefined) department.name = payload.name.trim()
-    if (payload?.description !== undefined) department.description = payload.description.trim()
-    if (payload?.status !== undefined) department.status = payload.status
-    await department.save()
+    const changedFields = []
+    if (payload?.name !== undefined && payload.name.trim() !== department.name) {
+      department.name = payload.name.trim()
+      changedFields.push("name")
+    }
+    if (payload?.description !== undefined && payload.description.trim() !== department.description) {
+      department.description = payload.description.trim()
+      changedFields.push("description")
+    }
+    if (payload?.status !== undefined && payload.status !== department.status) {
+      department.status = payload.status
+      changedFields.push("status")
+    }
+    if (changedFields.length > 0) {
+      await department.save()
+
+      await logStaffAction({
+        session: actor,
+        action: "department_updated",
+        meta: { departmentId: id, department: department.name, fields: changedFields },
+      })
+    }
   }
 
   return NextResponse.json({ ok: true, department: await serialize(department) })
@@ -90,7 +134,7 @@ export async function PATCH(request, { params }) {
 
 // Soft delete — matches the pattern used for updates (sets status to Archived).
 export async function DELETE(request, { params }) {
-  const { error } = await requireStaff()
+  const { error, session } = await requireStaff()
   if (error) return error
 
   const { id } = await params
@@ -98,6 +142,12 @@ export async function DELETE(request, { params }) {
   if (!updated) {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 })
   }
+
+  await logStaffAction({
+    session: actorFromSession(session),
+    action: "department_archived",
+    meta: { departmentId: id, department: updated.name },
+  })
 
   return NextResponse.json({ ok: true })
 }

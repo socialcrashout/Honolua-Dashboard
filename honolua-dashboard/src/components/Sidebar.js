@@ -27,7 +27,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   LineChart,
-  BarChart3
+  BarChart3,
+  TrendingUp
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -86,6 +87,7 @@ const NAV_GROUPS = [
     minLevel: ROLE_LEVELS.executive,
     items: [
       { href: "/staff/departments", label: "Departments", icon: Building2 },
+      { href: "/staff/ranking", label: "Ranking Logs", icon: TrendingUp },
       { href: "/staff/updates", label: "Updates", icon: Megaphone },
       { href: "/staff/site-control", label: "Site Control", icon: Power },
       { href: "/staff/audit", label: "Audit Logs", icon: ScrollText },

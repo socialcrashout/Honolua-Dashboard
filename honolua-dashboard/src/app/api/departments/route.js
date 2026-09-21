@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { dbConnect } from "@/lib/db"
 import { getUserFromSession } from "@/lib/auth"
 import { canManageUpdates, getStaffRoleForUser } from "@/lib/staff"
+import { logStaffAction } from "@/lib/audit"
 import Department from "@/model/Department"
 import { getAvatarHeadshots } from "@/lib/roblox"
 
@@ -22,6 +23,10 @@ async function requireStaff() {
     return { error: NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 }) }
   }*/
   return { session }
+}
+
+function actorFromSession(session) {
+  return { discordId: session?.discordId, discordUsername: session?.username || session?.discordUsername }
 }
 
 export async function GET() {
@@ -56,7 +61,7 @@ export async function GET() {
 }
 
 export async function POST(request) {
-  const { error } = await requireStaff()
+  const { error, session } = await requireStaff()
   if (error) return error
 
   const payload = await request.json().catch(() => null)
@@ -70,6 +75,12 @@ export async function POST(request) {
     description: payload?.description?.trim() || "",
     icon: payload?.icon || "Users",
     color: payload?.color || "#E6736F",
+  })
+
+  await logStaffAction({
+    session: actorFromSession(session),
+    action: "department_created",
+    meta: { departmentId: String(created._id), department: created.name },
   })
 
   return NextResponse.json({

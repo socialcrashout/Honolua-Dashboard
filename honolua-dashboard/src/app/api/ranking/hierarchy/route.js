@@ -1,21 +1,21 @@
 import { NextResponse } from 'next/server';
-import { dbConnect } from '@/lib/mongodb';
-import RankingConfig from '@/model/RankingConfig';
+import clientPromise from '@/lib/mongodb';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const guildId = searchParams.get('guildId');
   if (!guildId) return NextResponse.json({ error: 'guildId is required' }, { status: 400 });
 
-  await dbConnect();
-  const config = await RankingConfig.findOne({ guildId }).lean();
+  const client = await clientPromise;
+  const db = client.db();
+  const config = await db.collection('rankingconfigs').findOne({ guildId });
+
   return NextResponse.json({ departments: config?.departments ?? [] });
 }
 
 /**
  * Full-replace save: the client sends the complete departments array
- * (add/remove/reorder all happen client-side first), we just persist
- * it. Simple, and matches how the settings modal below works.
+ * (add/remove/reorder all happen client-side first), we just persist it.
  *
  * Body: { guildId, departments: [{ name, emoji, roles: [{roleId, name}] }] }
  */
@@ -25,12 +25,9 @@ export async function POST(request) {
   if (!guildId) return NextResponse.json({ error: 'guildId is required' }, { status: 400 });
   if (!Array.isArray(departments)) return NextResponse.json({ error: 'departments must be an array' }, { status: 400 });
 
-  await dbConnect();
-  await RankingConfig.findOneAndUpdate(
-    { guildId },
-    { $set: { departments } },
-    { upsert: true, setDefaultsOnInsert: true },
-  );
+  const client = await clientPromise;
+  const db = client.db();
+  await db.collection('rankingconfigs').updateOne({ guildId }, { $set: { guildId, departments } }, { upsert: true });
 
   return NextResponse.json({ ok: true });
 }

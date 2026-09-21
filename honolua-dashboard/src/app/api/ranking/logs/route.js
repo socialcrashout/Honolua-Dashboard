@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { dbConnect } from '@/lib/mongodb';
-import RankLog from '@/model/RankLog';
+import clientPromise from '@/lib/mongodb';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -14,7 +13,13 @@ export async function GET(request) {
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') ?? '10', 10)));
 
-  await dbConnect();
+  const client = await clientPromise;
+  // client.db() with no name uses the database from your MONGODB_URI.
+  // If your bot's mongoose.connect() points at a specific db name and
+  // this doesn't resolve to the same one, pass it explicitly:
+  // client.db('yourDbName')
+  const db = client.db();
+  const collection = db.collection('rankinglogs');
 
   const filter = { guildId };
   if (type && type !== 'all') filter.type = type;
@@ -28,19 +33,20 @@ export async function GET(request) {
     filter.$or = [
       { targetTag: regex },
       { actorTag: regex },
-      { 'oldRoles': regex },
-      { 'newRoles': regex },
+      { oldRoles: regex },
+      { newRoles: regex },
       { department: regex },
     ];
   }
 
   const [logs, total] = await Promise.all([
-    RankLog.find(filter)
+    collection
+      .find(filter)
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .lean(),
-    RankLog.countDocuments(filter),
+      .toArray(),
+    collection.countDocuments(filter),
   ]);
 
   return NextResponse.json({

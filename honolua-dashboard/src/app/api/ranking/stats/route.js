@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { dbConnect } from '@/lib/mongodb';
-import RankLog from '@/model/RankLog';
+import clientPromise from '@/lib/mongodb';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -10,7 +9,9 @@ export async function GET(request) {
   const from = searchParams.get('from');
   const to = searchParams.get('to');
 
-  await dbConnect();
+  const client = await clientPromise;
+  const db = client.db();
+  const collection = db.collection('rankinglogs');
 
   const match = { guildId };
   if (from || to) {
@@ -19,10 +20,9 @@ export async function GET(request) {
     if (to) match.createdAt.$lte = new Date(to);
   }
 
-  const results = await RankLog.aggregate([
-    { $match: match },
-    { $group: { _id: '$type', count: { $sum: 1 } } },
-  ]);
+  const results = await collection
+    .aggregate([{ $match: match }, { $group: { _id: '$type', count: { $sum: 1 } } }])
+    .toArray();
 
   const counts = { promote: 0, demote: 0, changerank: 0 };
   for (const r of results) counts[r._id] = r.count;

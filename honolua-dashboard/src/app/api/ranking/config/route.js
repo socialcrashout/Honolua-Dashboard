@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
-import { dbConnect } from '@/lib/mongodb';
-import RankingConfig from '@/model/RankingConfig';
+import clientPromise from '@/lib/mongodb';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const guildId = searchParams.get('guildId');
   if (!guildId) return NextResponse.json({ error: 'guildId is required' }, { status: 400 });
 
-  await dbConnect();
-  const config = await RankingConfig.findOne({ guildId }).lean();
+  const client = await clientPromise;
+  const db = client.db();
+  const config = await db.collection('rankingconfigs').findOne({ guildId });
 
   return NextResponse.json({
     logChannelId: config?.logChannelId ?? null,
@@ -21,12 +21,11 @@ export async function POST(request) {
   const { guildId, logChannelId } = body;
   if (!guildId) return NextResponse.json({ error: 'guildId is required' }, { status: 400 });
 
-  await dbConnect();
-  await RankingConfig.findOneAndUpdate(
-    { guildId },
-    { $set: { logChannelId: logChannelId || null } },
-    { upsert: true, setDefaultsOnInsert: true },
-  );
+  const client = await clientPromise;
+  const db = client.db();
+  await db
+    .collection('rankingconfigs')
+    .updateOne({ guildId }, { $set: { guildId, logChannelId: logChannelId || null } }, { upsert: true });
 
   return NextResponse.json({ ok: true });
 }

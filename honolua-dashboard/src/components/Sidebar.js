@@ -55,7 +55,7 @@ const NAV_GROUPS = [
     minLevel: ROLE_LEVELS.moderator,
     items: [
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/staff/support", label: "Support", icon: MessageCircleQuestion },
+      { href: "/dashboard/743137138/ranking", label: "Support", icon: MessageCircleQuestion },
       { href: "/staff/macros", label: "Macros", icon: Zap },
       { href: "/staff/payroll", label: "Payroll", icon: Wallet },
       { href: "/staff/loa", label: "Leave of Absence", icon: CalendarClock },

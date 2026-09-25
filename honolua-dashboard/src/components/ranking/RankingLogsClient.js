@@ -64,26 +64,26 @@ export default function RankingLogsClient({ guildId }) {
     <div className="mx-auto max-w-6xl space-y-6 p-6">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-white">
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-reef-navy">
             <span className="text-orange-400">🌺</span> Ranking Logs
           </h1>
-          <p className="mt-1 text-sm text-white/50">Full history of rank changes made through Honolua</p>
+          <p className="mt-1 text-sm text-lava/50">Full history of rank changes made through Honolua</p>
         </div>
 
         <div className="flex gap-2">
           <button
             onClick={() => setHierarchyModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-white hover:bg-white/[0.07]"
+            className="flex items-center gap-2 rounded-xl border border-lava/10 bg-lava/[0.03] px-3.5 py-2 text-sm font-medium text-reef-navy hover:bg-lava/[0.06]"
           >
             <Layers className="h-4 w-4" />
             Manage Hierarchy
           </button>
           <button
             onClick={() => setChannelModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-white hover:bg-white/[0.07]"
+            className="flex items-center gap-2 rounded-xl border border-lava/10 bg-lava/[0.03] px-3.5 py-2 text-sm font-medium text-reef-navy hover:bg-lava/[0.06]"
           >
             <Settings className="h-4 w-4" />
-            Log Channel {logChannelId ? <span className="text-orange-300">#{logChannelId}</span> : null}
+            Log Channel {logChannelId ? <span className="text-[#B8862B]">#{logChannelId}</span> : null}
           </button>
         </div>
       </div>
@@ -97,19 +97,19 @@ export default function RankingLogsClient({ guildId }) {
 
       <RankFilters query={query} onQueryChange={setQuery} type={type} onTypeChange={setType} onRefresh={load} refreshing={loading} />
 
-      <div className="rounded-2xl border border-white/10 bg-white/[0.015] p-4">
+      <div className="rounded-2xl border border-lava/10 bg-white p-4">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">Rank Change History</h2>
-            <p className="text-sm text-white/40">All promote, demote, and rank change actions</p>
+            <h2 className="text-lg font-semibold text-reef-navy">Rank Change History</h2>
+            <p className="text-sm text-lava/45">All promote, demote, and rank change actions</p>
           </div>
-          <span className="rounded-full border border-orange-500/30 bg-orange-500/10 px-3 py-1 text-xs font-semibold text-orange-300">
+          <span className="rounded-full border border-[#F4B942]/30 bg-[#F4B942]/10 px-3 py-1 text-xs font-semibold text-[#B8862B]">
             {pagination.total} shown
           </span>
         </div>
 
         {loading && !logs.length ? (
-          <div className="py-16 text-center text-sm text-white/40">Loading...</div>
+          <div className="py-16 text-center text-sm text-lava/40">Loading...</div>
         ) : logs.length ? (
           <div className="space-y-3">
             {logs.map((log) => (
@@ -117,7 +117,7 @@ export default function RankingLogsClient({ guildId }) {
             ))}
           </div>
         ) : (
-          <div className="py-16 text-center text-sm text-white/40">No ranking activity yet.</div>
+          <div className="py-16 text-center text-sm text-lava/40">No ranking activity yet.</div>
         )}
 
         {pagination.pages > 1 && (
@@ -125,17 +125,17 @@ export default function RankingLogsClient({ guildId }) {
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={pagination.page <= 1}
-              className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-white/70 hover:bg-white/[0.05] disabled:opacity-30"
+              className="flex items-center gap-1 rounded-lg border border-lava/10 px-3 py-1.5 text-sm text-reef-navy/70 hover:bg-lava/[0.05] disabled:opacity-30"
             >
               <ChevronLeft className="h-4 w-4" /> Prev
             </button>
-            <span className="text-sm text-white/40">
+            <span className="text-sm text-lava/40">
               Page {pagination.page} of {pagination.pages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(pagination.pages, p + 1))}
               disabled={pagination.page >= pagination.pages}
-              className="flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-white/70 hover:bg-white/[0.05] disabled:opacity-30"
+              className="flex items-center gap-1 rounded-lg border border-lava/10 px-3 py-1.5 text-sm text-reef-navy/70 hover:bg-lava/[0.05] disabled:opacity-30"
             >
               Next <ChevronRight className="h-4 w-4" />
             </button>

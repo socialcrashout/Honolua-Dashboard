@@ -15,11 +15,11 @@ function useMounted() {
   return mounted;
 }
 
-function DiscordIcon({ color = "ffffff", className }) {
+function DiscordIcon({ color = "5865F2", className }) {
   return <img src={`https://cdn.simpleicons.org/discord/${color}`} alt="Discord" className={className} />;
 }
 
-function RobloxIcon({ color = "ffffff", className }) {
+function RobloxIcon({ color = "000000", className }) {
   return <img src={`https://cdn.simpleicons.org/roblox/${color}`} alt="Roblox" className={className} />;
 }
 
@@ -67,27 +67,15 @@ const BRAND_GRADIENT = "linear-gradient(90deg, #F4B942, #E6736F, #F472B6)";
 
 /* ---------- shared dark shell ---------- */
 
-function DarkBackground({ children }) {
+function LightBackground({ children }) {
   return (
-    <section className="relative min-h-screen bg-[#08080B] pt-40 pb-28 overflow-hidden">
-      {/* faint grid */}
-      <div
-        className="absolute inset-0 opacity-[0.05]"
-        style={{
-          backgroundImage:
-            "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-          backgroundSize: "44px 44px",
-        }}
-      />
-      {/* brand glow orbs — warm, not purple */}
-      <div
-        className="absolute -top-32 -left-24 w-[420px] h-[420px] rounded-full blur-[110px] opacity-25"
-        style={{ background: "#E6736F" }}
-      />
-      <div
-        className="absolute -bottom-40 -right-16 w-[460px] h-[460px] rounded-full blur-[120px] opacity-20"
-        style={{ background: "#F4B942" }}
-      />
+    <section
+      className="relative min-h-screen pt-40 pb-28 overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(135deg, #FFFFFF 0%, #FFF8EF 20%, #FDEFE0 38%, #FFF6EC 58%, #FFFFFF 80%, #FFFFFF 100%), radial-gradient(85% 65% at 8% 100%, rgba(244,114,182,0.08), transparent 60%), radial-gradient(70% 50% at 95% 0%, rgba(244,185,66,0.12), transparent 60%)",
+      }}
+    >
       <div className="relative">{children}</div>
     </section>
   );
@@ -95,7 +83,7 @@ function DarkBackground({ children }) {
 
 function TrustPill({ icon, label }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-xs font-semibold text-white/70">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-lava/10 bg-white px-3.5 py-1.5 text-xs font-semibold text-reef-navy/70 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
       {icon}
       {label}
     </span>
@@ -110,27 +98,27 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
 
   return (
     <div
-      className="relative flex items-center gap-5 rounded-2xl border p-6 md:p-7 opacity-0"
+      className="relative flex items-center gap-5 rounded-2xl border bg-white p-6 md:p-7 opacity-0"
       style={{
-        background: isActive ? "rgba(230,115,111,0.06)" : "rgba(255,255,255,0.02)",
-        borderColor: isActive ? "rgba(244,114,182,0.35)" : "rgba(255,255,255,0.08)",
+        borderColor: isActive ? "rgba(244,114,182,0.35)" : "rgba(138,107,96,0.1)",
+        boxShadow: isActive ? "0 12px 32px -12px rgba(230,115,111,0.2)" : "0 1px 2px rgba(0,0,0,0.03)",
         animation: mounted ? "stepIn 0.6s cubic-bezier(0.16,1,0.3,1) forwards" : "none",
         animationDelay: mounted ? `${delay}ms` : "0ms",
       }}
     >
       <div
-        className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 overflow-hidden text-white"
+        className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 overflow-hidden"
         style={{
-          background: isDone ? BRAND_GRADIENT : "rgba(255,255,255,0.06)",
-          color: isDone ? "#0B0B10" : "rgba(255,255,255,0.6)",
+          background: isDone ? BRAND_GRADIENT : "rgba(230,115,111,0.08)",
+          color: isDone ? "#fff" : "#8A6B60",
         }}
       >
         {isDone ? <CheckIcon className="w-5 h-5" /> : index}
       </div>
 
       <div className="flex-1 min-w-0">
-        <h3 className="font-sans font-bold text-base md:text-lg text-white mb-1">{title}</h3>
-        <p className="text-sm text-white/45 leading-relaxed">{desc}</p>
+        <h3 className="font-sans font-bold text-base md:text-lg text-reef-navy mb-1">{title}</h3>
+        <p className="text-sm text-lava/55 leading-relaxed">{desc}</p>
       </div>
 
       <div className="shrink-0">{action}</div>
@@ -143,32 +131,32 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
 function DeniedScreen({ mounted, status }) {
   return (
     <div
-      className="rounded-[28px] border border-white/10 bg-white/[0.03] backdrop-blur-sm p-8 md:p-10 opacity-0"
+      className="rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] p-8 md:p-10 opacity-0"
       style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
     >
       <div className="flex items-center justify-center mb-6">
-        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white/80 bg-white/5 border border-white/10">
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white" style={{ background: "linear-gradient(135deg, #8A6B60, #B5473F)" }}>
           <LockIcon className="w-7 h-7" />
         </div>
       </div>
 
-      <h1 className="font-serif italic font-medium text-white text-3xl text-center mb-2">Access Restricted</h1>
-      <p className="text-sm text-white/45 text-center mb-6 leading-relaxed max-w-md mx-auto">
+      <h1 className="font-serif italic font-medium text-reef-navy text-3xl text-center mb-2">Access Restricted</h1>
+      <p className="text-sm text-lava/55 text-center mb-6 leading-relaxed max-w-md mx-auto">
         You are not allowed to view the Honolua Management Dashboard. This
         area is limited to staff at or above a specific rank in the Honolua
         Roblox group.
       </p>
 
       {status?.robloxUsername && (
-        <p className="text-xs text-white/35 text-center mb-6">
-          Signed in as <span className="font-semibold text-white/60">{status.robloxUsername}</span>
+        <p className="text-xs text-lava/45 text-center mb-6">
+          Signed in as <span className="font-semibold">{status.robloxUsername}</span>
           {status.workspaceRoleName ? ` — ${status.workspaceRoleName}` : ""}
         </p>
       )}
 
       <Link
         href="/"
-        className="block w-full text-center font-bold text-sm text-white border-2 border-white/15 px-6 py-3.5 rounded-full hover:border-white/40 transition-colors"
+        className="block w-full text-center font-bold text-sm text-reef-navy border-2 border-hibiscus/25 px-6 py-3.5 rounded-full hover:border-hibiscus transition-colors"
       >
         Return Home
       </Link>
@@ -198,12 +186,17 @@ function EnteringOverlay() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-[#08080B]">
+    <div
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6"
+      style={{
+        background: "linear-gradient(135deg, #FFFFFF 0%, #FFF3E4 30%, #FDE3C8 55%, #FFF3E4 80%, #FFFFFF 100%)",
+      }}
+    >
       <div
         className="w-16 h-16 rounded-full animate-spin"
-        style={{ border: "5px solid rgba(255,255,255,0.08)", borderTopColor: "#E6736F" }}
+        style={{ border: "5px solid rgba(230,115,111,0.15)", borderTopColor: "#E6736F" }}
       />
-      <p className="font-serif italic font-medium text-white text-2xl text-center px-6">
+      <p className="font-serif italic font-medium text-reef-navy text-2xl text-center px-6">
         {ENTER_MESSAGES[index]}
       </p>
     </div>
@@ -223,21 +216,21 @@ function VerifiedScreen({ mounted, status }) {
     <>
       {entering && <EnteringOverlay />}
       <div
-        className="rounded-[28px] border border-white/10 bg-white/[0.03] backdrop-blur-sm p-8 md:p-10 opacity-0"
+        className="rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] p-8 md:p-10 opacity-0"
         style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
       >
         <div className="flex items-center justify-center gap-3 mb-6">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-[#5865F2]">
-            <DiscordIcon className="w-7 h-7" />
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}>
+            <DiscordIcon color="ffffff" className="w-7 h-7" />
           </div>
-          <CheckIcon className="w-5 h-5 text-[#F472B6]" />
+          <CheckIcon className="w-5 h-5 text-hibiscus" />
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: BRAND_GRADIENT }}>
-            <RobloxIcon className="w-7 h-7" />
+            <RobloxIcon color="ffffff" className="w-7 h-7" />
           </div>
         </div>
 
-        <h1 className="font-serif italic font-medium text-white text-3xl text-center mb-2">Successfully Verified</h1>
-        <p className="text-sm text-white/45 text-center mb-8 leading-relaxed">
+        <h1 className="font-serif italic font-medium text-reef-navy text-3xl text-center mb-2">Successfully Verified</h1>
+        <p className="text-sm text-lava/55 text-center mb-8 leading-relaxed">
           {status?.robloxUsername}
           {status?.workspaceRoleName ? ` — ${status.workspaceRoleName}` : ""} — you're cleared for workspace access.
         </p>
@@ -245,7 +238,7 @@ function VerifiedScreen({ mounted, status }) {
         <button
           onClick={handleEnter}
           disabled={entering}
-          className="block w-full text-center text-[#0B0B10] font-extrabold text-sm px-7 py-4 rounded-full hover:-translate-y-0.5 transition-transform disabled:opacity-70 disabled:translate-y-0"
+          className="block w-full text-center text-white font-extrabold text-sm px-7 py-4 rounded-full shadow-[0_10px_30px_-8px_rgba(230,115,111,0.4)] hover:-translate-y-0.5 transition-transform disabled:opacity-70 disabled:translate-y-0"
           style={{ background: BRAND_GRADIENT }}
         >
           {entering ? "Entering…" : "Enter Workspace"}
@@ -295,7 +288,7 @@ function WorkspaceVerifyContent() {
   const showVerified = rankChecked && workspaceAllowed;
 
   return (
-    <DarkBackground>
+    <LightBackground>
       <style>{`
         @keyframes stepIn {
           from { opacity: 0; transform: translateY(16px); }
@@ -313,19 +306,19 @@ function WorkspaceVerifyContent() {
           style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
         >
           <div className="flex items-center gap-2.5 mb-6">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-[#5865F2]">
-              <DiscordIcon className="w-4.5 h-4.5" />
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}>
+              <DiscordIcon color="ffffff" className="w-4.5 h-4.5" />
             </div>
-            <span className="text-white/30 text-lg font-light">×</span>
+            <span className="text-lava/30 text-lg font-light">×</span>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: BRAND_GRADIENT }}>
-              <RobloxIcon className="w-4.5 h-4.5" />
+              <RobloxIcon color="ffffff" className="w-4.5 h-4.5" />
             </div>
           </div>
 
-          <h1 className="font-serif italic font-medium text-white text-4xl md:text-5xl leading-tight mb-4">
+          <h1 className="font-serif italic font-medium text-reef-navy text-4xl md:text-5xl leading-tight mb-4">
             Verify to enter the workspace.
           </h1>
-          <p className="text-lg leading-relaxed text-white/45 max-w-[480px] mb-6">
+          <p className="text-lg leading-relaxed text-lava/60 max-w-[480px] mb-6">
             Log in with Discord — we'll check your Roblox group rank to confirm workspace access.
           </p>
 
@@ -339,7 +332,7 @@ function WorkspaceVerifyContent() {
         {errorParam && (
           <div
             className="mb-6 rounded-2xl px-5 py-4 text-sm font-semibold opacity-0"
-            style={{ animation: "heroFadeUp 0.4s ease-out forwards", background: "rgba(230,115,111,0.12)", color: "#F4A5A2" }}
+            style={{ animation: "heroFadeUp 0.4s ease-out forwards", background: "rgba(230,115,111,0.10)", color: "#B5473F" }}
           >
             {ERROR_MESSAGES[errorParam] || "Something went wrong. Please try again."}
           </div>
@@ -360,10 +353,10 @@ function WorkspaceVerifyContent() {
                 ) : (
                   <a
                     href="/api/auth/discord?flow=workspace"
-                    className="flex items-center gap-2 text-[#0B0B10] font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
+                    className="flex items-center gap-2 text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
                     style={{ background: BRAND_GRADIENT }}
                   >
-                    <DiscordIcon color="0B0B10" className="w-3.5 h-3.5" />
+                    <DiscordIcon color="ffffff" className="w-3.5 h-3.5" />
                     Continue with Discord
                   </a>
                 )
@@ -394,12 +387,12 @@ function WorkspaceVerifyContent() {
                       href={BLOXLINK_VERIFY_URL}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#0B0B10] font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
+                      className="text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
                       style={{ background: BRAND_GRADIENT }}
                     >
                       Verify with Bloxlink
                     </a>
-                    <button onClick={fetchStatus} className="text-xs font-bold text-white/40 hover:text-white/70">
+                    <button onClick={fetchStatus} className="text-xs font-bold text-reef-navy/40 hover:text-reef-navy/70">
                       Refresh
                     </button>
                   </div>
@@ -416,7 +409,7 @@ function WorkspaceVerifyContent() {
               delay={300}
               action={
                 robloxLinked && !rankChecked ? (
-                  <button onClick={fetchStatus} className="text-xs font-bold text-white/40 hover:text-white/70">
+                  <button onClick={fetchStatus} className="text-xs font-bold text-reef-navy/40 hover:text-reef-navy/70">
                     Refresh
                   </button>
                 ) : null
@@ -437,18 +430,18 @@ function WorkspaceVerifyContent() {
           </div>
         )}
 
-        <p className="flex items-center justify-center gap-2 text-xs text-white/25 mt-4">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+        <p className="flex items-center justify-center gap-2 text-xs text-lava/40 mt-4">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           All systems operational
         </p>
       </div>
-    </DarkBackground>
+    </LightBackground>
   );
 }
 
 export default function WorkspaceVerify() {
   return (
-    <div className="min-h-screen bg-[#08080B]">
+    <div className="min-h-screen">
       <Nav />
       <Suspense fallback={null}>
         <WorkspaceVerifyContent />

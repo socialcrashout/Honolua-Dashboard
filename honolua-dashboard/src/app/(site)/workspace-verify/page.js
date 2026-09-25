@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Footer from "@/components/Footer.js";
@@ -184,7 +185,7 @@ function EnteringOverlay() {
     return () => clearInterval(interval);
   }, []);
 
-  return (
+  const overlay = (
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-6"
       style={{
@@ -193,13 +194,19 @@ function EnteringOverlay() {
     >
       <div
         className="w-16 h-16 rounded-full animate-spin"
-        style={{ border: "5px solid rgba(230,115,111,0.15)", borderTopColor: "#E6736F" }}
+        style={{
+          border: "5px solid rgba(230,115,111,0.15)",
+          borderTopColor: "#E6736F",
+          filter: "drop-shadow(0 8px 18px rgba(230,115,111,0.45))",
+        }}
       />
       <p className="font-serif italic font-medium text-reef-navy text-2xl text-center px-6">
         {ENTER_MESSAGES[index]}
       </p>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(overlay, document.body) : null;
 }
 
 function VerifiedScreen({ mounted, status }) {
@@ -208,7 +215,7 @@ function VerifiedScreen({ mounted, status }) {
 
   const handleEnter = () => {
     setEntering(true);
-    setTimeout(() => router.push("/dashboard"), 10000);
+    setTimeout(() => router.push("/dashboard"), 3500);
   };
 
   return (

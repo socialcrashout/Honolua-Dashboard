@@ -57,6 +57,14 @@ function MemberCard({ member, delay, visible }) {
         {member.displayName || member.username}
       </div>
       <div className="text-[11px] text-lava/45 leading-tight">@{member.username}</div>
+      {member.roleName && (
+        <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-lava/50">
+          {member.roleName}
+        </div>
+      )}
+      {member.rank != null && (
+        <div className="text-[10px] font-medium text-lava/40">Rank #{member.rank}</div>
+      )}
     </div>
   );
 }

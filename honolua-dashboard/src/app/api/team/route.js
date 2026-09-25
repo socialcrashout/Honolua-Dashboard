@@ -51,6 +51,12 @@ const TEAMS = [
   },
 ];
 
+const normalizeRoleValue = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+
 // Flatten to quick lookups: roleId -> team, role name -> team, and rank -> team.
 // Role names are prioritized because Roblox ranks can repeat across different roles.
 const ROLE_ID_TO_TEAM = {};
@@ -61,7 +67,7 @@ for (const team of TEAMS) {
     ROLE_ID_TO_TEAM[id] = team;
   }
   for (const name of team.roleNames || []) {
-    ROLE_NAME_TO_TEAM[name] = team;
+    ROLE_NAME_TO_TEAM[normalizeRoleValue(name)] = team;
   }
   for (const rank of team.ranks || []) {
     RANK_TO_TEAM[rank] = team;
@@ -73,7 +79,28 @@ const ALL_ROLE_NAMES = Object.keys(ROLE_NAME_TO_TEAM);
 const ALL_RANKS = Object.keys(RANK_TO_TEAM).map(Number);
 
 function teamForRole(role) {
-  return ROLE_ID_TO_TEAM[role.id] || ROLE_NAME_TO_TEAM[role.name] || RANK_TO_TEAM[role.rank] || null;
+  if (!role) return null;
+
+  if (role.id != null && ROLE_ID_TO_TEAM[role.id]) {
+    return ROLE_ID_TO_TEAM[role.id];
+  }
+
+  const normalizedName = normalizeRoleValue(role.name);
+  if (normalizedName) {
+    const exactNameMatch = ROLE_NAME_TO_TEAM[normalizedName];
+    if (exactNameMatch) return exactNameMatch;
+
+    const partialNameMatch = Object.entries(ROLE_NAME_TO_TEAM).find(
+      ([name]) => name.includes(normalizedName) || normalizedName.includes(name)
+    );
+    if (partialNameMatch) return partialNameMatch[1];
+  }
+
+  if (role.rank != null && RANK_TO_TEAM[role.rank]) {
+    return RANK_TO_TEAM[role.rank];
+  }
+
+  return null;
 }
 
 export async function GET() {
@@ -97,9 +124,12 @@ export async function GET() {
       rolesData.roles.map((r) => ({ id: r.id, name: r.name, rank: r.rank }))
     );
 
-    const eligibleRoles = rolesData.roles.filter(
-      (r) => ALL_ROLE_IDS.includes(r.id) || ALL_ROLE_NAMES.includes(r.name) || ALL_RANKS.includes(r.rank)
-    );
+    const eligibleRoles = rolesData.roles.filter((r) => {
+      if (ALL_ROLE_IDS.includes(r.id)) return true;
+      if (ALL_RANKS.includes(r.rank)) return true;
+      if (ALL_ROLE_NAMES.includes(normalizeRoleValue(r.name))) return true;
+      return !!teamForRole(r);
+    });
     console.log("/api/team eligibleRoles", {
       count: eligibleRoles.length,
       names: eligibleRoles.map((r) => r.name),

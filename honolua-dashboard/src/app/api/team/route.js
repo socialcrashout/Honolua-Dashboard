@@ -4,9 +4,6 @@ import { NextResponse } from "next/server";
 
 const GROUP_ID = 743137138;
 
-// A normal browser User-Agent. Roblox's endpoints can silently reject bare
-// server-to-server requests (no UA, or a generic one like "node") — sending
-// this avoids that.
 const ROBLOX_HEADERS = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -83,10 +80,6 @@ for (const team of TEAMS) {
   }
 }
 
-const ALL_ROLE_IDS = Object.keys(ROLE_ID_TO_TEAM).map(Number);
-const ALL_ROLE_NAMES = Object.keys(ROLE_NAME_TO_TEAM);
-const ALL_RANKS = Object.keys(RANK_TO_TEAM).map(Number);
-
 function teamForRole(role) {
   if (!role) return null;
 
@@ -115,83 +108,73 @@ function teamForRole(role) {
 export async function GET() {
   try {
     console.log("/api/team GET start", { GROUP_ID, teamCount: TEAMS.length });
-    // 1. Get all group roles, keep only the ones we've assigned to a team
-    //    (matched by exact role id OR by rank number)
+
+    // 1. Get the group's role list — used only for logging/reference now
+    //    (we no longer query per-role, so this isn't required for matching,
+    //    but it's cheap and useful to keep in the logs).
     const rolesRes = await fetch(`https://groups.roblox.com/v1/groups/${GROUP_ID}/roles`, {
       headers: ROBLOX_HEADERS,
     });
-    if (!rolesRes.ok) {
-      console.error("Failed to fetch group roles", { status: rolesRes.status, statusText: rolesRes.statusText });
-      throw new Error("Failed to fetch group roles");
+    if (rolesRes.ok) {
+      const rolesData = await rolesRes.json();
+      console.log("/api/team roles fetched", { rolesFound: rolesData.roles?.length || 0 });
+    } else {
+      console.error("Failed to fetch group roles (non-fatal, continuing)", {
+        status: rolesRes.status,
+        statusText: rolesRes.statusText,
+      });
     }
-    const rolesData = await rolesRes.json();
 
-    console.log("/api/team roles fetched", { rolesFound: rolesData.roles?.length || 0 });
-    // TEMP DEBUG: dump every real role id/name/rank from Roblox so you can
-    // compare them against the roleIds/ranks hardcoded in TEAMS above.
-    // Remove this block once everything is confirmed correct.
-    console.log(
-      "/api/team ALL GROUP ROLES",
-      rolesData.roles.map((r) => ({ id: r.id, name: r.name, rank: r.rank }))
-    );
-
-    const eligibleRoles = rolesData.roles.filter((r) => {
-      if (ALL_ROLE_IDS.includes(r.id)) return true;
-      if (ALL_RANKS.includes(r.rank)) return true;
-      if (ALL_ROLE_NAMES.includes(normalizeRoleValue(r.name))) return true;
-      return !!teamForRole(r);
-    });
-    console.log("/api/team eligibleRoles", {
-      count: eligibleRoles.length,
-      names: eligibleRoles.map((r) => r.name),
-    });
-
-    // 2. For each eligible role, page through its members
+    // 2. Page through ALL group members ONCE (single endpoint, not one call
+    //    per role) — each item already includes { user, role }, so we can
+    //    filter/group locally instead of hammering Roblox with 15+ rapid
+    //    per-role requests (which was triggering bot/rate-limit blocks).
     let members = [];
-    for (const role of eligibleRoles) {
-      const team = teamForRole(role);
-      if (!team) continue;
-      let cursor = "";
-      do {
-        const url = `https://groups.roblox.com/v1/groups/${GROUP_ID}/roles/${role.id}/users?limit=100&sortOrder=Asc${
-          cursor ? `&cursor=${cursor}` : ""
-        }`;
-        const usersRes = await fetch(url, { headers: ROBLOX_HEADERS });
-        if (!usersRes.ok) {
-          const bodyText = await usersRes.text().catch(() => "<could not read body>");
-          console.error("Failed to fetch users for role", {
-            roleId: role.id,
-            url,
-            status: usersRes.status,
-            statusText: usersRes.statusText,
-            body: bodyText,
-          });
-          break;
-        }
-        const usersData = await usersRes.json();
-
-        console.log("/api/team role page", {
-          roleId: role.id,
-          roleName: role.name,
-          usersFetched: usersData.data.length,
-          nextCursor: !!usersData.nextPageCursor,
+    let cursor = "";
+    let page = 0;
+    do {
+      page += 1;
+      const url = `https://groups.roblox.com/v1/groups/${GROUP_ID}/users?limit=100&sortOrder=Asc${
+        cursor ? `&cursor=${cursor}` : ""
+      }`;
+      const usersRes = await fetch(url, { headers: ROBLOX_HEADERS });
+      if (!usersRes.ok) {
+        const bodyText = await usersRes.text().catch(() => "<could not read body>");
+        console.error("Failed to fetch group members page", {
+          page,
+          url,
+          status: usersRes.status,
+          statusText: usersRes.statusText,
+          body: bodyText,
         });
+        break;
+      }
+      const usersData = await usersRes.json();
+      console.log("/api/team members page", {
+        page,
+        usersFetched: usersData.data.length,
+        nextCursor: !!usersData.nextPageCursor,
+      });
 
-        members.push(
-          ...usersData.data.map((u) => ({
-            userId: u.userId,
-            username: u.username,
-            displayName: u.displayName,
-            roleName: role.name,
-            rank: role.rank,
-            teamKey: team.key,
-            teamLabel: team.label,
-          }))
-        );
+      for (const entry of usersData.data) {
+        const team = teamForRole(entry.role);
+        if (!team) continue; // not a role we care about — skip
+        members.push({
+          userId: entry.user.userId,
+          username: entry.user.username,
+          displayName: entry.user.displayName,
+          roleName: entry.role.name,
+          rank: entry.role.rank,
+          teamKey: team.key,
+          teamLabel: team.label,
+        });
+      }
 
-        cursor = usersData.nextPageCursor;
-      } while (cursor);
-    }
+      cursor = usersData.nextPageCursor;
+
+      // Small delay between pages so we don't look like scraping.
+      if (cursor) await new Promise((r) => setTimeout(r, 150));
+    } while (cursor);
 
     console.log("/api/team members total", { totalMembers: members.length });
 
@@ -216,9 +199,8 @@ export async function GET() {
       const thumbData = await thumbRes.json();
       console.log("/api/team thumbnail batch response", {
         batchSize: batch.length,
-        sampleUserIds: batch.slice(0, 3),
         dataLength: thumbData.data?.length || 0,
-        sample: thumbData.data?.slice(0, 3),
+        sample: thumbData.data?.slice(0, 2),
       });
       thumbData.data.forEach((d) => {
         avatarMap[d.targetId] = d.imageUrl;
@@ -243,8 +225,6 @@ export async function GET() {
     const groupedCounts = Object.fromEntries(Object.keys(grouped).map((k) => [k, grouped[k].length]));
     console.log("/api/team grouped counts", { groupedCounts });
 
-    // Cache on Vercel's edge for 5 min, serve stale for 10 min while revalidating —
-    // keeps avatars/roster fresh without hammering Roblox on every visit.
     return NextResponse.json(
       {
         teams: TEAMS.map((t) => ({ key: t.key, label: t.label })),

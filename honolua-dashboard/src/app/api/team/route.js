@@ -4,6 +4,15 @@ import { NextResponse } from "next/server";
 
 const GROUP_ID = 743137138;
 
+// A normal browser User-Agent. Roblox's endpoints can silently reject bare
+// server-to-server requests (no UA, or a generic one like "node") — sending
+// this avoids that.
+const ROBLOX_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Accept: "application/json",
+};
+
 // Define your teams here, in the order you want them displayed.
 // Each team can be filled in with EITHER:
 //   - roleIds: the actual Roblox role ID (a big number like 534788067)
@@ -108,7 +117,9 @@ export async function GET() {
     console.log("/api/team GET start", { GROUP_ID, teamCount: TEAMS.length });
     // 1. Get all group roles, keep only the ones we've assigned to a team
     //    (matched by exact role id OR by rank number)
-    const rolesRes = await fetch(`https://groups.roblox.com/v1/groups/${GROUP_ID}/roles`);
+    const rolesRes = await fetch(`https://groups.roblox.com/v1/groups/${GROUP_ID}/roles`, {
+      headers: ROBLOX_HEADERS,
+    });
     if (!rolesRes.ok) {
       console.error("Failed to fetch group roles", { status: rolesRes.status, statusText: rolesRes.statusText });
       throw new Error("Failed to fetch group roles");
@@ -145,7 +156,7 @@ export async function GET() {
         const url = `https://groups.roblox.com/v1/groups/${GROUP_ID}/roles/${role.id}/users?limit=100&sortOrder=Asc${
           cursor ? `&cursor=${cursor}` : ""
         }`;
-        const usersRes = await fetch(url);
+        const usersRes = await fetch(url, { headers: ROBLOX_HEADERS });
         if (!usersRes.ok) {
           const bodyText = await usersRes.text().catch(() => "<could not read body>");
           console.error("Failed to fetch users for role", {
@@ -159,7 +170,12 @@ export async function GET() {
         }
         const usersData = await usersRes.json();
 
-        console.log("/api/team role page", { roleId: role.id, roleName: role.name, usersFetched: usersData.data.length, nextCursor: !!usersData.nextPageCursor });
+        console.log("/api/team role page", {
+          roleId: role.id,
+          roleName: role.name,
+          usersFetched: usersData.data.length,
+          nextCursor: !!usersData.nextPageCursor,
+        });
 
         members.push(
           ...usersData.data.map((u) => ({
@@ -188,12 +204,22 @@ export async function GET() {
       const thumbUrl = `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${batch.join(
         ","
       )}&size=420x420&format=Png&isCircular=false`;
-      const thumbRes = await fetch(thumbUrl);
+      const thumbRes = await fetch(thumbUrl, { headers: ROBLOX_HEADERS });
       if (!thumbRes.ok) {
-        console.error("Failed to fetch thumbnails for batch", { batchSize: batch.length, status: thumbRes.status, statusText: thumbRes.statusText });
+        console.error("Failed to fetch thumbnails for batch", {
+          batchSize: batch.length,
+          status: thumbRes.status,
+          statusText: thumbRes.statusText,
+        });
         continue;
       }
       const thumbData = await thumbRes.json();
+      console.log("/api/team thumbnail batch response", {
+        batchSize: batch.length,
+        sampleUserIds: batch.slice(0, 3),
+        dataLength: thumbData.data?.length || 0,
+        sample: thumbData.data?.slice(0, 3),
+      });
       thumbData.data.forEach((d) => {
         avatarMap[d.targetId] = d.imageUrl;
       });

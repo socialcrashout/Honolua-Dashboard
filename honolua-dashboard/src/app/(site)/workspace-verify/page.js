@@ -3,7 +3,6 @@
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import Nav from "@/components/Nav.js";
 import Footer from "@/components/Footer.js";
 
 function useMounted() {
@@ -297,35 +296,37 @@ function WorkspaceVerifyContent() {
         }
       `}</style>
 
-      <div className="max-w-[680px] mx-auto px-6 md:px-8">
+      <div className="max-w-[760px] mx-auto px-6 md:px-8">
         <div
           className="rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] p-8 md:p-12 opacity-0"
           style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
         >
-          <div className="flex flex-col items-center text-center mb-10">
-            <div className="flex items-center gap-2.5 mb-6">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}>
-                <DiscordIcon color="ffffff" className="w-4.5 h-4.5" />
+          {!showVerified && (
+            <div className="flex flex-col items-center text-center mb-10">
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}>
+                  <DiscordIcon color="ffffff" className="w-4.5 h-4.5" />
+                </div>
+                <span className="text-lava/30 text-lg font-light">×</span>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: BRAND_GRADIENT }}>
+                  <RobloxIcon color="ffffff" className="w-4.5 h-4.5" />
+                </div>
               </div>
-              <span className="text-lava/30 text-lg font-light">×</span>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: BRAND_GRADIENT }}>
-                <RobloxIcon color="ffffff" className="w-4.5 h-4.5" />
+
+              <h1 className="font-serif italic font-medium text-reef-navy text-4xl md:text-5xl leading-tight mb-4">
+                Verify to enter the workspace.
+              </h1>
+              <p className="text-lg leading-relaxed text-lava/60 max-w-[480px] mb-6">
+                Log in with Discord — we'll check your Roblox group rank to confirm workspace access.
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
+                <TrustPill icon={<ShieldIcon className="w-3.5 h-3.5" />} label="Auto rank check" color="#E6736F" />
+                <TrustPill icon={<BoltIcon className="w-3.5 h-3.5" />} label="No manual review" color="#F4B942" />
+                <TrustPill icon={<CheckIcon className="w-3.5 h-3.5" />} label="Powered by Bloxlink" color="#F472B6" />
               </div>
             </div>
-
-            <h1 className="font-serif italic font-medium text-reef-navy text-4xl md:text-5xl leading-tight mb-4">
-              Verify to enter the workspace.
-            </h1>
-            <p className="text-lg leading-relaxed text-lava/60 max-w-[480px] mb-6">
-              Log in with Discord — we'll check your Roblox group rank to confirm workspace access.
-            </p>
-
-            <div className="flex flex-wrap items-center justify-center gap-2.5">
-              <TrustPill icon={<ShieldIcon className="w-3.5 h-3.5" />} label="Auto rank check" color="#E6736F" />
-              <TrustPill icon={<BoltIcon className="w-3.5 h-3.5" />} label="No manual review" color="#F4B942" />
-              <TrustPill icon={<CheckIcon className="w-3.5 h-3.5" />} label="Powered by Bloxlink" color="#F472B6" />
-            </div>
-          </div>
+          )}
 
           {errorParam && (
             <div
@@ -433,7 +434,6 @@ function WorkspaceVerifyContent() {
 export default function WorkspaceVerify() {
   return (
     <div className="min-h-screen">
-      <Nav />
       <Suspense fallback={null}>
         <WorkspaceVerifyContent />
       </Suspense>

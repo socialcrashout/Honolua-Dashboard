@@ -81,9 +81,12 @@ function LightBackground({ children }) {
   );
 }
 
-function TrustPill({ icon, label }) {
+function TrustPill({ icon, label, color }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-lava/10 bg-white px-3.5 py-1.5 text-xs font-semibold text-reef-navy/70 shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold"
+      style={{ background: `${color}18`, color }}
+    >
       {icon}
       {label}
     </span>
@@ -98,10 +101,10 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
 
   return (
     <div
-      className="relative flex items-center gap-5 rounded-2xl border bg-white p-6 md:p-7 opacity-0"
+      className="relative flex items-center gap-5 rounded-2xl border p-6 md:p-7 opacity-0"
       style={{
-        borderColor: isActive ? "rgba(244,114,182,0.35)" : "rgba(138,107,96,0.1)",
-        boxShadow: isActive ? "0 12px 32px -12px rgba(230,115,111,0.2)" : "0 1px 2px rgba(0,0,0,0.03)",
+        background: isActive ? "rgba(230,115,111,0.06)" : "rgba(138,107,96,0.03)",
+        borderColor: isActive ? "rgba(244,114,182,0.35)" : "rgba(138,107,96,0.08)",
         animation: mounted ? "stepIn 0.6s cubic-bezier(0.16,1,0.3,1) forwards" : "none",
         animationDelay: mounted ? `${delay}ms` : "0ms",
       }}
@@ -130,25 +133,22 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
 
 function DeniedScreen({ mounted, status }) {
   return (
-    <div
-      className="rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] p-8 md:p-10 opacity-0"
-      style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
-    >
+    <div className="text-center">
       <div className="flex items-center justify-center mb-6">
         <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white" style={{ background: "linear-gradient(135deg, #8A6B60, #B5473F)" }}>
           <LockIcon className="w-7 h-7" />
         </div>
       </div>
 
-      <h1 className="font-serif italic font-medium text-reef-navy text-3xl text-center mb-2">Access Restricted</h1>
-      <p className="text-sm text-lava/55 text-center mb-6 leading-relaxed max-w-md mx-auto">
+      <h1 className="font-serif italic font-medium text-reef-navy text-3xl mb-2">Access Restricted</h1>
+      <p className="text-sm text-lava/55 mb-6 leading-relaxed max-w-md mx-auto">
         You are not allowed to view the Honolua Management Dashboard. This
         area is limited to staff at or above a specific rank in the Honolua
         Roblox group.
       </p>
 
       {status?.robloxUsername && (
-        <p className="text-xs text-lava/45 text-center mb-6">
+        <p className="text-xs text-lava/45 mb-6">
           Signed in as <span className="font-semibold">{status.robloxUsername}</span>
           {status.workspaceRoleName ? ` — ${status.workspaceRoleName}` : ""}
         </p>
@@ -215,10 +215,7 @@ function VerifiedScreen({ mounted, status }) {
   return (
     <>
       {entering && <EnteringOverlay />}
-      <div
-        className="rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] p-8 md:p-10 opacity-0"
-        style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
-      >
+      <div className="text-center">
         <div className="flex items-center justify-center gap-3 mb-6">
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}>
             <DiscordIcon color="ffffff" className="w-7 h-7" />
@@ -229,8 +226,8 @@ function VerifiedScreen({ mounted, status }) {
           </div>
         </div>
 
-        <h1 className="font-serif italic font-medium text-reef-navy text-3xl text-center mb-2">Successfully Verified</h1>
-        <p className="text-sm text-lava/55 text-center mb-8 leading-relaxed">
+        <h1 className="font-serif italic font-medium text-reef-navy text-3xl mb-2">Successfully Verified</h1>
+        <p className="text-sm text-lava/55 mb-8 leading-relaxed">
           {status?.robloxUsername}
           {status?.workspaceRoleName ? ` — ${status.workspaceRoleName}` : ""} — you're cleared for workspace access.
         </p>
@@ -300,137 +297,131 @@ function WorkspaceVerifyContent() {
         }
       `}</style>
 
-      <div className="max-w-[720px] mx-auto px-6 md:px-8">
+      <div className="max-w-[680px] mx-auto px-6 md:px-8">
         <div
-          className="flex flex-col items-center text-center mb-10 opacity-0"
+          className="rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] p-8 md:p-12 opacity-0"
           style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
         >
-          <div className="flex items-center gap-2.5 mb-6">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}>
-              <DiscordIcon color="ffffff" className="w-4.5 h-4.5" />
+          <div className="flex flex-col items-center text-center mb-10">
+            <div className="flex items-center gap-2.5 mb-6">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}>
+                <DiscordIcon color="ffffff" className="w-4.5 h-4.5" />
+              </div>
+              <span className="text-lava/30 text-lg font-light">×</span>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: BRAND_GRADIENT }}>
+                <RobloxIcon color="ffffff" className="w-4.5 h-4.5" />
+              </div>
             </div>
-            <span className="text-lava/30 text-lg font-light">×</span>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: BRAND_GRADIENT }}>
-              <RobloxIcon color="ffffff" className="w-4.5 h-4.5" />
+
+            <h1 className="font-serif italic font-medium text-reef-navy text-4xl md:text-5xl leading-tight mb-4">
+              Verify to enter the workspace.
+            </h1>
+            <p className="text-lg leading-relaxed text-lava/60 max-w-[480px] mb-6">
+              Log in with Discord — we'll check your Roblox group rank to confirm workspace access.
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <TrustPill icon={<ShieldIcon className="w-3.5 h-3.5" />} label="Auto rank check" color="#E6736F" />
+              <TrustPill icon={<BoltIcon className="w-3.5 h-3.5" />} label="No manual review" color="#F4B942" />
+              <TrustPill icon={<CheckIcon className="w-3.5 h-3.5" />} label="Powered by Bloxlink" color="#F472B6" />
             </div>
           </div>
 
-          <h1 className="font-serif italic font-medium text-reef-navy text-4xl md:text-5xl leading-tight mb-4">
-            Verify to enter the workspace.
-          </h1>
-          <p className="text-lg leading-relaxed text-lava/60 max-w-[480px] mb-6">
-            Log in with Discord — we'll check your Roblox group rank to confirm workspace access.
-          </p>
+          {errorParam && (
+            <div
+              className="mb-6 rounded-2xl px-5 py-4 text-sm font-semibold"
+              style={{ background: "rgba(230,115,111,0.10)", color: "#B5473F" }}
+            >
+              {ERROR_MESSAGES[errorParam] || "Something went wrong. Please try again."}
+            </div>
+          )}
 
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
-            <TrustPill icon={<ShieldIcon className="w-3.5 h-3.5" />} label="Rank-synced" />
-            <TrustPill icon={<BoltIcon className="w-3.5 h-3.5" />} label="Instant check" />
-            <TrustPill icon={<CheckIcon className="w-3.5 h-3.5" />} label="Bloxlink verified" />
-          </div>
-        </div>
-
-        {errorParam && (
-          <div
-            className="mb-6 rounded-2xl px-5 py-4 text-sm font-semibold opacity-0"
-            style={{ animation: "heroFadeUp 0.4s ease-out forwards", background: "rgba(230,115,111,0.10)", color: "#B5473F" }}
-          >
-            {ERROR_MESSAGES[errorParam] || "Something went wrong. Please try again."}
-          </div>
-        )}
-
-        {!loading && !showDenied && !showVerified && (
-          <div className="flex flex-col gap-4 mb-10">
-            <StepCard
-              index={1}
-              title="Discord account"
-              desc={discordConnected ? `Logged in as @${status.discordUsername}` : "Log in with Discord to start verification."}
-              status={discordConnected ? "done" : "active"}
-              mounted={mounted}
-              delay={100}
-              action={
-                discordConnected ? (
-                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wide">Connected</span>
-                ) : (
-                  <a
-                    href="/api/auth/discord?flow=workspace"
-                    className="flex items-center gap-2 text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
-                    style={{ background: BRAND_GRADIENT }}
-                  >
-                    <DiscordIcon color="ffffff" className="w-3.5 h-3.5" />
-                    Continue with Discord
-                  </a>
-                )
-              }
-            />
-
-            <StepCard
-              index={2}
-              title="Roblox account"
-              desc={
-                robloxLinked
-                  ? `Linked to ${status.robloxDisplayName || status.robloxUsername} (@${status.robloxUsername})`
-                  : discordConnected
-                  ? "No linked Roblox account found via Bloxlink yet."
-                  : "Connect Discord first — we'll check your linked Roblox account."
-              }
-              status={robloxLinked ? "done" : discordConnected ? "active" : "pending"}
-              mounted={mounted}
-              delay={200}
-              action={
-                robloxLinked ? (
-                  status.robloxAvatarUrl && (
-                    <img src={status.robloxAvatarUrl} alt={status.robloxUsername} className="w-10 h-10 rounded-xl object-cover" />
-                  )
-                ) : discordConnected ? (
-                  <div className="flex flex-col items-end gap-2">
+          {!loading && !showDenied && !showVerified && (
+            <div className="flex flex-col gap-4">
+              <StepCard
+                index={1}
+                title="Discord account"
+                desc={discordConnected ? `Logged in as @${status.discordUsername}` : "Log in with Discord to start verification."}
+                status={discordConnected ? "done" : "active"}
+                mounted={mounted}
+                delay={100}
+                action={
+                  discordConnected ? (
+                    <span className="text-xs font-bold text-emerald-500 uppercase tracking-wide">Connected</span>
+                  ) : (
                     <a
-                      href={BLOXLINK_VERIFY_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
+                      href="/api/auth/discord?flow=workspace"
+                      className="flex items-center gap-2 text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
                       style={{ background: BRAND_GRADIENT }}
                     >
-                      Verify with Bloxlink
+                      <DiscordIcon color="ffffff" className="w-3.5 h-3.5" />
+                      Continue with Discord
                     </a>
+                  )
+                }
+              />
+
+              <StepCard
+                index={2}
+                title="Roblox account"
+                desc={
+                  robloxLinked
+                    ? `Linked to ${status.robloxDisplayName || status.robloxUsername} (@${status.robloxUsername})`
+                    : discordConnected
+                    ? "No linked Roblox account found via Bloxlink yet."
+                    : "Connect Discord first — we'll check your linked Roblox account."
+                }
+                status={robloxLinked ? "done" : discordConnected ? "active" : "pending"}
+                mounted={mounted}
+                delay={200}
+                action={
+                  robloxLinked ? (
+                    status.robloxAvatarUrl && (
+                      <img src={status.robloxAvatarUrl} alt={status.robloxUsername} className="w-10 h-10 rounded-xl object-cover" />
+                    )
+                  ) : discordConnected ? (
+                    <div className="flex flex-col items-end gap-2">
+                      <a
+                        href={BLOXLINK_VERIFY_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
+                        style={{ background: BRAND_GRADIENT }}
+                      >
+                        Verify with Bloxlink
+                      </a>
+                      <button onClick={fetchStatus} className="text-xs font-bold text-reef-navy/40 hover:text-reef-navy/70">
+                        Refresh
+                      </button>
+                    </div>
+                  ) : null
+                }
+              />
+
+              <StepCard
+                index={3}
+                title="Group rank check"
+                desc={robloxLinked ? "Checking your rank in the Honolua Roblox group…" : "Complete both steps above to check workspace access."}
+                status={rankChecked ? "done" : robloxLinked ? "active" : "pending"}
+                mounted={mounted}
+                delay={300}
+                action={
+                  robloxLinked && !rankChecked ? (
                     <button onClick={fetchStatus} className="text-xs font-bold text-reef-navy/40 hover:text-reef-navy/70">
                       Refresh
                     </button>
-                  </div>
-                ) : null
-              }
-            />
+                  ) : null
+                }
+              />
+            </div>
+          )}
 
-            <StepCard
-              index={3}
-              title="Group rank check"
-              desc={robloxLinked ? "Checking your rank in the Honolua Roblox group…" : "Complete both steps above to check workspace access."}
-              status={rankChecked ? "done" : robloxLinked ? "active" : "pending"}
-              mounted={mounted}
-              delay={300}
-              action={
-                robloxLinked && !rankChecked ? (
-                  <button onClick={fetchStatus} className="text-xs font-bold text-reef-navy/40 hover:text-reef-navy/70">
-                    Refresh
-                  </button>
-                ) : null
-              }
-            />
-          </div>
-        )}
+          {showDenied && <DeniedScreen mounted={mounted} status={status} />}
 
-        {showDenied && (
-          <div className="mb-10">
-            <DeniedScreen mounted={mounted} status={status} />
-          </div>
-        )}
+          {showVerified && <VerifiedScreen mounted={mounted} status={status} />}
+        </div>
 
-        {showVerified && (
-          <div className="mb-10">
-            <VerifiedScreen mounted={mounted} status={status} />
-          </div>
-        )}
-
-        <p className="flex items-center justify-center gap-2 text-xs text-lava/40 mt-4">
+        <p className="flex items-center justify-center gap-2 text-xs text-lava/40 mt-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           All systems operational
         </p>

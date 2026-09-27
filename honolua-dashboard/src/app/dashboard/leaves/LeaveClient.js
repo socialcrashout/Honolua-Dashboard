@@ -42,30 +42,43 @@ function useCountUp(value, duration = 700) {
     return display;
 }
 
-export default function LeaveClient({ user, isStaff, pending, active, history, mine }) {
+export default function LeaveClient({ user, isStaff, personalOnly = false, pending, active, history, mine }) {
     const router = useRouter();
-    const [tab, setTab] = useState(isStaff ? 'requests' : 'mine');
+    const [tab, setTab] = useState(isStaff ? 'requests' : personalOnly ? 'current' : 'mine');
     const [showForm, setShowForm] = useState(false);
     const [busyId, setBusyId] = useState(null);
     const [revealed, setRevealed] = useState(false);
     const countAway = useCountUp(active.length);
+    const now = new Date();
+    const currentMine = mine.filter(item =>
+        item.status === 'pending' ||
+        (item.status === 'approved' && !item.endedEarly && new Date(item.endDate) >= now)
+    );
+    const pastMine = mine.filter(item => !currentMine.includes(item));
+    const pendingMineCount = currentMine.filter(item => item.status === 'pending').length;
+    const approvedMineCount = currentMine.length - pendingMineCount;
 
     useEffect(() => {
         const t = requestAnimationFrame(() => setRevealed(true));
         return () => cancelAnimationFrame(t);
     }, []);
 
-    const tabs = isStaff
+    const tabs = personalOnly
         ? [
-            { id: 'requests', label: 'Waiting for you', count: pending.length },
-            { id: 'away', label: 'Away now', count: active.length },
-            { id: 'history', label: 'History' },
-            { id: 'mine', label: 'My leave' },
+            { id: 'current', label: 'Current requests', count: currentMine.length },
+            { id: 'history', label: 'Past leave', count: pastMine.length },
         ]
-        : [
-            { id: 'mine', label: 'My leave' },
-            { id: 'away', label: 'Away now', count: active.length },
-        ];
+        : isStaff
+            ? [
+                { id: 'requests', label: 'Waiting for you', count: pending.length },
+                { id: 'away', label: 'Away now', count: active.length },
+                { id: 'history', label: 'History' },
+                { id: 'mine', label: 'My leave' },
+            ]
+            : [
+                { id: 'mine', label: 'My leave' },
+                { id: 'away', label: 'Away now', count: active.length },
+            ];
 
     async function act(id, action) {
         setBusyId(id);
@@ -89,7 +102,7 @@ export default function LeaveClient({ user, isStaff, pending, active, history, m
     return (
         <div className="min-h-screen bg-background text-foreground">
             {/* Hero */}
-            <div className="relative overflow-hidden border-b border-border px-8 py-14">
+            <div className={`relative overflow-hidden border-b border-border ${personalOnly ? 'px-5 py-8 sm:px-8 sm:py-10' : 'px-8 py-14'}`}>
                 <div
                     aria-hidden
                     className="animate-drift pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full opacity-25 blur-3xl"
@@ -99,10 +112,14 @@ export default function LeaveClient({ user, isStaff, pending, active, history, m
                     <div>
                         <p className="font-medium text-hibiscus">Honolua</p>
                         <h1 className="mt-1 font-serif text-4xl tracking-tight text-foreground">
-                            {countAway === 0 ? 'Everyone is here today' : `${countAway} ${countAway === 1 ? 'person is' : 'people are'} away today`}
+                            {personalOnly
+                                ? 'Your leave, at a glance'
+                                : countAway === 0 ? 'Everyone is here today' : `${countAway} ${countAway === 1 ? 'person is' : 'people are'} away today`}
                         </h1>
                         <p className="mt-2 max-w-md text-muted-foreground">
-                            Request time off, or review what's waiting on you.
+                            {personalOnly
+                                ? 'Keep track of your requests, approvals, and past leave.'
+                                : "Request time off, or review what's waiting on you."}
                         </p>
                     </div>
                     <button
@@ -116,8 +133,16 @@ export default function LeaveClient({ user, isStaff, pending, active, history, m
                 <RequestPanel open={showForm} onClose={() => setShowForm(false)} onSubmitted={() => { setShowForm(false); router.refresh(); }} />
             </div>
 
+            {personalOnly && (
+                <div className="grid gap-3 border-b border-border px-5 py-5 sm:grid-cols-3 sm:px-8">
+                    <PersonalMetric label="Waiting for review" value={pendingMineCount} detail="Your pending requests" />
+                    <PersonalMetric label="Approved" value={approvedMineCount} detail="Upcoming or active leave" />
+                    <PersonalMetric label="Past leave" value={pastMine.length} detail="Completed or closed requests" />
+                </div>
+            )}
+
             {/* Tabs */}
-            <div className="sticky top-0 z-10 flex gap-1 border-b border-border bg-background/90 px-8 backdrop-blur">
+            <div className="sticky top-0 z-10 flex gap-1 border-b border-border bg-background/90 px-5 backdrop-blur sm:px-8">
                 {tabs.map(t => (
                     <button
                         key={t.id}
@@ -133,13 +158,29 @@ export default function LeaveClient({ user, isStaff, pending, active, history, m
                 ))}
             </div>
 
-            <div className="px-8 py-10">
-                {tab === 'requests' && (
+            <div className={personalOnly ? 'px-5 py-6 sm:px-8 sm:py-8' : 'px-8 py-10'}>
+                {personalOnly && tab === 'current' && (
+                    <PersonalLeaveList
+                        items={currentMine}
+                        emptyTitle="Nothing in progress"
+                        emptyText="Your pending and approved leave requests will appear here."
+                        onCancel={id => act(id, 'cancel')}
+                        busyId={busyId}
+                    />
+                )}
+                {personalOnly && tab === 'history' && (
+                    <PersonalLeaveList
+                        items={pastMine}
+                        emptyTitle="No past leave yet"
+                        emptyText="Completed, denied, and withdrawn requests will be saved here."
+                    />
+                )}
+                {!personalOnly && tab === 'requests' && (
                     <RequestQueue items={pending} busyId={busyId} onApprove={id => act(id, 'approve')} onDeny={id => act(id, 'deny')} />
                 )}
-                {tab === 'away' && <AwayChips items={active} busyId={busyId} isStaff={isStaff} onEnd={id => act(id, 'end')} />}
-                {tab === 'history' && <HistoryTimeline items={history} />}
-                {tab === 'mine' && (
+                {!personalOnly && tab === 'away' && <AwayChips items={active} busyId={busyId} isStaff={isStaff} onEnd={id => act(id, 'end')} />}
+                {!personalOnly && tab === 'history' && <HistoryTimeline items={history} />}
+                {!personalOnly && tab === 'mine' && (
                     <HistoryTimeline
                         items={mine}
                         empty="You haven't requested any leave yet."
@@ -148,6 +189,59 @@ export default function LeaveClient({ user, isStaff, pending, active, history, m
                     />
                 )}
             </div>
+        </div>
+    );
+}
+
+
+function PersonalMetric({ label, value, detail }) {
+    return (
+        <div className="rounded-2xl border border-border bg-background/80 px-5 py-4 shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground">{label}</p>
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
+        </div>
+    );
+}
+
+function PersonalLeaveList({ items, emptyTitle, emptyText, onCancel, busyId }) {
+    if (!items.length) {
+        return (
+            <div className="rounded-2xl border border-dashed border-border bg-background/70 px-6 py-14 text-center">
+                <p className="font-medium text-foreground">{emptyTitle}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{emptyText}</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="mx-auto flex max-w-5xl flex-col gap-3">
+            {items.map(item => (
+                <article key={item._id} className="rounded-2xl border border-border bg-background/85 p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6">
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div className="flex min-w-0 items-start gap-3">
+                            <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${dotColor(item)}`} />
+                            <div className="min-w-0">
+                                <h3 className="font-semibold text-foreground">
+                                    {REASON_LABEL[item.reason] || 'Leave'}
+                                    <span className="ml-2 font-normal text-muted-foreground">{fmt(item.startDate)} – {fmt(item.endDate)}</span>
+                                </h3>
+                                <p className="mt-1 text-sm text-muted-foreground">{outcomeText(item)} · {daysAway(item.startDate, item.endDate)} {daysAway(item.startDate, item.endDate) === 1 ? 'day' : 'days'}</p>
+                            </div>
+                        </div>
+                        {onCancel && item.status === 'pending' && (
+                            <button
+                                disabled={busyId === item._id}
+                                onClick={() => onCancel(item._id)}
+                                className="rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-sand/60 hover:text-foreground disabled:opacity-50"
+                            >
+                                Withdraw request
+                            </button>
+                        )}
+                    </div>
+                    {item.note && <p className="mt-4 rounded-xl bg-sand/45 px-4 py-3 text-sm leading-6 text-muted-foreground">{item.note}</p>}
+                </article>
+            ))}
         </div>
     );
 }
@@ -259,7 +353,7 @@ function RequestQueue({ items, busyId, onApprove, onDeny }) {
                     <div>
                         <p className="font-medium text-foreground">{l.username} <span className="font-normal text-muted-foreground">· {REASON_LABEL[l.reason]}</span></p>
                         <p className="text-sm text-muted-foreground">{fmt(l.startDate)} – {fmt(l.endDate)} · {daysAway(l.startDate, l.endDate)}d</p>
-                        {l.note && <p className="mt-1 text-sm text-muted-foreground">"{l.note}"</p>}
+                        {l.note && <p className="mt-1 text-sm text-muted-foreground">“{l.note}”</p>}
                     </div>
                     <div className="flex overflow-hidden rounded-full border border-border">
                         <button
@@ -329,7 +423,7 @@ function HistoryTimeline({ items, empty = 'No leave on record yet.', onCancel, b
                             {REASON_LABEL[l.reason]} <span className="font-normal text-muted-foreground">· {fmt(l.startDate)} – {fmt(l.endDate)}</span>
                         </p>
                         <p className="text-sm text-muted-foreground">{outcomeText(l)}</p>
-                        {l.note && <p className="mt-1 text-sm text-muted-foreground">"{l.note}"</p>}
+                        {l.note && <p className="mt-1 text-sm text-muted-foreground">“{l.note}”</p>}
                         {onCancel && l.status === 'pending' && (
                             <button
                                 disabled={busyId === l._id}

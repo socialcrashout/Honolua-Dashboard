@@ -24,19 +24,23 @@ export default async function LeavesPage({ employeeOnly = false } = {}) {
         staff
             ? leaves.find({ guildId: GUILD_ID, status: 'pending' }).sort({ createdAt: 1 }).toArray()
             : [],
-        leaves.find({
-            guildId: GUILD_ID, status: 'approved', endedEarly: false,
-            startDate: { $lte: now }, endDate: { $gte: now },
-        }).sort({ endDate: 1 }).toArray(),
-        leaves.find({
-            guildId: GUILD_ID,
-            $or: [
-                { status: 'denied' },
-                { status: 'cancelled' },
-                { status: 'approved', endedEarly: true },
-                { status: 'approved', endDate: { $lt: now } },
-            ],
-        }).sort({ createdAt: -1 }).limit(50).toArray(),
+        staff
+            ? leaves.find({
+                guildId: GUILD_ID, status: 'approved', endedEarly: false,
+                startDate: { $lte: now }, endDate: { $gte: now },
+            }).sort({ endDate: 1 }).toArray()
+            : [],
+        staff
+            ? leaves.find({
+                guildId: GUILD_ID,
+                $or: [
+                    { status: 'denied' },
+                    { status: 'cancelled' },
+                    { status: 'approved', endedEarly: true },
+                    { status: 'approved', endDate: { $lt: now } },
+                ],
+            }).sort({ createdAt: -1 }).limit(50).toArray()
+            : [],
         leaves.find({ guildId: GUILD_ID, userId: user.id }).sort({ createdAt: -1 }).toArray(),
     ]);
 
@@ -47,6 +51,7 @@ export default async function LeavesPage({ employeeOnly = false } = {}) {
         <LeaveClient
             user={{ id: user.id, username: user.username, avatar: user.avatar }}
             isStaff={staff}
+            personalOnly={employeeOnly}
             pending={clean(pending)}
             active={clean(active)}
             history={clean(history)}

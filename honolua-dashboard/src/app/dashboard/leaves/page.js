@@ -1,5 +1,4 @@
-import { dbConnect } from '@/lib/mongodb';
-import Leave from '@/model/Leave';
+import { getLeavesCollection } from '@/lib/leaves';
 import { getSessionUser, isStaff } from '@/lib/loaAuth';
 import LeaveClient from './LeaveClient';
 
@@ -11,23 +10,25 @@ export default async function LeavesPage() {
     const user = await getSessionUser();
     if (!user) {
         return (
-            <div className="flex min-h-[60vh] items-center justify-center text-neutral-500">
+            <div className="flex min-h-[60vh] items-center justify-center text-muted-foreground">
                 Sign in to manage leave.
             </div>
         );
     }
 
-    await dbConnect();
+    const leaves = await getLeavesCollection();
     const staff = isStaff(user);
     const now = new Date();
 
     const [pending, active, history, mine] = await Promise.all([
-        staff ? Leave.find({ guildId: GUILD_ID, status: 'pending' }).sort({ createdAt: 1 }).lean() : [],
-        Leave.find({
+        staff
+            ? leaves.find({ guildId: GUILD_ID, status: 'pending' }).sort({ createdAt: 1 }).toArray()
+            : [],
+        leaves.find({
             guildId: GUILD_ID, status: 'approved', endedEarly: false,
             startDate: { $lte: now }, endDate: { $gte: now },
-        }).sort({ endDate: 1 }).lean(),
-        Leave.find({
+        }).sort({ endDate: 1 }).toArray(),
+        leaves.find({
             guildId: GUILD_ID,
             $or: [
                 { status: 'denied' },
@@ -35,12 +36,11 @@ export default async function LeavesPage() {
                 { status: 'approved', endedEarly: true },
                 { status: 'approved', endDate: { $lt: now } },
             ],
-        }).sort({ createdAt: -1 }).limit(50).lean(),
-        Leave.find({ guildId: GUILD_ID, userId: user.id }).sort({ createdAt: -1 }).lean(),
+        }).sort({ createdAt: -1 }).limit(50).toArray(),
+        leaves.find({ guildId: GUILD_ID, userId: user.id }).sort({ createdAt: -1 }).toArray(),
     ]);
 
-    // lean() docs carry ObjectId/Date instances that don't survive the
-    // server->client boundary — flatten to plain JSON-safe values.
+    // ObjectId/Date instances don't survive the server->client boundary as-is.
     const clean = (arr) => JSON.parse(JSON.stringify(arr));
 
     return (

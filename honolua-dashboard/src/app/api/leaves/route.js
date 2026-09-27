@@ -1,36 +1,35 @@
 import { NextResponse } from 'next/server';
-import { dbConnect } from '@/lib/mongodb'; // swap for your existing db helper if you have one
-import Leave, { REASONS } from '@/model/Leave';
+import { getLeavesCollection, REASONS } from '@/lib/leaves';
 import { getSessionUser, isStaff } from '@/lib/loaAuth';
 
-// ── ADJUST THIS ────────────────────────────────────────────────────────
-// Every guild-scoped query needs the Discord server id. If your dashboard
-// already tracks "the current guild" some other way (a param, a cookie,
-// a single-guild env var), swap this for that instead.
+// ── ADJUST if you scope guilds differently ──
 const GUILD_ID = process.env.GUILD_ID;
 
 export async function GET(request) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Not signed in.' }, { status: 401 });
 
-    await dbConnect();
-
+    const leaves = await getLeavesCollection();
     const { searchParams } = new URL(request.url);
     const scope = searchParams.get('scope') || 'mine'; // 'mine' | 'pending' | 'active' | 'history'
     const staff = isStaff(user);
     const now = new Date();
 
     let query = { guildId: GUILD_ID };
+    let sort = { createdAt: -1 };
+    let limit = 0;
 
     if (scope === 'mine' || !staff) {
         query.userId = user.id;
     } else if (scope === 'pending') {
         query.status = 'pending';
+        sort = { createdAt: 1 };
     } else if (scope === 'active') {
         query.status = 'approved';
         query.endedEarly = false;
         query.startDate = { $lte: now };
         query.endDate = { $gte: now };
+        sort = { endDate: 1 };
     } else if (scope === 'history') {
         query.$or = [
             { status: 'denied' },
@@ -38,10 +37,11 @@ export async function GET(request) {
             { status: 'approved', endedEarly: true },
             { status: 'approved', endDate: { $lt: now } },
         ];
+        limit = 50;
     }
 
-    const leaves = await Leave.find(query).sort({ createdAt: -1 }).lean();
-    return NextResponse.json({ leaves });
+    const docs = await leaves.find(query).sort(sort).limit(limit).toArray();
+    return NextResponse.json({ leaves: docs });
 }
 
 export async function POST(request) {
@@ -63,9 +63,9 @@ export async function POST(request) {
         return NextResponse.json({ error: "Last day can't be before the first day." }, { status: 400 });
     }
 
-    await dbConnect();
-
-    const leave = await Leave.create({
+    const leaves = await getLeavesCollection();
+    const now = new Date();
+    const doc = {
         guildId: GUILD_ID,
         userId: user.id,
         username: user.username,
@@ -75,7 +75,11 @@ export async function POST(request) {
         startDate: start,
         endDate: end,
         status: 'pending',
-    });
+        endedEarly: false,
+        createdAt: now,
+        updatedAt: now,
+    };
 
-    return NextResponse.json({ leave }, { status: 201 });
+    const result = await leaves.insertOne(doc);
+    return NextResponse.json({ leave: { ...doc, _id: result.insertedId } }, { status: 201 });
 }

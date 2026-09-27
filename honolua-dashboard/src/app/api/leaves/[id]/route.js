@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { dbConnect } from '@/lib/mongodb';
-import Leave from '@/model/Leave';
+import { getLeavesCollection, toObjectId } from '@/lib/leaves';
 import { getSessionUser, isStaff } from '@/lib/loaAuth';
 
 // PATCH /api/leaves/:id   body: { action: 'approve' | 'deny' | 'end' | 'cancel' }
@@ -8,14 +7,17 @@ export async function PATCH(request, { params }) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Not signed in.' }, { status: 401 });
 
-    await dbConnect();
+    const _id = toObjectId(params.id);
+    if (!_id) return NextResponse.json({ error: 'Invalid id.' }, { status: 400 });
 
-    const { id } = params;
     const { action } = await request.json();
-    const leave = await Leave.findById(id);
+    const leaves = await getLeavesCollection();
+    const leave = await leaves.findOne({ _id });
     if (!leave) return NextResponse.json({ error: 'Leave request not found.' }, { status: 404 });
 
     const staff = isStaff(user);
+    const now = new Date();
+    let update;
 
     if (action === 'cancel') {
         // The requester can withdraw their own pending request.
@@ -25,40 +27,39 @@ export async function PATCH(request, { params }) {
         if (leave.status !== 'pending') {
             return NextResponse.json({ error: 'Only a pending request can be withdrawn.' }, { status: 400 });
         }
-        leave.status = 'cancelled';
-        await leave.save();
-        return NextResponse.json({ leave });
-    }
-
-    // approve / deny / end all require staff
-    if (!staff) {
-        return NextResponse.json({ error: "You don't have permission to do that." }, { status: 403 });
-    }
-
-    if (action === 'approve') {
-        if (leave.status !== 'pending') {
-            return NextResponse.json({ error: 'Only a pending request can be approved.' }, { status: 400 });
-        }
-        leave.status = 'approved';
-    } else if (action === 'deny') {
-        if (leave.status !== 'pending') {
-            return NextResponse.json({ error: 'Only a pending request can be denied.' }, { status: 400 });
-        }
-        leave.status = 'denied';
-    } else if (action === 'end') {
-        if (leave.status !== 'approved') {
-            return NextResponse.json({ error: 'Only an active leave can be ended early.' }, { status: 400 });
-        }
-        leave.endedEarly = true;
-        leave.earlyEndDate = new Date();
+        update = { status: 'cancelled', updatedAt: now };
     } else {
-        return NextResponse.json({ error: 'Unknown action.' }, { status: 400 });
+        // approve / deny / end all require staff
+        if (!staff) {
+            return NextResponse.json({ error: "You don't have permission to do that." }, { status: 403 });
+        }
+
+        if (action === 'approve') {
+            if (leave.status !== 'pending') {
+                return NextResponse.json({ error: 'Only a pending request can be approved.' }, { status: 400 });
+            }
+            update = { status: 'approved' };
+        } else if (action === 'deny') {
+            if (leave.status !== 'pending') {
+                return NextResponse.json({ error: 'Only a pending request can be denied.' }, { status: 400 });
+            }
+            update = { status: 'denied' };
+        } else if (action === 'end') {
+            if (leave.status !== 'approved') {
+                return NextResponse.json({ error: 'Only an active leave can be ended early.' }, { status: 400 });
+            }
+            update = { endedEarly: true, earlyEndDate: now };
+        } else {
+            return NextResponse.json({ error: 'Unknown action.' }, { status: 400 });
+        }
+
+        update.decidedBy = user.id;
+        update.decidedByName = user.username;
+        update.decidedAt = now;
+        update.updatedAt = now;
     }
 
-    leave.decidedBy = user.id;
-    leave.decidedByName = user.username;
-    leave.decidedAt = new Date();
-    await leave.save();
-
-    return NextResponse.json({ leave });
+    await leaves.updateOne({ _id }, { $set: update });
+    const updated = await leaves.findOne({ _id });
+    return NextResponse.json({ leave: updated });
 }

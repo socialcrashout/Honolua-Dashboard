@@ -324,7 +324,7 @@ function RequestPanel({ open, onClose, onSubmitted }) {
             const res = await fetch('/api/leaves', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason, note, startDate: startAt.toISOString(), endDate: endAt.toISOString() }),
+                body: JSON.stringify({ reason, note, startDate: startAt.toISOString(), endDate: endAt.toISOString(), timezoneOffset: new Date().getTimezoneOffset() }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Could not send that request.');
@@ -380,11 +380,22 @@ function RequestPanel({ open, onClose, onSubmitted }) {
                                 className="rounded-lg border border-input bg-background p-2 text-sm outline-none focus:border-hibiscus" />
                         </label>
                         <label className="text-sm">
+                            <span className="mb-1 block font-medium text-foreground">Start time</span>
+                            <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
+                                className="rounded-lg border border-input bg-background p-2 text-sm outline-none focus:border-hibiscus" />
+                        </label>
+                        <label className="text-sm">
                             <span className="mb-1 block font-medium text-foreground">Last day away</span>
                             <input type="date" value={end} onChange={e => setEnd(e.target.value)}
                                 className="rounded-lg border border-input bg-background p-2 text-sm outline-none focus:border-hibiscus" />
                         </label>
+                        <label className="text-sm">
+                            <span className="mb-1 block font-medium text-foreground">End time</span>
+                            <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
+                                className="rounded-lg border border-input bg-background p-2 text-sm outline-none focus:border-hibiscus" />
+                        </label>
                     </div>
+                    <p className="-mt-3 text-xs text-muted-foreground">Times use your local timezone.</p>
 
                     {error && <p className="text-sm text-hibiscus">{error}</p>}
 
@@ -481,7 +492,7 @@ function HistoryTimeline({ items, empty = 'No leave on record yet.', onCancel, b
                     <div key={l._id} className="relative">
                         <span className={`absolute -left-6 top-1.5 h-2 w-2 rounded-full ${dotColor(l)}`} />
                         <p className="font-medium text-foreground">
-                            {l.reasonLabel || REASON_LABEL[l.reason] || l.reason} <span className="font-normal text-muted-foreground">· {fmt(l.startDate)} – {fmt(l.endDate)}</span>
+                            {l.reasonLabel || REASON_LABEL[l.reason] || l.reason} <span className="font-normal text-muted-foreground">· {fmt(l.startDate)} at {fmtTime(l.startDate)} – {fmt(l.endDate)} at {fmtTime(l.endDate)}</span>
                         </p>
                         <p className="text-sm text-muted-foreground">{outcomeText(l)}</p>
                         {l.note && <p className="mt-1 text-sm text-muted-foreground">“{l.note}”</p>}

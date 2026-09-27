@@ -66,6 +66,12 @@ export default function HierarchyModal({ guildId, open, onClose, onSaved }) {
     );
   }
 
+  function updateRobloxRole(i, roleId, robloxRoleId) {
+    setDepartments((prev) => prev.map((d, idx) => idx === i
+      ? { ...d, roles: d.roles.map((role) => role.roleId === roleId ? { ...role, robloxRoleId } : role) }
+      : d));
+  }
+
   function moveRole(i, roleIndex, dir) {
     setDepartments((prev) =>
       prev.map((d, idx) => {
@@ -117,7 +123,7 @@ export default function HierarchyModal({ guildId, open, onClose, onSaved }) {
 
         <p className="mb-4 text-sm text-stone-500">
           Build each department as an ordered list of roles, lowest rank first. Promote/demote move members one step
-          up or down this list.
+          up or down this list. Add the matching Roblox group role ID to sync ranks in both places.
         </p>
 
         {loading ? (
@@ -145,27 +151,24 @@ export default function HierarchyModal({ guildId, open, onClose, onSaved }) {
 
                 <div className="mb-2 space-y-1.5">
                   {dept.roles.map((role, ri) => (
-                    <div
-                      key={role.roleId}
-                      className="flex items-center justify-between rounded-lg border border-orange-100 bg-white px-3 py-1.5"
-                    >
+                    <div key={role.roleId} className="flex flex-wrap items-center gap-2 rounded-lg border border-orange-100 bg-white px-3 py-2">
                       <span className="text-xs text-stone-400">#{ri + 1}</span>
-                      <span className="flex-1 px-2 text-sm text-slate-800">{role.name}</span>
+                      <span className="min-w-32 flex-1 text-sm text-slate-800">{role.name}</span>
+                      <label className="flex items-center gap-2 text-xs text-stone-500">
+                        Roblox role ID
+                        <input
+                          value={role.robloxRoleId ?? ''}
+                          onChange={(e) => updateRobloxRole(i, role.roleId, e.target.value)}
+                          inputMode="numeric"
+                          placeholder="e.g. 1234567"
+                          aria-label={`Roblox group role ID for ${role.name}`}
+                          className="w-32 rounded-md border border-orange-100 bg-white px-2 py-1.5 text-sm text-slate-800 outline-none focus:border-orange-300"
+                        />
+                      </label>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => moveRole(i, ri, -1)} disabled={ri === 0} aria-label="Move role up" className="text-stone-400 hover:text-orange-700 disabled:opacity-20">
-                          <ChevronUp className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => moveRole(i, ri, 1)}
-                          disabled={ri === dept.roles.length - 1}
-                          aria-label="Move role down"
-                          className="text-stone-400 hover:text-orange-700 disabled:opacity-20"
-                        >
-                          <ChevronDown className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => removeRole(i, role.roleId)} aria-label={`Remove ${role.name}`} className="ml-1 text-stone-400 hover:text-rose-600">
-                          <X className="h-4 w-4" />
-                        </button>
+                        <button onClick={() => moveRole(i, ri, -1)} disabled={ri === 0} aria-label="Move role up" className="text-stone-400 hover:text-orange-700 disabled:opacity-20"><ChevronUp className="h-4 w-4" /></button>
+                        <button onClick={() => moveRole(i, ri, 1)} disabled={ri === dept.roles.length - 1} aria-label="Move role down" className="text-stone-400 hover:text-orange-700 disabled:opacity-20"><ChevronDown className="h-4 w-4" /></button>
+                        <button onClick={() => removeRole(i, role.roleId)} aria-label={`Remove ${role.name}`} className="ml-1 text-stone-400 hover:text-rose-600"><X className="h-4 w-4" /></button>
                       </div>
                     </div>
                   ))}

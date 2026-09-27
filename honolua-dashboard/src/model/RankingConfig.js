@@ -4,6 +4,7 @@ const RoleStepSchema = new Schema(
   {
     roleId: { type: String, required: true },
     name: { type: String, required: true },
+    robloxRoleId: { type: String, default: null },
   },
   { _id: false },
 );

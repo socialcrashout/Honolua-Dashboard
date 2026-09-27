@@ -126,7 +126,7 @@ export async function GET() {
     }
 
     // 2. Page through ALL group members ONCE (single endpoint, not one call
-    //    per role) — each item already includes { user, role }, so we can
+    //    per role) — each item includes { user, roles }, so we can
     //    filter/group locally instead of hammering Roblox with 15+ rapid
     //    per-role requests (which was triggering bot/rate-limit blocks).
     let members = [];
@@ -134,7 +134,9 @@ export async function GET() {
     let page = 0;
     do {
       page += 1;
-      const url = `https://groups.roblox.com/v1/groups/${GROUP_ID}/users?limit=100&sortOrder=Asc${
+      // Roblox's v1 member endpoint has been retired; v2 returns roles as an
+      // array because members may hold more than one role.
+      const url = `https://groups.roblox.com/v2/groups/${GROUP_ID}/users?limit=100&sortOrder=Asc${
         cursor ? `&cursor=${cursor}` : ""
       }`;
       const usersRes = await fetch(url, { headers: ROBLOX_HEADERS });
@@ -156,17 +158,23 @@ export async function GET() {
         nextCursor: !!usersData.nextPageCursor,
       });
 
-      for (const entry of usersData.data) {
-        const team = teamForRole(entry.role);
-        if (!team) continue; // not a role we care about — skip
+      for (const entry of usersData.data || []) {
+        // Pick the highest matching configured team role if someone has
+        // multiple roles, and emit one card per member.
+        const matchingRoles = (entry.roles || [])
+          .map((role) => ({ role, team: teamForRole(role) }))
+          .filter(({ team }) => team)
+          .sort((a, b) => b.role.rank - a.role.rank);
+        const match = matchingRoles[0];
+        if (!match) continue; // no displayed team role — skip
         members.push({
           userId: entry.user.userId,
           username: entry.user.username,
           displayName: entry.user.displayName,
-          roleName: entry.role.name,
-          rank: entry.role.rank,
-          teamKey: team.key,
-          teamLabel: team.label,
+          roleName: match.role.name,
+          rank: match.role.rank,
+          teamKey: match.team.key,
+          teamLabel: match.team.label,
         });
       }
 

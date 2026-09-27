@@ -5,13 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CalendarDays, ChevronRight, CircleHelp, Clock3, Plus, Save, Settings2, ShieldCheck, Sparkles, X } from 'lucide-react';
 
-const BUILT_IN_REASONS = [
-    { id: 'vacation', label: 'Vacation' }, { id: 'school', label: 'School' },
-    { id: 'exams', label: 'Exams' }, { id: 'hospital', label: 'Hospital or medical' },
-    { id: 'family', label: 'Family' }, { id: 'work', label: 'Work' },
-    { id: 'break', label: 'Taking a break' }, { id: 'other', label: 'Other' },
-];
-
 const NAV = [
     { id: 'requests', label: 'Request rules', detail: 'Availability and length', icon: Settings2 },
     { id: 'discord-role', label: 'Discord role', detail: 'Role during approved leave', icon: ShieldCheck },
@@ -59,7 +52,7 @@ export default function LeaveSettingsClient({ initialSettings, guildId }) {
         const base = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 28) || 'custom';
         let id = base;
         let suffix = 2;
-        while (BUILT_IN_REASONS.some((item) => item.id === id) || settings.customReasons.some((item) => item.id === id)) {
+        while (settings.customReasons.some((item) => item.id === id)) {
             id = `${base}-${suffix++}`;
         }
         update('customReasons', [...settings.customReasons, { id, label: label.slice(0, 40) }]);
@@ -160,16 +153,12 @@ export default function LeaveSettingsClient({ initialSettings, guildId }) {
 
                         <section id="loa-reasons" onMouseEnter={() => setActiveSection('reasons')} className="scroll-mt-6 overflow-hidden rounded-2xl border border-orange-200/80 bg-white shadow-[0_8px_28px_rgba(120,78,35,0.055)]">
                             <div className="flex flex-wrap items-start justify-between gap-4 border-b border-orange-100 bg-gradient-to-r from-orange-50/80 to-white px-5 py-5 sm:px-7">
-                                <div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-orange-700 ring-1 ring-orange-200"><Sparkles className="h-4 w-4" /></span><div><h2 className="font-semibold">Reason picker</h2><p className="mt-1 text-sm text-stone-500">Add Honolua-specific reasons alongside the built-in choices.</p></div></div>
+                                <div className="flex items-start gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-orange-700 ring-1 ring-orange-200"><Sparkles className="h-4 w-4" /></span><div><h2 className="font-semibold">Reason picker</h2><p className="mt-1 text-sm text-stone-500">Only reasons you add here appear in the leave request form.</p></div></div>
                                 <span className="rounded-full border border-orange-200 bg-white px-3 py-1 text-xs font-semibold text-orange-800">{settings.customReasons.length} / 8 added</span>
                             </div>
                             <div className="space-y-5 px-5 py-5 sm:px-7 sm:py-6">
                                 <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-stone-400">Built in</p>
-                                    <div className="flex flex-wrap gap-2">{BUILT_IN_REASONS.map((reason) => <span key={reason.id} className="rounded-full border border-stone-200 bg-[#fffdf9] px-3 py-1.5 text-xs text-stone-600">{reason.label}</span>)}</div>
-                                </div>
-                                <div>
-                                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-stone-400">Your reasons</p>
+                                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-stone-400">Workspace reasons</p>
                                     {settings.customReasons.length ? <div className="space-y-2">{settings.customReasons.map((reason) => <div key={reason.id} className="flex items-center justify-between rounded-xl border border-orange-100 bg-[#fffaf2] px-3.5 py-3"><span className="flex min-w-0 items-center gap-2.5 text-sm font-medium text-stone-700"><span className="h-2 w-2 shrink-0 rounded-full bg-orange-500" />{reason.label}</span><button type="button" aria-label={`Remove ${reason.label}`} onClick={() => update('customReasons', settings.customReasons.filter((item) => item.id !== reason.id))} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-stone-400 transition hover:bg-orange-100 hover:text-orange-800"><X className="h-4 w-4" /></button></div>)}</div> : <div className="rounded-xl border border-dashed border-orange-200 bg-[#fffaf2] px-4 py-5 text-sm text-stone-500">No custom reasons yet. Add one for a reason unique to your team.</div>}
                                 </div>
                                 <form onSubmit={addReason} className="flex flex-col gap-2 sm:flex-row">

@@ -3,17 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
-const REASONS = [
-    { id: 'vacation', label: 'Vacation' },
-    { id: 'school', label: 'School' },
-    { id: 'exams', label: 'Exams' },
-    { id: 'hospital', label: 'Hospital or medical' },
-    { id: 'family', label: 'Family' },
-    { id: 'work', label: 'Work' },
-    { id: 'break', label: 'Taking a break' },
-    { id: 'other', label: 'Other' },
-];
-const REASON_LABEL = Object.fromEntries(REASONS.map(r => [r.id, r.label]));
+const REASON_LABEL = {
+    vacation: 'Vacation', school: 'School', exams: 'Exams', hospital: 'Hospital or medical',
+    family: 'Family', work: 'Work', break: 'Taking a break', other: 'Other',
+};
 
 function fmt(d) {
     return new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -287,7 +280,7 @@ function PersonalLeaveList({ items, emptyTitle, emptyText, onCancel, busyId }) {
 }
 
 function RequestPanel({ open, onClose, onSubmitted }) {
-    const [reason, setReason] = useState('vacation');
+    const [reason, setReason] = useState('');
     const [note, setNote] = useState('');
     const [start, setStart] = useState('');
     const [end, setEnd] = useState('');
@@ -307,7 +300,9 @@ function RequestPanel({ open, onClose, onSubmitted }) {
             .then(response => response.ok ? response.json() : null)
             .then(data => {
                 if (cancelled || !data?.settings) return;
-                setCustomReasons(data.settings.customReasons || []);
+                const reasons = data.settings.customReasons || [];
+                setCustomReasons(reasons);
+                setReason((current) => reasons.some((item) => item.id === current) ? current : (reasons[0]?.id || ''));
                 setAcceptingRequests(data.settings.acceptingRequests !== false);
                 setRequestLimits({ minDays: data.settings.minDays || 1, maxDays: data.settings.maxDays || 30 });
             })
@@ -318,6 +313,8 @@ function RequestPanel({ open, onClose, onSubmitted }) {
     async function submit(e) {
         e.preventDefault();
         setError('');
+        if (!customReasons.length) return setError('Staff have not added any leave reasons yet.');
+        if (!customReasons.some((item) => item.id === reason)) return setError('Choose a leave reason.');
         if (!start || !end) return setError('Pick your first and last day away.');
         const startAt = new Date(`${start}T${startTime}`);
         const endAt = new Date(`${end}T${endTime}`);
@@ -350,9 +347,9 @@ function RequestPanel({ open, onClose, onSubmitted }) {
                 <form onSubmit={submit} className="flex flex-col gap-5 p-6">
                     {!acceptingRequests && <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">Leave requests are temporarily paused.</div>}
                     <div>
-                        <p className="mb-2 text-sm font-medium text-foreground">Why are you away?</p>
-                        <div className="flex flex-wrap gap-2">
-                            {[...REASONS, ...customReasons].map(r => (
+                        <p className="mb-2 text-sm font-medium text-foreground">Choose a leave reason</p>
+                        {customReasons.length ? <div className="flex flex-wrap gap-2">
+                            {customReasons.map(r => (
                                 <button
                                     type="button"
                                     key={r.id}
@@ -362,7 +359,7 @@ function RequestPanel({ open, onClose, onSubmitted }) {
                                     {r.label}
                                 </button>
                             ))}
-                        </div>
+                        </div> : <p className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">No leave reasons have been added yet. Check back after staff adds them in Workspace leave settings.</p>}
                     </div>
 
                     <label className="text-sm">
@@ -403,7 +400,7 @@ function RequestPanel({ open, onClose, onSubmitted }) {
                     {error && <p className="text-sm text-hibiscus">{error}</p>}
 
                     <div className="flex gap-3">
-                        <button type="submit" disabled={submitting || !acceptingRequests}
+                        <button type="submit" disabled={submitting || !acceptingRequests || !customReasons.length || !reason}
                             className="rounded-full bg-gradient-to-br from-gold to-hibiscus px-5 py-2 text-sm font-medium text-reef-navy-deep disabled:opacity-60">
                             {submitting ? 'Sending…' : `Send request · ${requestLimits.minDays}–${requestLimits.maxDays} days`}
                         </button>

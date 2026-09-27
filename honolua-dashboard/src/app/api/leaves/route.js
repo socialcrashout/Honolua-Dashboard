@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getLeavesCollection, REASONS } from '@/lib/leaves';
+import { getLeavesCollection } from '@/lib/leaves';
 import { getSessionUser, isStaff } from '@/lib/loaAuth';
 import { logStaffAction } from '@/lib/audit';
 import { getLoaSettings } from '@/lib/loaSettings';
 
 // ── ADJUST if you scope guilds differently ──
 const GUILD_ID = process.env.GUILD_ID || process.env.DISCORD_GUILD_ID;
-const REASON_LABELS = {
-    vacation: 'Vacation', school: 'School', exams: 'Exams', hospital: 'Hospital or medical',
-    family: 'Family', work: 'Work', break: 'Taking a break', other: 'Other',
-};
 
 export async function GET(request) {
     const user = await getSessionUser();
@@ -65,10 +61,9 @@ export async function POST(request) {
     if (!loaSettings.acceptingRequests) {
         return NextResponse.json({ error: 'Leave requests are currently paused.' }, { status: 403 });
     }
-    const reasonChoice = [...REASONS.map((id) => ({ id, label: REASON_LABELS[id] })), ...loaSettings.customReasons]
-        .find((choice) => choice.id === reason);
+    const reasonChoice = loaSettings.customReasons.find((choice) => choice.id === reason);
     if (!reasonChoice) {
-        return NextResponse.json({ error: 'Pick a valid reason.' }, { status: 400 });
+        return NextResponse.json({ error: 'Choose a reason configured in Workspace leave settings.' }, { status: 400 });
     }
     if (!startDate || !endDate) {
         return NextResponse.json({ error: 'First and last day away are required.' }, { status: 400 });

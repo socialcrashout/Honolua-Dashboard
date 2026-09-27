@@ -1,7 +1,6 @@
 import clientPromise from './mongodb';
 import { ObjectId } from 'mongodb';
 
-export const REASONS = ['vacation', 'school', 'exams', 'hospital', 'family', 'work', 'break', 'other'];
 export const STATUSES = ['pending', 'approved', 'denied', 'cancelled'];
 
 // Same "leaves" collection the César from Honolua bot writes to (via

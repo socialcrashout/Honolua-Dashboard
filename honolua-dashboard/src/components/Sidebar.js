@@ -15,6 +15,7 @@ import {
   Megaphone,
   MessageCircleQuestion,
   CalendarClock,
+  CalendarCheck2,
   ScrollText,
   Power,
   Mail,
@@ -58,7 +59,7 @@ const NAV_GROUPS = [
       { href: "/dashboard/743137138/ranking", label: "Ranking", icon: TrendingUp },
       { href: "/staff/macros", label: "Macros", icon: Zap },
       { href: "/staff/payroll", label: "Payroll", icon: Wallet },
-      { href: "/staff/loa", label: "Leave of Absence", icon: CalendarClock },
+      { href: "/staff/loa", label: "My Leave", icon: CalendarClock },
       { href: "/staff/site-stats", label: "Site Stats", icon: BarChart3 },
     ],
   },
@@ -86,6 +87,7 @@ const NAV_GROUPS = [
     label: "Leadership",
     minLevel: ROLE_LEVELS.executive,
     items: [
+      { href: "/staff/loa", label: "Manage Leaves", icon: CalendarCheck2, featured: true },
       { href: "/staff/departments", label: "Departments", icon: Building2 },
       { href: "/staff/ranking", label: "Ranking Logs", icon: TrendingUp },
       { href: "/staff/updates", label: "Updates", icon: Megaphone },
@@ -125,9 +127,12 @@ function NavItem({ item, pathname, showLabel = false, index = 0, pillId = "activ
         href={item.href}
         onPointerDown={spawnRipple}
         className={cn(
-          "relative flex items-center overflow-hidden rounded-md transition-colors duration-200",
-          showLabel ? "gap-3 px-3 py-2" : "justify-center p-2.5",
-          active ? "text-reef-navy" : "text-lava/50 hover:text-reef-navy"
+          "relative flex items-center overflow-hidden transition-all duration-200",
+          item.featured
+            ? "rounded-xl border border-hibiscus/25 bg-gradient-to-r from-gold/[0.16] via-white to-hibiscus/[0.12] text-reef-navy shadow-[0_3px_12px_rgba(50,67,76,0.06)] hover:-translate-y-0.5 hover:border-hibiscus/40 hover:shadow-[0_6px_16px_rgba(50,67,76,0.11)]"
+            : "rounded-md",
+          showLabel ? (item.featured ? "gap-2.5 px-2.5 py-2" : "gap-3 px-3 py-2") : (item.featured ? "justify-center p-1.5" : "justify-center p-2.5"),
+          item.featured ? "text-reef-navy" : active ? "text-reef-navy" : "text-lava/50 hover:text-reef-navy"
         )}
         title={!showLabel ? item.label : undefined}
       >
@@ -181,11 +186,17 @@ function NavItem({ item, pathname, showLabel = false, index = 0, pillId = "activ
           transition={{ type: "spring", stiffness: 400, damping: 20 }}
         >
           <motion.span
-            className="flex shrink-0"
+            className={cn(
+              "flex shrink-0",
+              item.featured && cn(
+                showLabel ? "h-8 w-8" : "h-7 w-7",
+                "items-center justify-center rounded-lg bg-gradient-to-br from-gold via-hibiscus to-[#D96C98] text-white shadow-sm"
+              )
+            )}
             whileHover={{ rotate: [0, -8, 8, -4, 0], scale: 1.12 }}
             transition={{ duration: 0.45, ease: "easeInOut" }}
           >
-            <Icon className="h-[18px] w-[18px]" />
+            <Icon className={cn("h-[18px] w-[18px]", item.featured && "h-4 w-4")} />
           </motion.span>
           <AnimatePresence initial={false}>
             {showLabel && (
@@ -195,9 +206,14 @@ function NavItem({ item, pathname, showLabel = false, index = 0, pillId = "activ
                 animate={{ opacity: 1, width: "auto" }}
                 exit={{ opacity: 0, width: 0 }}
                 transition={{ duration: 0.15, ease: "easeOut" }}
-                className="whitespace-nowrap text-sm"
+                className={cn("whitespace-nowrap text-sm", item.featured && "flex flex-col leading-tight")}
               >
-                {item.label}
+                <span className={item.featured ? "text-[13px] font-semibold" : undefined}>{item.label}</span>
+                {item.featured && (
+                  <span className="mt-0.5 text-[8px] font-medium uppercase tracking-[0.16em] text-lava/45">
+                    Leadership tool
+                  </span>
+                )}
               </motion.span>
             )}
           </AnimatePresence>

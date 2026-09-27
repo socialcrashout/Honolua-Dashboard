@@ -20,10 +20,11 @@ const APPROVER_MIN_LEVEL = ROLE_LEVELS.administrator;
 // session/cookie parsing here — this file forwards the request's cookies
 // to that route and reads the same { ok, user } shape your sidebar uses.
 export async function getSessionUser() {
-    const cookieHeader = cookies().toString();
+    const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
+    const cookieHeader = cookieStore.toString();
     if (!cookieHeader) return null;
 
-    const host = headers().get('host');
+    const host = headerStore.get('host');
     const protocol = host?.startsWith('localhost') || host?.startsWith('127.0.0.1') ? 'http' : 'https';
 
     let res;

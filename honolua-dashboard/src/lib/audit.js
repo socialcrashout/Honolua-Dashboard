@@ -40,6 +40,9 @@ export async function logStaffAction({ session, action, meta = {} }) {
     const client = await clientPromise
     const db = client.db(DB_NAME)
     const roblox = await lookupRobloxProfile(session?.discordId)
+    const subjectRoblox = meta.subjectDiscordId
+      ? (meta.subjectDiscordId === session?.discordId ? roblox : await lookupRobloxProfile(meta.subjectDiscordId))
+      : null
 
     const entry = {
       action,
@@ -48,6 +51,8 @@ export async function logStaffAction({ session, action, meta = {} }) {
       actorDiscordUsername: session?.discordUsername || "Unknown",
       actorRobloxUsername: roblox?.robloxUsername || null,
       actorAvatarUrl: roblox?.avatarUrl || null,
+      subjectRobloxUsername: subjectRoblox?.robloxUsername || null,
+      subjectRobloxAvatarUrl: subjectRoblox?.avatarUrl || null,
       createdAt: new Date(),
     }
     await db.collection("staffAuditLog").insertOne(entry)

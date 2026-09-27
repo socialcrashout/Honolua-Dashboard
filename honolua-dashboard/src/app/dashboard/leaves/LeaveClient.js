@@ -254,7 +254,7 @@ function PersonalLeaveList({ items, emptyTitle, emptyText, onCancel, busyId }) {
                             <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${dotColor(item)}`} />
                             <div className="min-w-0">
                                 <h3 className="font-semibold text-foreground">
-                                    {REASON_LABEL[item.reason] || 'Leave'}
+                                    {item.reasonLabel || REASON_LABEL[item.reason] || 'Leave'}
                                     <span className="ml-2 font-normal text-muted-foreground">{fmt(item.startDate)} – {fmt(item.endDate)}</span>
                                 </h3>
                                 <p className="mt-1 text-sm text-muted-foreground">{outcomeText(item)} · {daysAway(item.startDate, item.endDate)} {daysAway(item.startDate, item.endDate) === 1 ? 'day' : 'days'}</p>
@@ -285,7 +285,25 @@ function RequestPanel({ open, onClose, onSubmitted }) {
     const [end, setEnd] = useState('');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [customReasons, setCustomReasons] = useState([]);
+    const [acceptingRequests, setAcceptingRequests] = useState(true);
+    const [requestLimits, setRequestLimits] = useState({ minDays: 1, maxDays: 30 });
     const panelRef = useRef(null);
+
+    useEffect(() => {
+        if (!open) return;
+        let cancelled = false;
+        fetch('/api/loa-settings', { cache: 'no-store' })
+            .then(response => response.ok ? response.json() : null)
+            .then(data => {
+                if (cancelled || !data?.settings) return;
+                setCustomReasons(data.settings.customReasons || []);
+                setAcceptingRequests(data.settings.acceptingRequests !== false);
+                setRequestLimits({ minDays: data.settings.minDays || 1, maxDays: data.settings.maxDays || 30 });
+            })
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, [open]);
 
     async function submit(e) {
         e.preventDefault();
@@ -317,10 +335,11 @@ function RequestPanel({ open, onClose, onSubmitted }) {
         >
             <div className="min-h-0">
                 <form onSubmit={submit} className="flex flex-col gap-5 p-6">
+                    {!acceptingRequests && <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">Leave requests are temporarily paused.</div>}
                     <div>
                         <p className="mb-2 text-sm font-medium text-foreground">Why are you away?</p>
                         <div className="flex flex-wrap gap-2">
-                            {REASONS.map(r => (
+                            {[...REASONS, ...customReasons].map(r => (
                                 <button
                                     type="button"
                                     key={r.id}
@@ -360,9 +379,9 @@ function RequestPanel({ open, onClose, onSubmitted }) {
                     {error && <p className="text-sm text-hibiscus">{error}</p>}
 
                     <div className="flex gap-3">
-                        <button type="submit" disabled={submitting}
+                        <button type="submit" disabled={submitting || !acceptingRequests}
                             className="rounded-full bg-gradient-to-br from-gold to-hibiscus px-5 py-2 text-sm font-medium text-reef-navy-deep disabled:opacity-60">
-                            {submitting ? 'Sending…' : 'Send request'}
+                            {submitting ? 'Sending…' : `Send request · ${requestLimits.minDays}–${requestLimits.maxDays} days`}
                         </button>
                         <button type="button" onClick={onClose} className="rounded-full px-5 py-2 text-sm text-muted-foreground hover:text-foreground">
                             Cancel
@@ -383,7 +402,7 @@ function RequestQueue({ items, busyId, onApprove, onDeny }) {
             {items.map(l => (
                 <div key={l._id} className="flex flex-wrap items-center justify-between gap-4 py-4">
                     <div>
-                        <p className="font-medium text-foreground">{l.username} <span className="font-normal text-muted-foreground">· {REASON_LABEL[l.reason]}</span></p>
+                        <p className="font-medium text-foreground">{l.username} <span className="font-normal text-muted-foreground">· {l.reasonLabel || REASON_LABEL[l.reason] || l.reason}</span></p>
                         <p className="text-sm text-muted-foreground">{fmt(l.startDate)} – {fmt(l.endDate)} · {daysAway(l.startDate, l.endDate)}d</p>
                         {l.note && <p className="mt-1 text-sm text-muted-foreground">“{l.note}”</p>}
                     </div>
@@ -423,7 +442,7 @@ function AwayChips({ items, busyId, isStaff, onEnd }) {
                     </div>
                     <div className="leading-tight">
                         <p className="text-sm font-medium text-foreground">{l.username}</p>
-                        <p className="text-xs text-muted-foreground">{REASON_LABEL[l.reason]} · back {fmt(l.endDate)}</p>
+                        <p className="text-xs text-muted-foreground">{l.reasonLabel || REASON_LABEL[l.reason] || l.reason} · back {fmt(l.endDate)}</p>
                     </div>
                     {isStaff && (
                         <button
@@ -452,7 +471,7 @@ function HistoryTimeline({ items, empty = 'No leave on record yet.', onCancel, b
                     <div key={l._id} className="relative">
                         <span className={`absolute -left-6 top-1.5 h-2 w-2 rounded-full ${dotColor(l)}`} />
                         <p className="font-medium text-foreground">
-                            {REASON_LABEL[l.reason]} <span className="font-normal text-muted-foreground">· {fmt(l.startDate)} – {fmt(l.endDate)}</span>
+                            {l.reasonLabel || REASON_LABEL[l.reason] || l.reason} <span className="font-normal text-muted-foreground">· {fmt(l.startDate)} – {fmt(l.endDate)}</span>
                         </p>
                         <p className="text-sm text-muted-foreground">{outcomeText(l)}</p>
                         {l.note && <p className="mt-1 text-sm text-muted-foreground">“{l.note}”</p>}

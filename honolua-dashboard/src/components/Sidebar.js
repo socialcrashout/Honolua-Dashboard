@@ -16,6 +16,7 @@ import {
   MessageCircleQuestion,
   CalendarClock,
   CalendarCheck2,
+  SlidersHorizontal,
   ScrollText,
   Power,
   Mail,
@@ -88,6 +89,7 @@ const NAV_GROUPS = [
     minLevel: ROLE_LEVELS.executive,
     items: [
       { href: "/staff/loa", label: "Manage Leaves", icon: CalendarCheck2 },
+      { href: "/staff/loa/settings", label: "Leave Settings", icon: SlidersHorizontal },
       { href: "/staff/departments", label: "Departments", icon: Building2 },
       { href: "/staff/ranking", label: "Ranking Logs", icon: TrendingUp },
       { href: "/staff/updates", label: "Updates", icon: Megaphone },
@@ -102,6 +104,7 @@ const FOOTER_ITEMS = [{ href: "/", label: "Back", icon: ArrowLeft }]
 
 function isActive(pathname, href) {
   if (href === "/dashboard") return pathname === "/dashboard"
+  if (href === "/staff/loa") return pathname === href
   return pathname === href || pathname.startsWith(href + "/")
 }
 

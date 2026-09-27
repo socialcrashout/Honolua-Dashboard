@@ -2,9 +2,14 @@ import { NextResponse } from 'next/server';
 import { getLeavesCollection, REASONS } from '@/lib/leaves';
 import { getSessionUser, isStaff } from '@/lib/loaAuth';
 import { logStaffAction } from '@/lib/audit';
+import { getLoaSettings } from '@/lib/loaSettings';
 
 // ── ADJUST if you scope guilds differently ──
 const GUILD_ID = process.env.GUILD_ID || process.env.DISCORD_GUILD_ID;
+const REASON_LABELS = {
+    vacation: 'Vacation', school: 'School', exams: 'Exams', hospital: 'Hospital or medical',
+    family: 'Family', work: 'Work', break: 'Taking a break', other: 'Other',
+};
 
 export async function GET(request) {
     const user = await getSessionUser();
@@ -56,7 +61,13 @@ export async function POST(request) {
     const body = await request.json();
     const { reason, note, startDate, endDate } = body;
 
-    if (!REASONS.includes(reason)) {
+    const loaSettings = await getLoaSettings(GUILD_ID);
+    if (!loaSettings.acceptingRequests) {
+        return NextResponse.json({ error: 'Leave requests are currently paused.' }, { status: 403 });
+    }
+    const reasonChoice = [...REASONS.map((id) => ({ id, label: REASON_LABELS[id] })), ...loaSettings.customReasons]
+        .find((choice) => choice.id === reason);
+    if (!reasonChoice) {
         return NextResponse.json({ error: 'Pick a valid reason.' }, { status: 400 });
     }
     if (!startDate || !endDate) {
@@ -66,6 +77,10 @@ export async function POST(request) {
     const end = new Date(endDate);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
         return NextResponse.json({ error: "Last day can't be before the first day." }, { status: 400 });
+    }
+    const requestedDays = Math.round((end - start) / 86400000) + 1;
+    if (requestedDays < loaSettings.minDays || requestedDays > loaSettings.maxDays) {
+        return NextResponse.json({ error: `Requests must be between ${loaSettings.minDays} and ${loaSettings.maxDays} days.` }, { status: 400 });
     }
 
     const leaves = await getLeavesCollection();
@@ -77,6 +92,7 @@ export async function POST(request) {
         avatar: user.avatar,
         robloxUsername: user.robloxUsername || null,
         reason,
+        reasonLabel: reasonChoice.label,
         note: note?.slice(0, 500) || '',
         startDate: start,
         endDate: end,
@@ -95,6 +111,7 @@ export async function POST(request) {
             subjectDiscordId: user.id,
             subjectUsername: user.username,
             reason,
+            reasonLabel: reasonChoice.label,
             startDate: start,
             endDate: end,
         },

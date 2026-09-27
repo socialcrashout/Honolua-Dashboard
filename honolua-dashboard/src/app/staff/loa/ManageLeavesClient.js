@@ -12,7 +12,13 @@ const REASONS = {
 };
 const date = (value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 const time = (value) => new Date(value).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-const duration = (from, to) => Math.max(1, Math.round((new Date(to) - new Date(from)) / 86400000) + 1);
+const duration = (from, to) => {
+    const start = new Date(from);
+    const end = new Date(to);
+    const firstDay = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
+    const lastDay = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate());
+    return Math.max(1, Math.round((lastDay - firstDay) / 86400000) + 1);
+};
 
 export default function ManageLeavesClient({ pending, active, history }) {
     const router = useRouter();

@@ -153,7 +153,7 @@ export default function LeaveSettingsClient({ initialSettings, guildId }) {
                                     {settings.discordRoleId && !roles.some((role) => role.id === settings.discordRoleId) && <option value={settings.discordRoleId}>Saved role ({settings.discordRoleId})</option>}
                                 </select>
                             </SettingRow>
-                            <div className="flex items-start gap-2.5 bg-[#fffaf2] px-5 py-4 text-xs leading-5 text-stone-500 sm:px-7"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" />The bot checks active leave every minute. It removes only the role it added for that leave.</div>
+                            <div className="flex items-start gap-2.5 bg-[#fffaf2] px-5 py-4 text-xs leading-5 text-stone-500 sm:px-7"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" />The bot checks every 30 seconds. It needs Manage Roles, and this role must be below the bot’s highest role. It removes only a role it added for that leave.</div>
                             {rolesError && <p className="px-7 pb-4 text-xs text-orange-800">{rolesError}</p>}
                             {!guildId && <p className="px-7 pb-4 text-xs text-orange-800">Configure the Discord guild ID to load roles.</p>}
                         </section>

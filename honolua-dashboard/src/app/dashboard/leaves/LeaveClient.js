@@ -24,8 +24,11 @@ function fmtTime(d) {
 }
 
 function daysAway(start, end) {
-    const ms = new Date(end) - new Date(start);
-    return Math.max(1, Math.round(ms / 86400000) + 1);
+    const from = new Date(start);
+    const to = new Date(end);
+    const firstDay = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+    const lastDay = Date.UTC(to.getFullYear(), to.getMonth(), to.getDate());
+    return Math.max(1, Math.round((lastDay - firstDay) / 86400000) + 1);
 }
 
 // The one deliberate motion moment on this page — everything else only
@@ -328,7 +331,7 @@ function RequestPanel({ open, onClose, onSubmitted }) {
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Could not send that request.');
-                    setNote(''); setStart(''); setEnd(''); setStartTime('09:00'); setEndTime('17:00');
+            setNote(''); setStart(''); setEnd(''); setStartTime('09:00'); setEndTime('17:00');
             onSubmitted();
         } catch (err) {
             setError(err.message);

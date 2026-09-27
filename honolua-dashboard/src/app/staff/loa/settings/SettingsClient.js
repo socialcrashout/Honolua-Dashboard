@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, ChevronRight, CircleHelp, Plus, Save, Settings2, ShieldCheck, Sparkles, X } from 'lucide-react';
+import { CalendarDays, ChevronRight, CircleHelp, Clock3, Plus, Save, Settings2, ShieldCheck, Sparkles, X } from 'lucide-react';
 
 const BUILT_IN_REASONS = [
     { id: 'vacation', label: 'Vacation' }, { id: 'school', label: 'School' },
@@ -14,16 +14,34 @@ const BUILT_IN_REASONS = [
 
 const NAV = [
     { id: 'requests', label: 'Request rules', detail: 'Availability and length', icon: Settings2 },
+    { id: 'discord-role', label: 'Discord role', detail: 'Role during approved leave', icon: ShieldCheck },
     { id: 'reasons', label: 'Reason picker', detail: 'What staff can choose', icon: CalendarDays },
 ];
 
-export default function LeaveSettingsClient({ initialSettings }) {
+export default function LeaveSettingsClient({ initialSettings, guildId }) {
     const router = useRouter();
     const [settings, setSettings] = useState(initialSettings);
     const [reasonName, setReasonName] = useState('');
+    const [roles, setRoles] = useState([]);
+    const [rolesLoading, setRolesLoading] = useState(Boolean(guildId));
+    const [rolesError, setRolesError] = useState('');
     const [activeSection, setActiveSection] = useState('requests');
     const [saving, setSaving] = useState(false);
     const [feedback, setFeedback] = useState('');
+
+    useEffect(() => {
+        if (!guildId) return;
+        let cancelled = false;
+        fetch(`/api/guilds/${guildId}/roles`, { cache: 'no-store' })
+            .then(async (response) => {
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) throw new Error(data.error || 'Could not load Discord roles.');
+                if (!cancelled) setRoles(data.roles || []);
+            })
+            .catch((error) => { if (!cancelled) setRolesError(error.message || 'Could not load Discord roles.'); })
+            .finally(() => { if (!cancelled) setRolesLoading(false); });
+        return () => { cancelled = true; };
+    }, [guildId]);
 
     function update(key, value) {
         setSettings((current) => ({ ...current, [key]: value }));
@@ -121,6 +139,23 @@ export default function LeaveSettingsClient({ initialSettings }) {
                                 </SettingRow>
                             </div>
                             <div className="flex items-start gap-2.5 bg-[#fffaf2] px-5 py-4 text-xs leading-5 text-stone-500 sm:px-7"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" />The server validates these limits when each request is submitted.</div>
+                        </section>
+
+                        <section id="loa-discord-role" onMouseEnter={() => setActiveSection('discord-role')} className="scroll-mt-6 overflow-hidden rounded-2xl border border-orange-200/80 bg-white shadow-[0_8px_28px_rgba(120,78,35,0.055)]">
+                            <div className="flex items-start gap-3 border-b border-orange-100 bg-gradient-to-r from-orange-50/80 to-white px-5 py-5 sm:px-7">
+                                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-orange-700 ring-1 ring-orange-200"><ShieldCheck className="h-4 w-4" /></span>
+                                <div><h2 className="font-semibold">Discord leave role</h2><p className="mt-1 text-sm text-stone-500">The bot grants this role when approved leave begins and removes it when leave ends.</p></div>
+                            </div>
+                            <SettingRow title="Role during leave" description="The role is added only after approval and at the selected start time.">
+                                <select aria-label="Discord role during leave" value={settings.discordRoleId || ''} onChange={(event) => update('discordRoleId', event.target.value)} disabled={rolesLoading || Boolean(rolesError)} className="min-w-52 rounded-xl border border-orange-200 bg-[#fffaf2] px-3 py-2.5 text-sm text-stone-700 outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:opacity-60">
+                                    <option value="">No LOA role</option>
+                                    {roles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+                                    {settings.discordRoleId && !roles.some((role) => role.id === settings.discordRoleId) && <option value={settings.discordRoleId}>Saved role ({settings.discordRoleId})</option>}
+                                </select>
+                            </SettingRow>
+                            <div className="flex items-start gap-2.5 bg-[#fffaf2] px-5 py-4 text-xs leading-5 text-stone-500 sm:px-7"><Clock3 className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" />The bot checks active leave every minute. It removes only the role it added for that leave.</div>
+                            {rolesError && <p className="px-7 pb-4 text-xs text-orange-800">{rolesError}</p>}
+                            {!guildId && <p className="px-7 pb-4 text-xs text-orange-800">Configure the Discord guild ID to load roles.</p>}
                         </section>
 
                         <section id="loa-reasons" onMouseEnter={() => setActiveSection('reasons')} className="scroll-mt-6 overflow-hidden rounded-2xl border border-orange-200/80 bg-white shadow-[0_8px_28px_rgba(120,78,35,0.055)]">

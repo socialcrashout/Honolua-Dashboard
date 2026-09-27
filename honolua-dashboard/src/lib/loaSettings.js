@@ -4,6 +4,7 @@ export const DEFAULT_LOA_SETTINGS = {
     acceptingRequests: true,
     minDays: 1,
     maxDays: 30,
+    discordRoleId: '',
     customReasons: [],
 };
 
@@ -16,6 +17,7 @@ export async function getLoaSettings(guildId) {
         acceptingRequests: settings.acceptingRequests !== false,
         minDays: settings.minDays ?? DEFAULT_LOA_SETTINGS.minDays,
         maxDays: settings.maxDays ?? DEFAULT_LOA_SETTINGS.maxDays,
+        discordRoleId: settings.discordRoleId || '',
         customReasons: Array.isArray(settings.customReasons) ? settings.customReasons : [],
     };
 }

@@ -27,6 +27,10 @@ export async function PUT(request) {
     if (!Number.isInteger(minDays) || !Number.isInteger(maxDays) || minDays < 1 || maxDays > 365 || minDays > maxDays) {
         return NextResponse.json({ error: 'Choose a valid leave length between 1 and 365 days.' }, { status: 400 });
     }
+    const discordRoleId = typeof settings.discordRoleId === 'string' ? settings.discordRoleId.trim() : '';
+    if (discordRoleId && !/^\d{17,20}$/.test(discordRoleId)) {
+        return NextResponse.json({ error: 'Choose a valid Discord role.' }, { status: 400 });
+    }
     if (!Array.isArray(settings.customReasons) || settings.customReasons.length > 8) {
         return NextResponse.json({ error: 'Add up to 8 custom reasons.' }, { status: 400 });
     }
@@ -46,6 +50,7 @@ export async function PUT(request) {
         acceptingRequests: settings.acceptingRequests,
         minDays,
         maxDays,
+        discordRoleId,
         customReasons,
         guildId: GUILD_ID,
         updatedAt: new Date(),
@@ -64,6 +69,7 @@ export async function PUT(request) {
             acceptingRequests: nextSettings.acceptingRequests,
             minDays,
             maxDays,
+            discordRoleId: discordRoleId || null,
             customReasonCount: customReasons.length,
         },
     });

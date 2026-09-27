@@ -10,5 +10,5 @@ export default async function LeaveSettingsPage() {
     if (!user) return <div className="mx-auto flex min-h-[60vh] max-w-5xl items-center px-6 text-stone-500">Sign in to manage leave settings.</div>;
     if (!isStaff(user)) return <div className="mx-auto flex min-h-[60vh] max-w-5xl items-center px-6 text-stone-500">You don’t have access to leave settings.</div>;
 
-    return <LeaveSettingsClient initialSettings={await getLoaSettings(GUILD_ID)} />;
+    return <LeaveSettingsClient initialSettings={await getLoaSettings(GUILD_ID)} guildId={GUILD_ID || ''} />;
 }

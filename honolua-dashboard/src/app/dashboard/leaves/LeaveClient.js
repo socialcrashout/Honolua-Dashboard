@@ -19,6 +19,10 @@ function fmt(d) {
     return new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
+function fmtTime(d) {
+    return new Date(d).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
 function daysAway(start, end) {
     const ms = new Date(end) - new Date(start);
     return Math.max(1, Math.round(ms / 86400000) + 1);
@@ -258,6 +262,7 @@ function PersonalLeaveList({ items, emptyTitle, emptyText, onCancel, busyId }) {
                                     <span className="ml-2 font-normal text-muted-foreground">{fmt(item.startDate)} – {fmt(item.endDate)}</span>
                                 </h3>
                                 <p className="mt-1 text-sm text-muted-foreground">{outcomeText(item)} · {daysAway(item.startDate, item.endDate)} {daysAway(item.startDate, item.endDate) === 1 ? 'day' : 'days'}</p>
+                                <p className="mt-1 text-sm text-muted-foreground">{fmt(item.startDate)} at {fmtTime(item.startDate)} – {fmt(item.endDate)} at {fmtTime(item.endDate)}</p>
                             </div>
                         </div>
                         {onCancel && item.status === 'pending' && (
@@ -283,6 +288,8 @@ function RequestPanel({ open, onClose, onSubmitted }) {
     const [note, setNote] = useState('');
     const [start, setStart] = useState('');
     const [end, setEnd] = useState('');
+    const [startTime, setStartTime] = useState('09:00');
+    const [endTime, setEndTime] = useState('17:00');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [customReasons, setCustomReasons] = useState([]);
@@ -309,16 +316,19 @@ function RequestPanel({ open, onClose, onSubmitted }) {
         e.preventDefault();
         setError('');
         if (!start || !end) return setError('Pick your first and last day away.');
+        const startAt = new Date(`${start}T${startTime}`);
+        const endAt = new Date(`${end}T${endTime}`);
+        if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime()) || endAt <= startAt) return setError('The end date and time must be after the start.');
         setSubmitting(true);
         try {
             const res = await fetch('/api/leaves', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason, note, startDate: start, endDate: end }),
+                body: JSON.stringify({ reason, note, startDate: startAt.toISOString(), endDate: endAt.toISOString() }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Could not send that request.');
-            setNote(''); setStart(''); setEnd('');
+                    setNote(''); setStart(''); setEnd(''); setStartTime('09:00'); setEndTime('17:00');
             onSubmitted();
         } catch (err) {
             setError(err.message);

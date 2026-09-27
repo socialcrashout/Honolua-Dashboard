@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "sonner"
-import { BellOff, ChevronDown, Hash, RefreshCw, Save, Search, ScrollText, Settings2 } from "lucide-react"
+import { ChevronDown, Hash, RefreshCw, Save, Search, ScrollText, Settings2 } from "lucide-react"
 
 function actionLabel(action) {
   return String(action || "")
@@ -77,46 +77,31 @@ function AuditDeliverySettings() {
   }
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-orange-200/80 bg-gradient-to-br from-[#fffaf2] via-white to-[#fff4e7] shadow-[0_14px_40px_rgba(153,92,38,0.07)]">
-      <div className="flex flex-col gap-5 border-b border-orange-100 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-orange-100 text-orange-700">
-            <Settings2 className="h-5 w-5" />
-          </div>
+    <section className="rounded-2xl border border-orange-200/80 bg-white px-4 py-3 shadow-[0_4px_18px_rgba(153,92,38,0.06)]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-700 ring-1 ring-orange-200/80">
+            <Settings2 className="h-4 w-4" />
+          </span>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-700/65">Discord delivery</div>
-            <h2 className="mt-1 text-lg font-semibold text-reef-navy">Discord audit stream</h2>
-            <p className="mt-1 max-w-xl text-sm leading-relaxed text-lava/55">Choose where the bot should post staff activity cards.</p>
+            <h2 className="text-sm font-semibold text-reef-navy">Audit log channel</h2>
+            <p className="text-xs text-lava/45">Discord notifications are suppressed.</p>
           </div>
         </div>
-        <button onClick={save} disabled={saving || loading} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#ef8e42] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#de7832] disabled:opacity-50">
-          <Save className="h-4 w-4" />{saving ? "Saving…" : "Save settings"}
-        </button>
-      </div>
-
-      <div className="grid gap-0 lg:grid-cols-[1fr_1.15fr]">
-        <div className="border-b border-orange-100 px-6 py-6 lg:border-b-0 lg:border-r">
-          <label htmlFor="audit-channel" className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-lava/50">Discord channel</label>
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <div className="relative min-w-[220px] flex-1 sm:flex-none">
             <Hash className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-orange-700/55" />
-            <select id="audit-channel" value={settings.channelId || ""} disabled={loading || !channels.length} onChange={(event) => setSettings((current) => ({ ...current, channelId: event.target.value }))} className="h-12 w-full appearance-none rounded-xl border border-orange-200 bg-white pl-10 pr-3 text-sm text-reef-navy outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100 disabled:opacity-60">
+            <select id="audit-channel" value={settings.channelId || ""} disabled={loading || !channels.length} onChange={(event) => setSettings((current) => ({ ...current, channelId: event.target.value }))} className="h-10 w-full appearance-none rounded-xl border border-orange-200 bg-[#fffaf2] pl-9 pr-8 text-sm text-reef-navy outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100 disabled:opacity-60">
               <option value="">{loading ? "Loading channels…" : "Discord messages disabled"}</option>
               {channels.map((channel) => <option key={channel.id} value={channel.id}>#{channel.name}</option>)}
             </select>
           </div>
-          <div className="mt-3 flex items-start gap-2 text-xs leading-relaxed text-lava/50">
-            <BellOff className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-700/65" />
-            <span>Member mentions stay visible in the log, but Discord notifications are suppressed.</span>
-          </div>
-          {channelError && <p className="mt-3 text-xs text-orange-800">{channelError}</p>}
-        </div>
-
-        <div className="flex flex-col justify-center px-6 py-6">
-          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-lava/50">What gets sent</div>
-          <p className="mt-2 max-w-md text-sm leading-relaxed text-lava/60">Staff actions, affected members, and relevant details are posted as a compact Discord component card. Emoji styling is managed in the bot configuration.</p>
-          <p className="mt-3 text-xs text-lava/45">Leave the channel empty to keep audit entries on this page only.</p>
+          <button onClick={save} disabled={saving || loading} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#ef8e42] px-3.5 text-sm font-semibold text-white transition hover:bg-[#de7832] disabled:opacity-50">
+            <Save className="h-4 w-4" />{saving ? "Saving…" : "Save"}
+          </button>
         </div>
       </div>
+      {channelError && <p className="mt-2 text-xs text-orange-800">{channelError}</p>}
     </section>
   )
 }

@@ -67,9 +67,11 @@ export async function PUT(request) {
   const collection = db.collection('auditLogSettings');
   const existing = await collection.findOne({ guildId: GUILD_ID });
   const set = { guildId: GUILD_ID, channelId, updatedAt: new Date(), updatedBy: user.id };
-  if (existing?.channelId !== channelId) {
+  if (existing?.channelId !== channelId || !existing.discordAfterId || !existing.discordRankingAfterId) {
     const latestLog = await db.collection('staffAuditLog').find({}).sort({ _id: -1 }).limit(1).next();
+    const latestRankingLog = await db.collection('rankinglogs').find({ guildId: GUILD_ID }).sort({ _id: -1 }).limit(1).next();
     set.discordAfterId = latestLog?._id || new ObjectId();
+    set.discordRankingAfterId = latestRankingLog?._id || new ObjectId();
   }
   await collection.updateOne(
     { guildId: GUILD_ID },

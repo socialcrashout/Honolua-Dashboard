@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getLeavesCollection, toObjectId } from '@/lib/leaves';
 import { getSessionUser, isStaff } from '@/lib/loaAuth';
+import { logStaffAction } from '@/lib/audit';
 
 // PATCH /api/leaves/:id   body: { action: 'approve' | 'deny' | 'end' | 'cancel' }
 export async function PATCH(request, { params }) {
@@ -65,7 +66,30 @@ export async function PATCH(request, { params }) {
         update.updatedAt = now;
     }
 
-    await leaves.updateOne({ _id }, { $set: update });
+    const result = await leaves.updateOne({ _id }, { $set: update });
+    if (!result.matchedCount) {
+        return NextResponse.json({ error: 'Leave request not found.' }, { status: 404 });
+    }
+
+    const auditAction = {
+        approve: 'leave_approved',
+        deny: 'leave_denied',
+        end: 'leave_ended_early',
+        cancel: 'leave_withdrawn',
+    }[action];
+    await logStaffAction({
+        session: { discordId: user.id, discordUsername: user.username },
+        action: auditAction,
+        meta: {
+            leaveId: String(_id),
+            subjectDiscordId: leave.userId,
+            subjectUsername: leave.username,
+            reason: leave.reason,
+            startDate: leave.startDate,
+            endDate: leave.endDate,
+        },
+    });
+
     const updated = await leaves.findOne({ _id });
     return NextResponse.json({ leave: updated });
 }

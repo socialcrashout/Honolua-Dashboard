@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getLeavesCollection, REASONS } from '@/lib/leaves';
 import { getSessionUser, isStaff } from '@/lib/loaAuth';
+import { logStaffAction } from '@/lib/audit';
 
 // ── ADJUST if you scope guilds differently ──
 const GUILD_ID = process.env.GUILD_ID;
@@ -82,5 +83,17 @@ export async function POST(request) {
     };
 
     const result = await leaves.insertOne(doc);
+    await logStaffAction({
+        session: { discordId: user.id, discordUsername: user.username },
+        action: 'leave_requested',
+        meta: {
+            leaveId: String(result.insertedId),
+            subjectDiscordId: user.id,
+            subjectUsername: user.username,
+            reason,
+            startDate: start,
+            endDate: end,
+        },
+    });
     return NextResponse.json({ leave: { ...doc, _id: result.insertedId } }, { status: 201 });
 }

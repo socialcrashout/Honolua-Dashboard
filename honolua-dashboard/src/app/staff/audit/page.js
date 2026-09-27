@@ -37,16 +37,8 @@ function Avatar({ url }) {
   )
 }
 
-const emojiFields = [
-  ["action", "Action"],
-  ["actor", "Staff"],
-  ["subject", "Member"],
-  ["details", "Details"],
-  ["time", "Time"],
-]
-
 function AuditDeliverySettings() {
-  const [settings, setSettings] = useState({ channelId: "", emojis: {} })
+  const [settings, setSettings] = useState({ channelId: "" })
   const [channels, setChannels] = useState([])
   const [channelError, setChannelError] = useState("")
   const [loading, setLoading] = useState(true)
@@ -57,7 +49,7 @@ function AuditDeliverySettings() {
       .then(async (response) => {
         const data = await response.json().catch(() => ({}))
         if (!response.ok) throw new Error(data.error || "Could not load audit settings.")
-        setSettings(data.settings || { channelId: "", emojis: {} })
+        setSettings(data.settings || { channelId: "" })
         setChannels(data.channels || [])
         setChannelError(data.channelError || "")
       })
@@ -92,9 +84,9 @@ function AuditDeliverySettings() {
             <Settings2 className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-700/65">Delivery & style</div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-orange-700/65">Discord delivery</div>
             <h2 className="mt-1 text-lg font-semibold text-reef-navy">Discord audit stream</h2>
-            <p className="mt-1 max-w-xl text-sm leading-relaxed text-lava/55">Choose a private channel and tune the small emoji set used in each activity card.</p>
+            <p className="mt-1 max-w-xl text-sm leading-relaxed text-lava/55">Choose where the bot should post staff activity cards.</p>
           </div>
         </div>
         <button onClick={save} disabled={saving || loading} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#ef8e42] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#de7832] disabled:opacity-50">
@@ -119,17 +111,10 @@ function AuditDeliverySettings() {
           {channelError && <p className="mt-3 text-xs text-orange-800">{channelError}</p>}
         </div>
 
-        <div className="px-6 py-6">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-lava/50">Emoji key</div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {emojiFields.map(([key, label]) => (
-              <label key={key} className="block">
-                <span className="mb-1.5 block text-xs text-lava/55">{label}</span>
-                <input value={settings.emojis?.[key] || ""} maxLength={80} onChange={(event) => setSettings((current) => ({ ...current, emojis: { ...current.emojis, [key]: event.target.value } }))} className="h-10 w-full rounded-xl border border-orange-200 bg-white px-3 text-sm text-reef-navy outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100" aria-label={`${label} audit emoji`} />
-              </label>
-            ))}
-          </div>
-          <p className="mt-3 text-xs text-lava/45">Use a regular emoji or a Discord custom emoji token. Leave a channel empty to keep logging only on this page.</p>
+        <div className="flex flex-col justify-center px-6 py-6">
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-lava/50">What gets sent</div>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-lava/60">Staff actions, affected members, and relevant details are posted as a compact Discord component card. Emoji styling is managed in the bot configuration.</p>
+          <p className="mt-3 text-xs text-lava/45">Leave the channel empty to keep audit entries on this page only.</p>
         </div>
       </div>
     </section>

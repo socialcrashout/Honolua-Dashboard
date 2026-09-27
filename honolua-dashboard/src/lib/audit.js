@@ -1,5 +1,4 @@
 import clientPromise from "@/lib/mongodb"
-import { sendAuditDiscordMessage } from "@/lib/auditDiscord"
 
 const DB_NAME = "honolua"
 
@@ -52,7 +51,6 @@ export async function logStaffAction({ session, action, meta = {} }) {
       createdAt: new Date(),
     }
     await db.collection("staffAuditLog").insertOne(entry)
-    await sendAuditDiscordMessage({ action, meta, actor: entry, createdAt: entry.createdAt })
   } catch (err) {
     // Never let a logging failure break the actual save.
     console.error("audit: failed to write log entry", err)

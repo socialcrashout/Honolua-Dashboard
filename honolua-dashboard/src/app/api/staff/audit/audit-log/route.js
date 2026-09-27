@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import clientPromise from "@/lib/mongodb"
 import { getUserFromSession } from "@/lib/auth"
-import { sendAuditDiscordMessage } from "@/lib/auditDiscord"
 
 const DB_NAME = "honolua"
 const MAX_LIMIT = 100
@@ -120,7 +119,6 @@ export async function POST(request) {
     }
 
     const result = await db.collection("staffAuditLog").insertOne(doc)
-    await sendAuditDiscordMessage({ action: doc.action, meta: doc.meta, actor: doc, createdAt: doc.createdAt })
 
     return NextResponse.json({
       ok: true,

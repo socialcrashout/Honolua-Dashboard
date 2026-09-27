@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { getSessionUser, isStaff } from '@/lib/loaAuth';
 import { logStaffAction } from '@/lib/audit';
-import { DEFAULT_AUDIT_EMOJIS } from '@/lib/auditDiscord';
+import { ObjectId } from 'mongodb';
 
 const DB_NAME = 'honolua';
 const GUILD_ID = process.env.GUILD_ID || process.env.DISCORD_GUILD_ID;
@@ -47,7 +47,6 @@ export async function GET() {
     channelError,
     settings: {
       channelId: settings?.channelId || '',
-      emojis: { ...DEFAULT_AUDIT_EMOJIS, ...(settings?.emojis || {}) },
     },
   });
 }
@@ -59,24 +58,22 @@ export async function PUT(request) {
 
   const body = await request.json().catch(() => null);
   const channelId = typeof body?.channelId === 'string' ? body.channelId.trim() : '';
-  const suppliedEmojis = body?.emojis || {};
   if (channelId && !/^\d{17,20}$/.test(channelId)) {
     return NextResponse.json({ error: 'Choose a valid Discord channel.' }, { status: 400 });
   }
 
-  const emojis = {};
-  for (const key of Object.keys(DEFAULT_AUDIT_EMOJIS)) {
-    const value = typeof suppliedEmojis[key] === 'string' ? suppliedEmojis[key].trim() : '';
-    if (!value || value.length > 80) {
-      return NextResponse.json({ error: 'Each emoji must contain 1–80 characters.' }, { status: 400 });
-    }
-    emojis[key] = value;
-  }
-
   const client = await clientPromise;
-  await client.db(DB_NAME).collection('auditLogSettings').updateOne(
+  const db = client.db(DB_NAME);
+  const collection = db.collection('auditLogSettings');
+  const existing = await collection.findOne({ guildId: GUILD_ID });
+  const set = { guildId: GUILD_ID, channelId, updatedAt: new Date(), updatedBy: user.id };
+  if (existing?.channelId !== channelId) {
+    const latestLog = await db.collection('staffAuditLog').find({}).sort({ _id: -1 }).limit(1).next();
+    set.discordAfterId = latestLog?._id || new ObjectId();
+  }
+  await collection.updateOne(
     { guildId: GUILD_ID },
-    { $set: { guildId: GUILD_ID, channelId, emojis, updatedAt: new Date(), updatedBy: user.id } },
+    { $set: set, $unset: { emojis: 1 } },
     { upsert: true },
   );
   await logStaffAction({
@@ -85,5 +82,5 @@ export async function PUT(request) {
     meta: { channelId: channelId || null },
   });
 
-  return NextResponse.json({ ok: true, settings: { channelId, emojis } });
+  return NextResponse.json({ ok: true, settings: { channelId } });
 }

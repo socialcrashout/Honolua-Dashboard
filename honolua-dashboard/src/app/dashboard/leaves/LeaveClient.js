@@ -324,7 +324,7 @@ function RequestPanel({ open, onClose, onSubmitted }) {
             const res = await fetch('/api/leaves', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason, note, startDate: startAt.toISOString(), endDate: endAt.toISOString(), timezoneOffset: new Date().getTimezoneOffset() }),
+                body: JSON.stringify({ reason, note, startDate: startAt.toISOString(), endDate: endAt.toISOString(), startLocalDate: start, endLocalDate: end, timezoneOffset: new Date().getTimezoneOffset() }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Could not send that request.');

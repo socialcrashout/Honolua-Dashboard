@@ -11,6 +11,7 @@ const REASONS = {
     family: 'Family', work: 'Work', break: 'Personal break', other: 'Other',
 };
 const date = (value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+const time = (value) => new Date(value).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 const duration = (from, to) => Math.max(1, Math.round((new Date(to) - new Date(from)) / 86400000) + 1);
 
 export default function ManageLeavesClient({ pending, active, history }) {
@@ -123,7 +124,7 @@ export default function ManageLeavesClient({ pending, active, history }) {
                                     <MemberIdentity leave={leave} />
                                     <div><p className="text-sm font-medium">{leave.reasonLabel || REASONS[leave.reason] || 'Other'}</p><p className="text-xs text-stone-500 md:hidden">Reason</p></div>
                                     <div><p className="text-sm">{duration(leave.startDate, leave.endDate)} days</p><p className="text-xs text-stone-500">{leave.status === 'pending' ? 'Requested' : leave.endedEarly ? 'Ended early' : leave.status}</p></div>
-                                    <div><p className="text-sm">{date(leave.startDate)}</p><p className="text-xs text-stone-500">through {date(leave.endDate)}</p></div>
+                                    <div><p className="text-sm">{date(leave.startDate)} · {time(leave.startDate)}</p><p className="text-xs text-stone-500">through {date(leave.endDate)} · {time(leave.endDate)}</p></div>
                                     <div className="flex items-center justify-end gap-2">
                                         {section === 'requests' ? <>
                                             <button aria-label={`Approve ${leave.username}`} disabled={busyId === leave._id} onClick={() => decide(leave._id, 'approve')} className="inline-flex items-center gap-1.5 rounded-lg bg-orange-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-orange-700 disabled:opacity-50"><Check className="h-3.5 w-3.5" /> Approve</button>

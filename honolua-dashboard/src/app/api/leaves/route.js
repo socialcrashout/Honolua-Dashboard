@@ -59,7 +59,7 @@ export async function POST(request) {
     if (!user) return NextResponse.json({ error: 'Not signed in.' }, { status: 401 });
 
     const body = await request.json();
-    const { reason, note, startDate, endDate, timezoneOffset } = body;
+    const { reason, note, startDate, endDate, startLocalDate, endLocalDate, timezoneOffset } = body;
 
     const loaSettings = await getLoaSettings(GUILD_ID);
     if (!loaSettings.acceptingRequests) {
@@ -78,9 +78,10 @@ export async function POST(request) {
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
         return NextResponse.json({ error: "Last day can't be before the first day." }, { status: 400 });
     }
+    const hasLocalDates = /^\d{4}-\d{2}-\d{2}$/.test(startLocalDate || '') && /^\d{4}-\d{2}-\d{2}$/.test(endLocalDate || '');
     const offset = Number.isInteger(timezoneOffset) && Math.abs(timezoneOffset) <= 840 ? timezoneOffset : 0;
-    const localStart = new Date(start.getTime() - offset * 60000);
-    const localEnd = new Date(end.getTime() - offset * 60000);
+    const localStart = hasLocalDates ? new Date(`${startLocalDate}T00:00:00Z`) : new Date(start.getTime() - offset * 60000);
+    const localEnd = hasLocalDates ? new Date(`${endLocalDate}T00:00:00Z`) : new Date(end.getTime() - offset * 60000);
     const startDay = Date.UTC(localStart.getUTCFullYear(), localStart.getUTCMonth(), localStart.getUTCDate());
     const endDay = Date.UTC(localEnd.getUTCFullYear(), localEnd.getUTCMonth(), localEnd.getUTCDate());
     const requestedDays = Math.floor((endDay - startDay) / 86400000) + 1;

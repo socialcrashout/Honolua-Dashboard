@@ -70,6 +70,7 @@ export async function POST(request) {
         userId: user.id,
         username: user.username,
         avatar: user.avatar,
+        robloxUsername: user.robloxUsername || null,
         reason,
         note: note?.slice(0, 500) || '',
         startDate: start,

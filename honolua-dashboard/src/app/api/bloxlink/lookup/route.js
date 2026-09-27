@@ -3,6 +3,32 @@ import { NextResponse } from "next/server";
 
 const HONOLUA_GROUP_ID = "743137138";
 
+function defaultDiscordAvatar(discordId) {
+  if (!/^\d+$/.test(discordId)) return null;
+  const index = Number((BigInt(discordId) >> 22n) % 6n);
+  return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
+}
+
+async function getDiscordAvatar(discordId) {
+  const fallback = defaultDiscordAvatar(discordId);
+  const token = process.env.DISCORD_BOT_TOKEN;
+  if (!token) return fallback;
+
+  try {
+    const response = await fetch(`https://discord.com/api/v10/users/${discordId}`, {
+      headers: { Authorization: `Bot ${token}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) return fallback;
+    const user = await response.json();
+    if (!user.avatar) return fallback;
+    const format = user.avatar.startsWith('a_') ? 'gif' : 'png';
+    return `https://cdn.discordapp.com/avatars/${discordId}/${user.avatar}.${format}?size=128`;
+  } catch {
+    return fallback;
+  }
+}
+
 export async function GET(request) {
   const discordId = request.nextUrl.searchParams.get("discordId");
   if (!discordId) {
@@ -12,13 +38,14 @@ export async function GET(request) {
   const guildId = process.env.DISCORD_GUILD_ID;
 
   try {
+    const discordAvatarPromise = getDiscordAvatar(discordId);
     const bloxlinkRes = await fetch(
       `https://api.blox.link/v4/public/guilds/${guildId}/discord-to-roblox/${discordId}`,
       { headers: { Authorization: process.env.BLOXLINK_API_KEY } }
     );
 
     if (bloxlinkRes.status === 404) {
-      return NextResponse.json({ linked: false });
+      return NextResponse.json({ linked: false, discordAvatarUrl: await discordAvatarPromise });
     }
     if (!bloxlinkRes.ok) throw new Error("Bloxlink lookup failed");
 
@@ -43,6 +70,7 @@ export async function GET(request) {
 
     return NextResponse.json({
       linked: true,
+      discordAvatarUrl: await discordAvatarPromise,
       robloxId,
       robloxUsername: userData.name,
       robloxDisplayName: userData.displayName,

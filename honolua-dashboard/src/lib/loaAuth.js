@@ -40,6 +40,7 @@ export async function getSessionUser() {
         id: data.user.discordId || data.user.id,
         username: data.user.username,
         avatar: data.user.avatarUrl,
+        robloxUsername: data.user.robloxUsername || null,
         workspaceRank: Number.isFinite(workspaceRank) ? workspaceRank : null,
     };
 }

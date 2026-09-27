@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarDays, Check, Clock3, Users, X, ArrowUpRight, CircleCheck } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const REASONS = {
     vacation: 'Vacation', school: 'School', exams: 'Exams', hospital: 'Medical',
@@ -87,12 +89,12 @@ export default function ManageLeavesClient({ pending, active, history }) {
                         </div>
                     ) : (
                         <div className="divide-y divide-slate-100">
-                            {entries.map((leave) => (
-                                <article key={leave._id} className="grid gap-4 px-5 py-5 md:grid-cols-[minmax(180px,1.25fr)_minmax(150px,1fr)_minmax(130px,.8fr)_minmax(150px,1fr)_auto] md:items-center md:px-6">
-                                    <div className="flex min-w-0 items-center gap-3">
-                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-semibold text-slate-700">{leave.username?.[0]?.toUpperCase() || '?'}</div>
-                                        <div className="min-w-0"><p className="truncate text-sm font-semibold">{leave.username || 'Unknown member'}</p><p className="truncate text-xs text-slate-500">Leave request</p></div>
-                                    </div>
+                            {entries.map((leave, index) => (
+                                <motion.article key={leave._id}
+                                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.24, delay: Math.min(index * 0.045, 0.27), ease: 'easeOut' }}
+                                    className="grid gap-4 px-5 py-5 md:grid-cols-[minmax(180px,1.25fr)_minmax(150px,1fr)_minmax(130px,.8fr)_minmax(150px,1fr)_auto] md:items-center md:px-6">
+                                    <MemberIdentity leave={leave} />
                                     <div><p className="text-sm font-medium">{REASONS[leave.reason] || 'Other'}</p><p className="text-xs text-slate-500 md:hidden">Reason</p></div>
                                     <div><p className="text-sm">{duration(leave.startDate, leave.endDate)} days</p><p className="text-xs text-slate-500">{leave.status === 'pending' ? 'Requested' : leave.endedEarly ? 'Ended early' : leave.status}</p></div>
                                     <div><p className="text-sm">{date(leave.startDate)}</p><p className="text-xs text-slate-500">through {date(leave.endDate)}</p></div>
@@ -103,7 +105,7 @@ export default function ManageLeavesClient({ pending, active, history }) {
                                         </> : section === 'active' ? <button disabled={busyId === leave._id} onClick={() => decide(leave._id, 'end')} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">End leave <ArrowUpRight className="h-3.5 w-3.5" /></button> : <Status value={leave.status} />}
                                     </div>
                                     {leave.note && <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600 md:col-span-5">“{leave.note}”</p>}
-                                </article>
+                                </motion.article>
                             ))}
                         </div>
                     )}
@@ -111,6 +113,51 @@ export default function ManageLeavesClient({ pending, active, history }) {
                 <p className="mt-4 text-xs text-slate-500">Dates are shown in your local timezone. Changes take effect immediately.</p>
             </div>
         </main>
+    );
+}
+
+
+function MemberIdentity({ leave }) {
+    const [profile, setProfile] = useState({
+        avatarUrl: leave.avatar || '',
+        robloxUsername: leave.robloxUsername || '',
+        loaded: Boolean(leave.avatar && leave.robloxUsername),
+    });
+
+    useEffect(() => {
+        if (!leave.userId || (leave.avatar && leave.robloxUsername)) return;
+        let cancelled = false;
+        fetch(`/api/bloxlink/lookup?discordId=${encodeURIComponent(leave.userId)}`)
+            .then((response) => response.ok ? response.json() : null)
+            .then((data) => {
+                if (cancelled) return;
+                setProfile((current) => ({
+                    avatarUrl: current.avatarUrl || data?.discordAvatarUrl || '',
+                    robloxUsername: current.robloxUsername || data?.robloxUsername || '',
+                    loaded: true,
+                }));
+            })
+            .catch(() => {
+                if (!cancelled) setProfile((current) => ({ ...current, loaded: true }));
+            });
+        return () => { cancelled = true; };
+    }, [leave.userId, leave.avatar, leave.robloxUsername]);
+
+    return (
+        <motion.div className="flex min-w-0 items-center gap-3" whileHover={{ y: -1 }} transition={{ type: 'spring', stiffness: 360, damping: 24 }}>
+            <motion.div whileHover={{ scale: 1.08, rotate: 2 }} transition={{ type: 'spring', stiffness: 380, damping: 18 }}>
+                <Avatar className="h-11 w-11 border border-slate-200 bg-slate-100 shadow-sm">
+                    <AvatarImage src={profile.avatarUrl || undefined} alt={`${leave.username || 'Member'} Discord avatar`} />
+                    <AvatarFallback className="font-semibold text-slate-700">{leave.username?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                </Avatar>
+            </motion.div>
+            <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">{leave.username || 'Unknown member'}</p>
+                <p className="truncate text-xs text-slate-500">
+                    {profile.robloxUsername ? `@${profile.robloxUsername}` : profile.loaded ? 'Roblox account not linked' : 'Loading Roblox profile…'}
+                </p>
+            </div>
+        </motion.div>
     );
 }
 

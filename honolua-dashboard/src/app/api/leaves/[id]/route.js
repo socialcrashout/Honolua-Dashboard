@@ -7,7 +7,13 @@ export async function PATCH(request, { params }) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: 'Not signed in.' }, { status: 401 });
 
-    const _id = toObjectId(params.id);
+    // Next 15+ route params are asynchronous. Reading params.id before
+    // awaiting params can turn undefined into a fresh ObjectId and a false 404.
+    const { id } = await params;
+    if (typeof id !== 'string' || !/^[a-f\d]{24}$/i.test(id)) {
+        return NextResponse.json({ error: 'Invalid id.' }, { status: 400 });
+    }
+    const _id = toObjectId(id);
     if (!_id) return NextResponse.json({ error: 'Invalid id.' }, { status: 400 });
 
     const { action } = await request.json();

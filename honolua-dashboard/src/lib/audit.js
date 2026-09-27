@@ -1,4 +1,5 @@
 import clientPromise from "@/lib/mongodb"
+import { sendAuditDiscordMessage } from "@/lib/auditDiscord"
 
 const DB_NAME = "honolua"
 
@@ -41,7 +42,7 @@ export async function logStaffAction({ session, action, meta = {} }) {
     const db = client.db(DB_NAME)
     const roblox = await lookupRobloxProfile(session?.discordId)
 
-    await db.collection("staffAuditLog").insertOne({
+    const entry = {
       action,
       meta,
       actorDiscordId: session?.discordId || null,
@@ -49,7 +50,9 @@ export async function logStaffAction({ session, action, meta = {} }) {
       actorRobloxUsername: roblox?.robloxUsername || null,
       actorAvatarUrl: roblox?.avatarUrl || null,
       createdAt: new Date(),
-    })
+    }
+    await db.collection("staffAuditLog").insertOne(entry)
+    await sendAuditDiscordMessage({ action, meta, actor: entry, createdAt: entry.createdAt })
   } catch (err) {
     // Never let a logging failure break the actual save.
     console.error("audit: failed to write log entry", err)

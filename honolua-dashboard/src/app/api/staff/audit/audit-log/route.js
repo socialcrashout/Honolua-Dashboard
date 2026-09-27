@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import clientPromise from "@/lib/mongodb"
 import { getUserFromSession } from "@/lib/auth"
+import { sendAuditDiscordMessage } from "@/lib/auditDiscord"
 
 const DB_NAME = "honolua"
 const MAX_LIMIT = 100
@@ -65,6 +66,9 @@ export async function GET(request) {
 const ALLOWED_ACTIONS = new Set([
   "department_created",
   "department_archived",
+  "department_updated",
+  "site_settings_updated",
+  "audit_settings_updated",
   "permission_updated",
   "member_added",
   "member_removed",
@@ -74,6 +78,12 @@ const ALLOWED_ACTIONS = new Set([
   "trigger_deleted",
   "trigger_enabled",
   "trigger_disabled",
+  "leave_requested",
+  "leave_approved",
+  "leave_denied",
+  "leave_ended_early",
+  "leave_withdrawn",
+  "loa_settings_updated",
 ])
 
 export async function POST(request) {
@@ -110,6 +120,7 @@ export async function POST(request) {
     }
 
     const result = await db.collection("staffAuditLog").insertOne(doc)
+    await sendAuditDiscordMessage({ action: doc.action, meta: doc.meta, actor: doc, createdAt: doc.createdAt })
 
     return NextResponse.json({
       ok: true,

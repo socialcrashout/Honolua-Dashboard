@@ -1,10 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, ArrowDownRight, ArrowUpRight, RefreshCw, Repeat2, Search, Settings2, ShieldCheck, UsersRound, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Activity, ArrowDownRight, ArrowUpRight, RefreshCw, Repeat2, Search, Settings2, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import RankLogEntry from './RankLogEntry';
 import LogChannelModal from './LogChannelModal';
-import HierarchyModal from './HierarchyModal';
 
 const PAGE_SIZE = 12;
 const EMPTY_STATS = { total: 0, promotions: 0, demotions: 0, rankChanges: 0 };
@@ -31,7 +30,6 @@ export default function RankingLogsClient({ guildId }) {
   const [reloadKey, setReloadKey] = useState(0);
   const [logChannelId, setLogChannelId] = useState(null);
   const [channelModalOpen, setChannelModalOpen] = useState(false);
-  const [hierarchyModalOpen, setHierarchyModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -73,10 +71,9 @@ export default function RankingLogsClient({ guildId }) {
         <div>
           <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-orange-100 bg-white px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-orange-700"><Activity className="h-3.5 w-3.5" /> Staff activity</div>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">Ranking history</h1>
-          <p className="mt-2 max-w-xl text-sm leading-6 text-stone-500">A clear record of who changed a rank, who it affected, and what changed.</p>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-stone-500">A clear record of who changed a rank, who it affected, and what changed. Rank options come directly from the Roblox group.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button onClick={() => setHierarchyModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-orange-100 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-200 hover:bg-orange-50"><UsersRound className="h-4 w-4 text-orange-700" /> Rank setup</button>
           <button onClick={() => setChannelModalOpen(true)} className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-orange-700"><Settings2 className="h-4 w-4" /> Discord logs</button>
         </div>
       </header>
@@ -85,7 +82,7 @@ export default function RankingLogsClient({ guildId }) {
         <SummaryCard icon={Activity} label="All activity" value={stats.total} hint="recorded" />
         <SummaryCard icon={ArrowUpRight} label="Promotions" value={stats.promotions} hint="moves up" />
         <SummaryCard icon={ArrowDownRight} label="Demotions" value={stats.demotions} hint="moves down" />
-        <SummaryCard icon={Repeat2} label="Role changes" value={stats.rankChanges} hint="manual updates" />
+        <SummaryCard icon={Repeat2} label="Rank changes" value={stats.rankChanges} hint="manual updates" />
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-[0_14px_40px_rgba(89,50,20,0.05)]">
@@ -95,8 +92,8 @@ export default function RankingLogsClient({ guildId }) {
         </div>
 
         <div className="grid gap-3 border-b border-orange-50 bg-orange-50/30 p-4 sm:grid-cols-[minmax(0,1fr)_190px] sm:px-6">
-          <label className="relative block"><span className="sr-only">Search ranking activity</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" /><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); setLoading(true); }} placeholder="Search people, roles, or departments" className="w-full rounded-xl border border-orange-100 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 outline-none placeholder:text-stone-400 focus:border-orange-300 focus:ring-2 focus:ring-orange-100" /></label>
-          <label><span className="sr-only">Filter activity type</span><select value={type} onChange={(event) => { setType(event.target.value); setPage(1); setLoading(true); }} className="w-full rounded-xl border border-orange-100 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"><option value="all">Every change</option><option value="promote">Promotions</option><option value="demote">Demotions</option><option value="changerank">Role changes</option></select></label>
+          <label className="relative block"><span className="sr-only">Search ranking activity</span><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" /><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1); setLoading(true); }} placeholder="Search people or ranks" className="w-full rounded-xl border border-orange-100 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-800 outline-none placeholder:text-stone-400 focus:border-orange-300 focus:ring-2 focus:ring-orange-100" /></label>
+          <label><span className="sr-only">Filter activity type</span><select value={type} onChange={(event) => { setType(event.target.value); setPage(1); setLoading(true); }} className="w-full rounded-xl border border-orange-100 bg-white px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-orange-300 focus:ring-2 focus:ring-orange-100"><option value="all">Every change</option><option value="promote">Promotions</option><option value="demote">Demotions</option><option value="changerank">Rank changes</option></select></label>
         </div>
 
         {error ? <div role="alert" className="m-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error} <button onClick={refresh} className="ml-2 font-semibold underline">Try again</button></div> : null}
@@ -106,7 +103,6 @@ export default function RankingLogsClient({ guildId }) {
       </section>
 
       <LogChannelModal guildId={guildId} open={channelModalOpen} onClose={() => setChannelModalOpen(false)} currentChannelId={logChannelId} onSaved={setLogChannelId} />
-      <HierarchyModal guildId={guildId} open={hierarchyModalOpen} onClose={() => setHierarchyModalOpen(false)} onSaved={refresh} />
     </main>
   );
 }

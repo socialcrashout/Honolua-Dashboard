@@ -100,6 +100,7 @@ export default function LeaveClient({ user, isStaff, personalOnly = false, pendi
                     setDenialReason('');
                     setDenialError('');
                 }
+                window.dispatchEvent(new Event('loa:changed'));
                 router.refresh();
             }
         } finally {

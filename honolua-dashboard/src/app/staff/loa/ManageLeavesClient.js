@@ -40,6 +40,7 @@ export default function ManageLeavesClient({ pending, active, history }) {
                 setDenialReason('');
                 setDenialError('');
             }
+            window.dispatchEvent(new Event('loa:changed'));
             router.refresh();
             return true;
         } finally { setBusyId(''); }

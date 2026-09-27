@@ -531,10 +531,12 @@ export default function StaffSidebar() {
     refreshPendingLeaves()
     const interval = window.setInterval(refreshPendingLeaves, 30000)
     window.addEventListener("focus", refreshPendingLeaves)
+    window.addEventListener("loa:changed", refreshPendingLeaves)
     return () => {
       cancelled = true
       window.clearInterval(interval)
       window.removeEventListener("focus", refreshPendingLeaves)
+      window.removeEventListener("loa:changed", refreshPendingLeaves)
     }
   }, [])
 

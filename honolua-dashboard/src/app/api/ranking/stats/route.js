@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
+import { authorizeRankingRequest } from '@/lib/rankingAccess';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const guildId = searchParams.get('guildId');
   if (!guildId) return NextResponse.json({ error: 'guildId is required' }, { status: 400 });
+  const access = await authorizeRankingRequest(request, guildId);
+  if (access.response) return access.response;
 
   const from = searchParams.get('from');
   const to = searchParams.get('to');

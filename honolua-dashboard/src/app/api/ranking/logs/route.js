@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
+import { authorizeRankingRequest } from '@/lib/rankingAccess';
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const guildId = searchParams.get('guildId');
   if (!guildId) return NextResponse.json({ error: 'guildId is required' }, { status: 400 });
+  const access = await authorizeRankingRequest(request, guildId);
+  if (access.response) return access.response;
 
   const q = searchParams.get('q')?.trim();
   const type = searchParams.get('type'); // 'promote' | 'demote' | 'changerank' | null (= all)
@@ -42,7 +45,7 @@ export async function GET(request) {
   const [logs, total] = await Promise.all([
     collection
       .find(filter)
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .toArray(),

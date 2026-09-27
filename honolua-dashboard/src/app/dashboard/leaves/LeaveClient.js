@@ -47,6 +47,9 @@ export default function LeaveClient({ user, isStaff, personalOnly = false, pendi
     const [tab, setTab] = useState(isStaff ? 'requests' : personalOnly ? 'current' : 'mine');
     const [showForm, setShowForm] = useState(false);
     const [busyId, setBusyId] = useState(null);
+    const [denialTarget, setDenialTarget] = useState(null);
+    const [denialReason, setDenialReason] = useState('');
+    const [denialError, setDenialError] = useState('');
     const [revealed, setRevealed] = useState(false);
     const countAway = useCountUp(active.length);
     const now = new Date();
@@ -80,23 +83,35 @@ export default function LeaveClient({ user, isStaff, personalOnly = false, pendi
                 { id: 'away', label: 'Away now', count: active.length },
             ];
 
-    async function act(id, action) {
+    async function act(id, action, reason) {
         setBusyId(id);
         try {
             const res = await fetch(`/api/leaves/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action }),
+                body: JSON.stringify({ action, ...(reason ? { reason } : {}) }),
             });
             if (!res.ok) {
                 const { error } = await res.json().catch(() => ({}));
                 alert(error || 'Something went wrong.');
             } else {
+                if (action === 'deny') {
+                    setDenialTarget(null);
+                    setDenialReason('');
+                    setDenialError('');
+                }
                 router.refresh();
             }
         } finally {
             setBusyId(null);
         }
+    }
+
+    async function submitDenial() {
+        const reason = denialReason.trim();
+        if (!reason) return setDenialError('Add a reason before denying this request.');
+        if (reason.length > 500) return setDenialError('Keep the reason to 500 characters or fewer.');
+        await act(denialTarget._id, 'deny', reason);
     }
 
     return (
@@ -176,7 +191,7 @@ export default function LeaveClient({ user, isStaff, personalOnly = false, pendi
                     />
                 )}
                 {!personalOnly && tab === 'requests' && (
-                    <RequestQueue items={pending} busyId={busyId} onApprove={id => act(id, 'approve')} onDeny={id => act(id, 'deny')} />
+                    <RequestQueue items={pending} busyId={busyId} onApprove={id => act(id, 'approve')} onDeny={id => { const leave = pending.find(item => item._id === id); setDenialTarget(leave); setDenialReason(''); setDenialError(''); }} />
                 )}
                 {!personalOnly && tab === 'away' && <AwayChips items={active} busyId={busyId} isStaff={isStaff} onEnd={id => act(id, 'end')} />}
                 {!personalOnly && tab === 'history' && <HistoryTimeline items={history} />}
@@ -189,6 +204,21 @@ export default function LeaveClient({ user, isStaff, personalOnly = false, pendi
                     />
                 )}
             </div>
+            {denialTarget && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget && !busyId) setDenialTarget(null); }}>
+                    <section role="dialog" aria-modal="true" aria-labelledby="leave-denial-title" className="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-2xl">
+                        <h2 id="leave-denial-title" className="text-lg font-semibold text-foreground">Deny leave request?</h2>
+                        <p className="mt-1 text-sm text-muted-foreground">Add a reason for {denialTarget.username || 'this team member'}. They can read it in their leave history.</p>
+                        <label htmlFor="leave-denial-reason" className="mt-5 block text-sm font-medium text-foreground">Reason</label>
+                        <textarea id="leave-denial-reason" autoFocus maxLength={500} rows={4} value={denialReason} onChange={event => { setDenialReason(event.target.value); setDenialError(''); }} placeholder="Explain why this request was denied…" className="mt-2 w-full resize-y rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-gold/40" />
+                        <div className="mt-1 flex justify-between text-xs text-muted-foreground"><span>{denialError || 'This reason is saved with the decision.'}</span><span>{denialReason.length}/500</span></div>
+                        <div className="mt-5 flex justify-end gap-2">
+                            <button type="button" disabled={Boolean(busyId)} onClick={() => setDenialTarget(null)} className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-sand/50 disabled:opacity-50">Cancel</button>
+                            <button type="button" disabled={Boolean(busyId)} onClick={submitDenial} className="rounded-lg bg-hibiscus px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">{busyId === denialTarget._id ? 'Denying…' : 'Deny request'}</button>
+                        </div>
+                    </section>
+                </div>
+            )}
         </div>
     );
 }
@@ -240,6 +270,7 @@ function PersonalLeaveList({ items, emptyTitle, emptyText, onCancel, busyId }) {
                         )}
                     </div>
                     {item.note && <p className="mt-4 rounded-xl bg-sand/45 px-4 py-3 text-sm leading-6 text-muted-foreground">{item.note}</p>}
+                    {item.denialReason && <p className="mt-3 text-sm text-hibiscus">Reason: {item.denialReason}</p>}
                 </article>
             ))}
         </div>
@@ -424,6 +455,7 @@ function HistoryTimeline({ items, empty = 'No leave on record yet.', onCancel, b
                         </p>
                         <p className="text-sm text-muted-foreground">{outcomeText(l)}</p>
                         {l.note && <p className="mt-1 text-sm text-muted-foreground">“{l.note}”</p>}
+                        {l.denialReason && <p className="mt-1 text-sm text-hibiscus">Reason: {l.denialReason}</p>}
                         {onCancel && l.status === 'pending' && (
                             <button
                                 disabled={busyId === l._id}

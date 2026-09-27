@@ -17,7 +17,19 @@ export async function PATCH(request, { params }) {
     const _id = toObjectId(id);
     if (!_id) return NextResponse.json({ error: 'Invalid id.' }, { status: 400 });
 
-    const { action } = await request.json();
+    let body;
+    try {
+        body = await request.json();
+    } catch {
+        return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
+    }
+    const { action, reason: denialReason } = body || {};
+    if (action === 'deny' && (typeof denialReason !== 'string' || !denialReason.trim())) {
+        return NextResponse.json({ error: 'A reason is required to deny a leave request.' }, { status: 400 });
+    }
+    if (action === 'deny' && denialReason.trim().length > 500) {
+        return NextResponse.json({ error: 'The denial reason must be 500 characters or fewer.' }, { status: 400 });
+    }
     const leaves = await getLeavesCollection();
     const leave = await leaves.findOne({ _id });
     if (!leave) return NextResponse.json({ error: 'Leave request not found.' }, { status: 404 });
@@ -50,7 +62,7 @@ export async function PATCH(request, { params }) {
             if (leave.status !== 'pending') {
                 return NextResponse.json({ error: 'Only a pending request can be denied.' }, { status: 400 });
             }
-            update = { status: 'denied' };
+            update = { status: 'denied', denialReason: denialReason.trim() };
         } else if (action === 'end') {
             if (leave.status !== 'approved') {
                 return NextResponse.json({ error: 'Only an active leave can be ended early.' }, { status: 400 });
@@ -85,6 +97,7 @@ export async function PATCH(request, { params }) {
             subjectDiscordId: leave.userId,
             subjectUsername: leave.username,
             reason: leave.reason,
+            ...(action === 'deny' ? { denialReason: denialReason.trim() } : {}),
             startDate: leave.startDate,
             endDate: leave.endDate,
         },

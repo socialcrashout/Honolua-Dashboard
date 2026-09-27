@@ -324,7 +324,7 @@ function RobloxStatus({ roblox, showLabel }) {
   )
 }
 
-function MobileSidebarContent({ pathname, logoSrc, roblox, visibleGroups }) {
+function MobileSidebarContent({ pathname, logoSrc, roblox, visibleGroups, pendingLeaveCount }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 flex-col justify-center border-b border-lava/10 px-4">
@@ -359,7 +359,7 @@ function MobileSidebarContent({ pathname, logoSrc, roblox, visibleGroups }) {
               {group.items.map((item, i) => (
                 <NavItem
                   key={item.href}
-                  item={item}
+                  item={item.href === "/staff/loa" && pendingLeaveCount > 0 ? { ...item, badge: pendingLeaveCount } : item}
                   pathname={pathname}
                   showLabel
                   index={gi * 3 + i}
@@ -379,7 +379,7 @@ function MobileSidebarContent({ pathname, logoSrc, roblox, visibleGroups }) {
   )
 }
 
-function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, roblox, visibleGroups }) {
+function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, roblox, visibleGroups, pendingLeaveCount }) {
   return (
     <div className="flex h-full flex-col">
       <div
@@ -478,7 +478,7 @@ function DesktopSidebarContent({ pathname, logoSrc, expanded, onToggle, roblox, 
               {group.items.map((item, i) => (
                 <NavItem
                   key={item.href}
-                  item={item}
+                  item={item.href === "/staff/loa" && pendingLeaveCount > 0 ? { ...item, badge: pendingLeaveCount } : item}
                   pathname={pathname}
                   showLabel={expanded}
                   index={gi * 3 + i}
@@ -506,6 +506,7 @@ export default function StaffSidebar() {
   const [hydrated, setHydrated] = useState(false)
   const [profile, setProfile] = useState({ username: "", avatarUrl: "", role: "", discordId: "" })
   const [roblox, setRoblox] = useState(null)
+  const [pendingLeaveCount, setPendingLeaveCount] = useState(0)
 
   useEffect(() => {
     try {
@@ -513,6 +514,28 @@ export default function StaffSidebar() {
       if (stored === "1") setExpanded(true)
     } catch {}
     setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const refreshPendingLeaves = async () => {
+      try {
+        const response = await fetch("/api/leaves?scope=pending", { cache: "no-store" })
+        if (!response.ok) return
+        const data = await response.json().catch(() => ({}))
+        if (!cancelled) setPendingLeaveCount(Array.isArray(data.leaves) ? data.leaves.length : 0)
+      } catch {
+        // Keep the last known count if the request temporarily fails.
+      }
+    }
+    refreshPendingLeaves()
+    const interval = window.setInterval(refreshPendingLeaves, 30000)
+    window.addEventListener("focus", refreshPendingLeaves)
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+      window.removeEventListener("focus", refreshPendingLeaves)
+    }
   }, [])
 
   useEffect(() => {
@@ -600,6 +623,7 @@ export default function StaffSidebar() {
               logoSrc={logoSrc}
               roblox={roblox}
               visibleGroups={visibleGroups}
+              pendingLeaveCount={pendingLeaveCount}
             />
           </SheetContent>
         </Sheet>
@@ -619,6 +643,7 @@ export default function StaffSidebar() {
           onToggle={toggleExpanded}
           roblox={roblox}
           visibleGroups={visibleGroups}
+          pendingLeaveCount={pendingLeaveCount}
         />
       </motion.aside>
     </>

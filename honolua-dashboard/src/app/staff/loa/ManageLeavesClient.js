@@ -17,20 +17,45 @@ export default function ManageLeavesClient({ pending, active, history }) {
     const router = useRouter();
     const [section, setSection] = useState('requests');
     const [busyId, setBusyId] = useState('');
+    const [denialTarget, setDenialTarget] = useState(null);
+    const [denialReason, setDenialReason] = useState('');
+    const [denialError, setDenialError] = useState('');
     const entries = section === 'requests' ? pending : section === 'active' ? active : history;
 
-    async function decide(id, action) {
+    async function decide(id, action, reason) {
         setBusyId(id);
         try {
             const response = await fetch(`/api/leaves/${id}`, {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action }),
+                body: JSON.stringify({ action, ...(reason ? { reason } : {}) }),
             });
             if (!response.ok) {
                 const data = await response.json().catch(() => ({}));
-                window.alert(data.error || 'Could not update this leave request.');
-            } else router.refresh();
+                if (action === 'deny') setDenialError(data.error || 'Could not deny this leave request.');
+                else window.alert(data.error || 'Could not update this leave request.');
+                return false;
+            }
+            if (action === 'deny') {
+                setDenialTarget(null);
+                setDenialReason('');
+                setDenialError('');
+            }
+            router.refresh();
+            return true;
         } finally { setBusyId(''); }
+    }
+
+    async function submitDenial() {
+        const reason = denialReason.trim();
+        if (!reason) {
+            setDenialError('Add a reason before denying this request.');
+            return;
+        }
+        if (reason.length > 500) {
+            setDenialError('Keep the reason to 500 characters or fewer.');
+            return;
+        }
+        await decide(denialTarget._id, 'deny', reason);
     }
 
     const sections = [
@@ -101,10 +126,11 @@ export default function ManageLeavesClient({ pending, active, history }) {
                                     <div className="flex items-center justify-end gap-2">
                                         {section === 'requests' ? <>
                                             <button aria-label={`Approve ${leave.username}`} disabled={busyId === leave._id} onClick={() => decide(leave._id, 'approve')} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:opacity-50"><Check className="h-3.5 w-3.5" /> Approve</button>
-                                            <button aria-label={`Deny ${leave.username}`} disabled={busyId === leave._id} onClick={() => decide(leave._id, 'deny')} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"><X className="h-4 w-4" /></button>
+                                            <button aria-label={`Deny ${leave.username}`} disabled={busyId === leave._id} onClick={() => { setDenialTarget(leave); setDenialReason(''); setDenialError(''); }} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"><X className="h-4 w-4" /></button>
                                         </> : section === 'active' ? <button disabled={busyId === leave._id} onClick={() => decide(leave._id, 'end')} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">End leave <ArrowUpRight className="h-3.5 w-3.5" /></button> : <Status value={leave.status} />}
                                     </div>
                                     {leave.note && <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600 md:col-span-5">“{leave.note}”</p>}
+                                    {leave.denialReason && <p className="rounded-lg border border-rose-100 bg-rose-50/70 p-3 text-sm text-rose-800 md:col-span-5"><span className="font-semibold">Denial reason:</span> {leave.denialReason}</p>}
                                 </motion.article>
                             ))}
                         </div>
@@ -112,6 +138,22 @@ export default function ManageLeavesClient({ pending, active, history }) {
                 </section>
                 <p className="mt-4 text-xs text-slate-500">Dates are shown in your local timezone. Changes take effect immediately.</p>
             </div>
+            {denialTarget && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]" onMouseDown={(event) => { if (event.target === event.currentTarget && !busyId) setDenialTarget(null); }}>
+                    <section role="dialog" aria-modal="true" aria-labelledby="deny-leave-title" className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+                        <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600"><X className="h-5 w-5" /></div>
+                        <h2 id="deny-leave-title" className="text-lg font-semibold">Deny leave request?</h2>
+                        <p className="mt-1 text-sm text-slate-600">Add a reason for {denialTarget.username || 'this team member'}. They’ll be able to see it in their leave history.</p>
+                        <label htmlFor="denial-reason" className="mt-5 block text-sm font-medium text-slate-700">Reason</label>
+                        <textarea id="denial-reason" autoFocus maxLength={500} rows={4} value={denialReason} onChange={(event) => { setDenialReason(event.target.value); setDenialError(''); }} placeholder="Explain why this request was denied…" className="mt-2 w-full resize-y rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-200" />
+                        <div className="mt-1 flex items-center justify-between text-xs text-slate-500"><span>{denialError || 'The reason is saved with this decision.'}</span><span>{denialReason.length}/500</span></div>
+                        <div className="mt-5 flex justify-end gap-2">
+                            <button type="button" disabled={Boolean(busyId)} onClick={() => setDenialTarget(null)} className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+                            <button type="button" disabled={Boolean(busyId)} onClick={submitDenial} className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:opacity-50">{busyId === denialTarget._id ? 'Denying…' : 'Deny request'}</button>
+                        </div>
+                    </section>
+                </div>
+            )}
         </main>
     );
 }

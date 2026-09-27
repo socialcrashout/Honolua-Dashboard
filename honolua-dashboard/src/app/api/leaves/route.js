@@ -16,6 +16,10 @@ export async function GET(request) {
     const staff = isStaff(user);
     const now = new Date();
 
+    if (scope === 'pending' && !staff) {
+        return NextResponse.json({ error: "You don't have permission to view the request queue." }, { status: 403 });
+    }
+
     let query = { guildId: GUILD_ID };
     let sort = { createdAt: -1 };
     let limit = 0;

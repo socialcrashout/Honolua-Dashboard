@@ -65,14 +65,17 @@ export async function PUT(request) {
   const client = await clientPromise;
   const db = client.db(DB_NAME);
   const collection = db.collection('auditLogSettings');
-  const existing = await collection.findOne({ guildId: GUILD_ID });
   const set = { guildId: GUILD_ID, channelId, updatedAt: new Date(), updatedBy: user.id };
-  if (existing?.channelId !== channelId || !existing.discordAfterId || !existing.discordRankingAfterId) {
-    const latestLog = await db.collection('staffAuditLog').find({}).sort({ _id: -1 }).limit(1).next();
-    const latestRankingLog = await db.collection('rankinglogs').find({ guildId: GUILD_ID }).sort({ _id: -1 }).limit(1).next();
-    set.discordAfterId = latestLog?._id || new ObjectId();
-    set.discordRankingAfterId = latestRankingLog?._id || new ObjectId();
-  }
+  // Saving the destination must not move the relay cursor to the newest item:
+  // that silently discards any recent events created before this save. Start
+  // just before the newest 25 entries so the bot can catch up without flooding
+  // a newly configured channel with the full historical audit collection.
+  const relayStart = async (collection, filter = {}) => {
+    const recent = await collection.find(filter).sort({ _id: -1 }).limit(26).toArray();
+    return recent[25]?._id || new ObjectId('000000000000000000000000');
+  };
+  set.discordAfterId = await relayStart(db.collection('staffAuditLog'));
+  set.discordRankingAfterId = await relayStart(db.collection('rankinglogs'), { guildId: GUILD_ID });
   await collection.updateOne(
     { guildId: GUILD_ID },
     { $set: set, $unset: { emojis: 1 } },

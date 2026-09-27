@@ -6,7 +6,7 @@ const GUILD_ID = process.env.GUILD_ID; // ── ADJUST if you scope guilds diff
 
 export const dynamic = 'force-dynamic'; // this page reflects live approval state
 
-export default async function LeavesPage() {
+export default async function LeavesPage({ employeeOnly = false } = {}) {
     const user = await getSessionUser();
     if (!user) {
         return (
@@ -17,7 +17,7 @@ export default async function LeavesPage() {
     }
 
     const leaves = await getLeavesCollection();
-    const staff = isStaff(user);
+    const staff = isStaff(user) && !employeeOnly;
     const now = new Date();
 
     const [pending, active, history, mine] = await Promise.all([

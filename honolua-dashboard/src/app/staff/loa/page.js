@@ -2,7 +2,7 @@ import { getLeavesCollection } from '@/lib/leaves';
 import { getSessionUser, isStaff } from '@/lib/loaAuth';
 import ManageLeavesClient from './ManageLeavesClient';
 
-const GUILD_ID = process.env.GUILD_ID;
+const GUILD_ID = process.env.GUILD_ID || process.env.DISCORD_GUILD_ID;
 export const dynamic = 'force-dynamic';
 
 export default async function ManageLeavesPage() {

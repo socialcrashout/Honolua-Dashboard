@@ -4,7 +4,7 @@ import { getSessionUser, isStaff } from '@/lib/loaAuth';
 import { logStaffAction } from '@/lib/audit';
 
 // ── ADJUST if you scope guilds differently ──
-const GUILD_ID = process.env.GUILD_ID;
+const GUILD_ID = process.env.GUILD_ID || process.env.DISCORD_GUILD_ID;
 
 export async function GET(request) {
     const user = await getSessionUser();

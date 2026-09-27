@@ -2,7 +2,7 @@ import { getLeavesCollection } from '@/lib/leaves';
 import { getSessionUser, isStaff } from '@/lib/loaAuth';
 import LeaveClient from './LeaveClient';
 
-const GUILD_ID = process.env.GUILD_ID; // ── ADJUST if you scope guilds differently
+const GUILD_ID = process.env.GUILD_ID || process.env.DISCORD_GUILD_ID; // ── ADJUST if you scope guilds differently
 
 export const dynamic = 'force-dynamic'; // this page reflects live approval state
 

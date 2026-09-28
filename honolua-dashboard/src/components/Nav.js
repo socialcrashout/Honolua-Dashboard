@@ -38,7 +38,7 @@ export default function Nav() {
       >
         <Link href="/" className="flex items-center gap-2.5 font-sans font-bold text-2xl text-reef-navy">
           <img
-            src="/logo.png"
+            src="/INITIAL%20(1).png"
             alt="Honolua logo"
             className="h-9 w-auto shrink-0" />
           Honolua

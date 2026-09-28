@@ -24,6 +24,7 @@ const DepartmentSchema = new mongoose.Schema(
     icon: { type: String, default: "Users" }, // matches a key in the frontend's ICON_MAP
     color: { type: String, default: "#E6736F" },
     status: { type: String, enum: ["Active", "Restricted", "Archived"], default: "Active" },
+    discordRoleId: { type: String, default: "" },
     members: { type: [MemberSchema], default: [] },
     permissions: {
       type: [PermissionSchema],

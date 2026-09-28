@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Trash2,
   X,
+  Save,
 } from "lucide-react"
 
 const BRAND_GRADIENT = "linear-gradient(135deg, #F4B942, #E6736F, #F472B6)"
@@ -167,6 +168,9 @@ export default function DepartmentDetailPage() {
   const [dept, setDept] = useState(null)
   const [loading, setLoading] = useState(true)
   const [addingMember, setAddingMember] = useState(false)
+  const [discordRoles, setDiscordRoles] = useState([])
+  const [discordRoleId, setDiscordRoleId] = useState("")
+  const [savingDiscordRole, setSavingDiscordRole] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -198,6 +202,17 @@ export default function DepartmentDetailPage() {
     if (id) load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  useEffect(() => {
+    fetch("/api/department-discord-roles", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => setDiscordRoles(data.roles || []))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    setDiscordRoleId(dept?.discordRoleId || "")
+  }, [dept?.discordRoleId])
 
   async function patchDepartment(body) {
     const res = await fetch(`/api/departments/${id}`, {
@@ -251,6 +266,17 @@ export default function DepartmentDetailPage() {
     } else {
       toast.error("unable to remove member")
     }
+  }
+
+  async function saveDiscordRole() {
+    setSavingDiscordRole(true)
+    const updated = await patchDepartment({ discordRoleId })
+    setSavingDiscordRole(false)
+    if (updated) {
+      setDept(updated)
+      toast.success("Discord role saved")
+      logAction("department_discord_role_updated", { department: dept.name, roleId: discordRoleId || null })
+    } else toast.error("unable to save Discord role")
   }
 
   async function handleArchive() {
@@ -319,6 +345,20 @@ export default function DepartmentDetailPage() {
               <SettingsLink icon={FileText} label="View Logs" />
             </div>
           </div>
+
+          <section className="mt-6 rounded-2xl border border-lava/10 bg-[#fffaf2] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div><h2 className="text-sm font-semibold text-reef-navy">Discord role</h2><p className="mt-1 text-xs leading-5 text-lava/50">Members listed in this department receive this role when they run /update or /get roles.</p></div>
+              <div className="flex gap-2">
+                <select aria-label="Department Discord role" value={discordRoleId} onChange={(event) => setDiscordRoleId(event.target.value)} className="min-w-44 rounded-xl border border-lava/10 bg-white px-3 py-2.5 text-sm text-reef-navy outline-none focus:border-hibiscus/40">
+                  <option value="">No Discord role</option>
+                  {discordRoleId && !discordRoles.some((role) => role.id === discordRoleId) && <option value={discordRoleId}>Saved role ({discordRoleId})</option>}
+                  {discordRoles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+                </select>
+                <button type="button" onClick={saveDiscordRole} disabled={savingDiscordRole || discordRoleId === (dept.discordRoleId || "")} className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"><Save className="h-4 w-4" />{savingDiscordRole ? "Saving…" : "Save role"}</button>
+              </div>
+            </div>
+          </section>
 
           <div className="mt-6">
             <div className="text-sm font-semibold text-reef-navy">Members</div>

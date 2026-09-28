@@ -50,6 +50,7 @@ export async function GET() {
       icon: d.icon,
       color: d.color,
       status: d.status,
+      discordRoleId: d.discordRoleId || "",
       permissions: d.permissions,
       members: d.members.map((m) => ({
         username: m.username,

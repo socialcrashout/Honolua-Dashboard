@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Crown, Tag, Users, ShoppingCart, Search, Plus, X, RefreshCw, Check, Trash2, Pencil, Link2, LoaderCircle } from 'lucide-react';
+import { Crown, Users, ShoppingCart, Search, Plus, X, Save, Trash2, Pencil, Link2, LoaderCircle } from 'lucide-react';
 
 // Copy and symbols are kept together so this page is quick to customize.
 const COPY = {
@@ -27,9 +27,8 @@ const COPY = {
 
 const TYPES = [
   { id: 'role', label: 'Role Binds', icon: Crown },
-  { id: 'team', label: 'Team Binds', icon: Tag },
-  { id: 'group', label: 'Group Binds', icon: Users, unavailable: true },
-  { id: 'catalog', label: 'Catalog Binds', icon: ShoppingCart, unavailable: true },
+  { id: 'group', label: 'Group Binds', icon: Users },
+  { id: 'catalog', label: 'Catalog Binds', icon: ShoppingCart },
 ];
 const EASE = [0.16, 1, 0.3, 1];
 
@@ -125,7 +124,6 @@ export default function BindsClient({ guildId }) {
   const [roles, setRoles] = useState([]);
   const [groupRoles, setGroupRoles] = useState([]);
   const [groupId, setGroupId] = useState('');
-  const [departments, setDepartments] = useState([]);
   const [rankBindings, setRankBindings] = useState([]);
   const [departmentBindings, setDepartmentBindings] = useState([]);
   const [activeType, setActiveType] = useState('role');
@@ -136,6 +134,7 @@ export default function BindsClient({ guildId }) {
   const [error, setError] = useState('');
   const [groupRolesError, setGroupRolesError] = useState('');
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   const roleById = useMemo(() => new Map(roles.map((role) => [role.id, role])), [roles]);
   const filteredBindings = rankBindings.filter((binding) => {
@@ -160,8 +159,8 @@ export default function BindsClient({ guildId }) {
       setGroupId(binds.groupId || '');
       setGroupRolesError(binds.groupRolesError || '');
       setRankBindings(binds.rankBindings || []);
-      setDepartments(binds.departments || []);
       setDepartmentBindings(binds.departmentBindings || []);
+      setDirty(false);
     } catch (loadError) {
       setError(loadError.message || 'Could not load role binds.');
     } finally {
@@ -186,6 +185,7 @@ export default function BindsClient({ guildId }) {
       setRankBindings(nextRankBindings);
       setDepartmentBindings(nextDepartmentBindings);
       setSaved(true);
+      setDirty(false);
       setModalBind(undefined);
     } catch (saveError) {
       setError(saveError.message || 'Could not save role binds.');
@@ -202,20 +202,19 @@ export default function BindsClient({ guildId }) {
       const value = { rankId: row.id, rank: row.rank, rankName: row.name, roleIds: row.roleIds, nicknameTemplate: row.nicknameTemplate, enabled: row.enabled };
       if (index === -1) updated.push(value); else updated[index] = value;
     }
-    await persist(updated, departmentBindings);
+    setRankBindings(updated);
+    setDirty(true);
+    setSaved(false);
+    setModalBind(undefined);
   }
 
   async function deleteRankBind(rankId) {
-    await persist(rankBindings.filter((binding) => binding.rankId !== rankId), departmentBindings);
+    setRankBindings(rankBindings.filter((binding) => binding.rankId !== rankId));
+    setDirty(true);
+    setSaved(false);
   }
 
-  async function updateDepartment(department, roleId) {
-    const next = departmentBindings.filter((row) => row.departmentId !== department.id);
-    if (roleId) next.push({ departmentId: department.id, roleId });
-    await persist(rankBindings, next);
-  }
-
-  const counts = { role: rankBindings.length, team: departmentBindings.length, group: 0, catalog: 0 };
+  const counts = { role: rankBindings.length, group: 0, catalog: 0 };
   const activeTypeData = TYPES.find((type) => type.id === activeType);
   const ActiveTypeIcon = activeTypeData?.icon;
 
@@ -235,16 +234,15 @@ export default function BindsClient({ guildId }) {
 
         <div className="mb-5 flex flex-col gap-3 xl:flex-row xl:items-center">
           <div className="flex min-w-0 items-center gap-1 overflow-x-auto rounded-2xl border border-orange-200 bg-white p-1.5">
-            {TYPES.map(({ id, label, icon: Icon, unavailable }) => <button key={id} type="button" disabled={unavailable} onClick={() => setActiveType(id)} className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition ${activeType === id ? 'border border-orange-600/25 bg-orange-600/10 text-orange-800' : unavailable ? 'cursor-not-allowed text-stone-400' : 'text-stone-600 hover:bg-orange-50 hover:text-stone-800'}`} title={unavailable ? 'Not connected yet' : label}><Icon className="h-4 w-4" />{label}<span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] text-stone-600">{counts[id]}</span></button>)}
+            {TYPES.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => setActiveType(id)} className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition ${activeType === id ? 'border border-orange-600/25 bg-orange-600/10 text-orange-800' : 'text-stone-600 hover:bg-orange-50 hover:text-stone-800'}`}><Icon className="h-4 w-4" />{label}<span className="rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] text-stone-600">{counts[id]}</span></button>)}
           </div>
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="relative min-w-0 flex-1"><Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search binds…" className="h-12 w-full rounded-2xl border border-orange-200 bg-white pl-11 pr-4 text-sm text-stone-900 outline-none placeholder:text-stone-400 focus:border-orange-300" /></div>
             {activeType === 'role' && <button type="button" onClick={() => setModalBind(null)} className="inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl border border-orange-600/25 bg-orange-600/[0.08] px-4 text-sm font-semibold text-orange-800 transition hover:bg-orange-600/[0.13]"><Plus className="h-4 w-4" /><span className="hidden sm:inline">{COPY.create}</span><span className="sm:hidden">Create</span></button>}
-            {activeType === 'team' && <button type="button" onClick={load} className="inline-flex h-12 shrink-0 items-center gap-2 rounded-2xl border border-orange-200 bg-white px-4 text-sm font-semibold text-stone-700 hover:bg-orange-50"><RefreshCw className="h-4 w-4" />Refresh</button>}
           </div>
         </div>
 
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="grid items-start gap-5">
         <section className="min-h-[390px] overflow-hidden rounded-2xl border border-orange-200/80 bg-white p-5 shadow-[0_12px_40px_rgba(153,91,30,0.07)] sm:p-7">
           {loading ? <div className="flex min-h-[340px] items-center justify-center gap-3 text-sm text-stone-500"><LoaderCircle className="h-5 w-5 animate-spin" />Loading binds…</div> : activeType === 'role' ? (
             <>
@@ -256,14 +254,11 @@ export default function BindsClient({ guildId }) {
                 {binding.nicknameTemplate && <div className="mt-3 border-t border-white/[0.06] pt-3 text-xs text-stone-500">Nickname: <span className="text-stone-700">{binding.nicknameTemplate}</span></div>}
               </motion.article>)}</div> : <div className="flex min-h-[340px] flex-col items-center justify-center text-center"><span className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-stone-600"><Crown className="h-8 w-8" /></span><h2 className="mt-5 text-lg font-semibold text-stone-800">{search ? 'No matching role binds' : COPY.emptyTitle}</h2><p className="mt-2 text-sm text-stone-500">{COPY.emptyText}</p>{!search && <button type="button" onClick={() => setModalBind(null)} className="mt-5 inline-flex items-center gap-2 rounded-xl border border-orange-600/25 bg-orange-600/[0.08] px-5 py-3 text-sm font-semibold text-orange-800 hover:bg-orange-600/[0.13]"><Plus className="h-4 w-4" />{COPY.createRole}</button>}</div>}
             </>
-          ) : activeType === 'team' ? (
-            <div><div className="mb-5"><h2 className="text-lg font-semibold text-stone-900">Team Binds</h2><p className="mt-1 text-sm text-stone-500">Map each Honolua department to a Discord role.</p></div><div className="divide-y divide-white/[0.08]">{departments.filter((department) => department.name.toLowerCase().includes(search.toLowerCase())).map((department) => <div key={department.id} className="grid gap-3 py-4 sm:grid-cols-[1fr_320px] sm:items-center"><span className="font-medium text-stone-800">{department.name}</span><select value={departmentBindings.find((row) => row.departmentId === department.id)?.roleId || ''} onChange={(event) => updateDepartment(department, event.target.value)} disabled={saving} className="h-11 w-full rounded-xl border border-orange-200 bg-white px-3 text-sm text-stone-800 outline-none focus:border-orange-600/40"><option value="">No Discord role</option>{roles.map((role) => <option key={role.id} value={role.id}>@{role.name}</option>)}</select></div>)}{!departments.length && <div className="py-12 text-center text-sm text-stone-500">Create departments on the Honolua Departments page first.</div>}</div></div>
-          ) : <div className="flex min-h-[340px] flex-col items-center justify-center text-center"><span className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-stone-500">{ActiveTypeIcon && <ActiveTypeIcon className="h-8 w-8" />}</span><h2 className="mt-5 text-lg font-semibold text-stone-800">{activeTypeData?.label}</h2><p className="mt-2 max-w-md text-sm leading-6 text-stone-500">This bind source is not connected to Honolua yet. Role Binds and Team Binds are ready now.</p></div>}
+          ) : <div className="flex min-h-[340px] flex-col items-center justify-center text-center"><span className="flex h-16 w-16 items-center justify-center rounded-full bg-orange-100 text-stone-500">{ActiveTypeIcon && <ActiveTypeIcon className="h-8 w-8" />}</span><h2 className="mt-5 text-lg font-semibold text-stone-800">{activeTypeData?.label}</h2><p className="mt-2 max-w-md text-sm leading-6 text-stone-500">{activeType === 'group' ? 'Connect Roblox group memberships to Discord roles.' : 'Connect Roblox catalog items to Discord roles.'} Configure this bind source when its Roblox data connection is available.</p></div>}
         </section>
-        <aside className="rounded-2xl border border-orange-200/80 bg-white p-5 shadow-[0_8px_24px_rgba(89,50,20,0.04)]"><h2 className="font-semibold text-stone-900">César commands</h2><div className="mt-4 space-y-3 text-sm"><div className="border-l-2 border-orange-300 pl-3"><code className="font-mono text-stone-800">/get roles</code><p className="mt-1 text-stone-500">Preview and sync current role binds.</p></div><div className="border-l-2 border-orange-300 pl-3"><code className="font-mono text-stone-800">/update</code><p className="mt-1 text-stone-500">Refresh Roblox rank and department roles.</p></div></div><div className="mt-5 border-t border-orange-100 pt-4 text-xs leading-5 text-stone-500">César checks these binds on verification and when a member runs a sync command.</div><a href={`https://www.roblox.com/communities/${groupId}`} target="_blank" rel="noreferrer" className="mt-4 inline-flex text-xs font-semibold text-orange-800 underline decoration-orange-300 underline-offset-4">Open Roblox group ↗</a></aside>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-xs text-stone-500"><span>Roblox group: <a className="text-stone-700 underline decoration-orange-300 underline-offset-4" href={`https://www.roblox.com/communities/${groupId}`} target="_blank" rel="noreferrer">{groupId || 'Loading…'}</a></span><span className="flex items-center gap-2">{saved && <><Check className="h-3.5 w-3.5 text-emerald-700" /> Saved</>}<button type="button" onClick={load} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 hover:bg-orange-50 hover:text-stone-800"><RefreshCw className="h-3.5 w-3.5" /> Refresh</button></span></div>
+        <footer className="sticky bottom-3 z-10 mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-orange-200 bg-white/95 p-3 shadow-[0_12px_32px_rgba(120,78,35,0.12)] backdrop-blur"><p className={`px-2 text-sm ${saved ? 'text-emerald-700' : 'text-stone-500'}`} aria-live="polite">{error || (saved ? 'Your role binds are saved.' : dirty ? 'Unsaved changes apply after you save.' : `${groupRoles.length} Roblox ranks available · Group ${groupId || 'loading…'}`)}</p><button type="button" disabled={!dirty || saving} onClick={() => persist(rankBindings, departmentBindings)} className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-50"><Save className="h-4 w-4" />{saving ? 'Saving…' : 'Save binds'}</button></footer>
       </div>
 
       {modalBind !== undefined && <RoleBindModal key={modalBind?.rankId || 'new'} groupRoles={groupRoles} discordRoles={roles} initialBind={modalBind} onClose={() => setModalBind(undefined)} onSave={saveRoleBinds} />}

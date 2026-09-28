@@ -36,6 +36,7 @@ async function serialize(department) {
     icon: department.icon,
     color: department.color,
     status: department.status,
+    discordRoleId: department.discordRoleId || "",
     permissions: department.permissions,
     members: department.members.map((m) => ({
       username: m.username,
@@ -117,6 +118,16 @@ export async function PATCH(request, { params }) {
     if (payload?.status !== undefined && payload.status !== department.status) {
       department.status = payload.status
       changedFields.push("status")
+    }
+    if (payload?.discordRoleId !== undefined) {
+      const discordRoleId = String(payload.discordRoleId || "").trim()
+      if (discordRoleId && !/^\d{17,20}$/.test(discordRoleId)) {
+        return NextResponse.json({ ok: false, error: "invalid_discord_role_id" }, { status: 400 })
+      }
+      if (discordRoleId !== (department.discordRoleId || "")) {
+        department.discordRoleId = discordRoleId
+        changedFields.push("discordRoleId")
+      }
     }
     if (changedFields.length > 0) {
       await department.save()

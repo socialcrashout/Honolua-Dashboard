@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import { authorizeRankingRequest } from '@/lib/rankingAccess';
+import { logStaffAction } from '@/lib/audit';
 
 const validRoleId = (value) => /^\d{17,20}$/.test(String(value || ''));
 
@@ -54,5 +55,15 @@ export async function POST(request) {
     { $set: { guildId: access.guildId, rankBindings, departmentBindings, managedRankRoleIds, managedDepartmentRoleIds, updatedAt: new Date() } },
     { upsert: true },
   );
+  await logStaffAction({
+    session: { discordId: access.user.id, discordUsername: access.user.username },
+    action: 'role_binds_updated',
+    meta: {
+      rankBindings,
+      departmentBindings,
+      rankBindingCount: rankBindings.length,
+      departmentBindingCount: departmentBindings.length,
+    },
+  });
   return NextResponse.json({ ok: true });
 }

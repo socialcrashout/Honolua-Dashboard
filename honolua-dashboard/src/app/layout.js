@@ -14,7 +14,6 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Honolua Dashboard",
   description: "A dashboard for managing Honolua.",
-  icons: { icon: "/globe.svg" },
 };
 export default function RootLayout({ children }) {
   return (

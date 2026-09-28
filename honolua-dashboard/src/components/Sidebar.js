@@ -30,7 +30,8 @@ import {
   PanelLeftOpen,
   LineChart,
   BarChart3,
-  TrendingUp
+  TrendingUp,
+  Link2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -90,6 +91,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/staff/loa", label: "Manage Leaves", icon: CalendarCheck2 },
       { href: "/staff/loa/settings", label: "Leave Settings", icon: SlidersHorizontal },
+      { href: "/staff/binds", label: "Binds", icon: Link2 },
       { href: "/staff/departments", label: "Departments", icon: Building2 },
       { href: "/staff/ranking", label: "Ranking Logs", icon: TrendingUp },
       { href: "/staff/updates", label: "Updates", icon: Megaphone },

@@ -3,22 +3,19 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import UpdatesBanner from "@/components/UpdatesBanner";
-
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
-
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
 export const metadata = {
   title: "Honolua Dashboard",
   description: "A dashboard for managing Honolua.",
+  icons: { icon: "/globe.svg" },
 };
-
 export default function RootLayout({ children }) {
   return (
     <html
@@ -28,9 +25,9 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col">
         <AnnouncementBanner />
         <UpdatesBanner />
-        {children}
+    {children}
         <Toaster richColors position="top-right" />
       </body>
-    </html>
+      </html>
   );
 }

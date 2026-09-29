@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
-import { Activity, AlertTriangle, CalendarClock, Crown, FileText, RefreshCw, Search, ShieldCheck, Users, X } from "lucide-react"
+import { Activity, AlertTriangle, CalendarClock, Crown, FileText, RefreshCw, Search, ShieldCheck, Trash2, Users, X } from "lucide-react"
 
 const EASE = [0.16, 1, 0.3, 1]
 
@@ -123,8 +123,10 @@ function MemberDetailsDrawer({ member, profile, onClose, reduceMotion }) {
   const [entries, setEntries] = useState([])
   const [loadingEntries, setLoadingEntries] = useState(true)
   const [savingKind, setSavingKind] = useState("")
+  const [deletingId, setDeletingId] = useState("")
   const [drafts, setDrafts] = useState({ note: "", warning: "", suspension: "" })
   const [message, setMessage] = useState("")
+  const [activePane, setActivePane] = useState("overview")
   const canManage = (profile?.robloxRankId ?? 0) >= 255
   const memberId = member?.userId
 
@@ -155,16 +157,34 @@ function MemberDetailsDrawer({ member, profile, onClose, reduceMotion }) {
     setSavingKind(kind)
     setMessage("")
     try {
-      const response = await fetch(`/api/staff/members/${member.userId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, content }) })
+      const response = await fetch(`/api/staff/members/${member.userId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, content, username: member.username }) })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.error === "forbidden" ? "Only the owner can manage private staff records." : data.error || "Could not save this record.")
       setEntries(Array.isArray(data.entries) ? data.entries : [])
       setDrafts((current) => ({ ...current, [kind]: "" }))
+      setActivePane("records")
       setMessage(kind === "note" ? "Private note saved." : `${kind === "warning" ? "Warning" : "Suspension"} recorded.`)
     } catch (error) {
       setMessage(error.message || "Could not save this record.")
     } finally {
       setSavingKind("")
+    }
+  }
+
+  async function deleteEntry(entry) {
+    if (!window.confirm(`Delete this ${entry.kind} for ${member.username}? This cannot be undone.`)) return
+    setDeletingId(entry.id)
+    setMessage("")
+    try {
+      const response = await fetch(`/api/staff/members/${member.userId}`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ recordId: entry.id }) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error === "forbidden" ? "Only the owner can manage private staff records." : data.error || "Could not delete this record.")
+      setEntries(Array.isArray(data.entries) ? data.entries : [])
+      setMessage(`${entry.kind[0].toUpperCase()}${entry.kind.slice(1)} deleted. The action was added to audit logs.`)
+    } catch (error) {
+      setMessage(error.message || "Could not delete this record.")
+    } finally {
+      setDeletingId("")
     }
   }
 
@@ -177,28 +197,35 @@ function MemberDetailsDrawer({ member, profile, onClose, reduceMotion }) {
         <>
           <motion.button type="button" aria-label="Close member profile" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 cursor-default bg-reef-navy/35 backdrop-blur-sm" />
           <div className="pointer-events-none fixed inset-0 z-50 flex justify-end">
-            <motion.aside role="dialog" aria-modal="true" aria-labelledby="member-profile-name" initial={reduceMotion ? { opacity: 0 } : { x: "100%", opacity: 0.6 }} animate={{ x: 0, opacity: 1 }} exit={reduceMotion ? { opacity: 0 } : { x: "100%", opacity: 0.6 }} transition={{ duration: reduceMotion ? 0.12 : 0.36, ease: EASE }} className="pointer-events-auto flex h-[100dvh] w-full flex-col overflow-hidden border-l border-lava/10 bg-[#F8FBF7] shadow-2xl sm:max-w-3xl">
-              <header className="relative shrink-0 overflow-hidden border-b border-lava/[0.07] bg-white px-4 pb-5 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-6">
-                <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-[#F4B942]/[0.12] blur-3xl" />
+            <motion.aside role="dialog" aria-modal="true" aria-labelledby="member-profile-name" initial={reduceMotion ? { opacity: 0 } : { x: "100%", opacity: 0.6 }} animate={{ x: 0, opacity: 1 }} exit={reduceMotion ? { opacity: 0 } : { x: "100%", opacity: 0.6 }} transition={{ duration: reduceMotion ? 0.12 : 0.36, ease: EASE }} className="pointer-events-auto flex h-[100dvh] w-full flex-col overflow-hidden border-l border-lava/10 bg-[#F6F8F3] shadow-2xl sm:max-w-3xl">
+              <header className="relative shrink-0 overflow-hidden bg-reef-navy px-4 pb-5 pt-[max(1rem,env(safe-area-inset-top))] text-white sm:px-7 sm:pb-6">
+                <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-[#F4B942]/[0.20] blur-3xl" />
                 <div className="relative flex items-start gap-3 sm:gap-4">
                   <MemberAvatar member={member} large />
-                  <div className="min-w-0 flex-1 pt-0.5"><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6F8A70]">Member profile</div><h2 id="member-profile-name" className="mt-1 truncate text-xl font-bold text-reef-navy sm:text-2xl">{member.displayName || member.username}</h2><p className="mt-0.5 truncate text-sm text-lava/45">@{member.username} · {member.roleName || member.teamLabel}</p></div>
-                  <button type="button" onClick={onClose} aria-label="Close member profile" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-lava/10 bg-white text-lava/50 transition hover:bg-[#FFF8EF] hover:text-reef-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6736F]/40"><X className="h-4 w-4" /></button>
+                  <div className="min-w-0 flex-1 pt-0.5"><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F4C96F]">Honolua · member file</div><h2 id="member-profile-name" className="mt-1 truncate text-xl font-bold text-white sm:text-2xl">{member.displayName || member.username}</h2><p className="mt-0.5 truncate text-sm text-white/65">@{member.username} · {member.roleName || member.teamLabel}</p></div>
+                  <button type="button" onClick={onClose} aria-label="Close member profile" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-white/75 transition hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F4B942]/60"><X className="h-4 w-4" /></button>
                 </div>
-                <div className="relative mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-reef-navy px-3 py-1.5 text-[11px] font-semibold text-white">{member.roleName || member.teamLabel}</span>{member.departments.map((department) => <span key={department} className="rounded-full border border-[#E4EDE3] bg-[#F1F7F0] px-3 py-1.5 text-[11px] font-semibold text-[#456A50]">{department}</span>)}<span className="rounded-full bg-lava/[0.05] px-3 py-1.5 text-[11px] font-semibold text-lava/50">Rank {member.rank ?? "—"}</span></div>
+                <div className="relative mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-semibold text-white">{member.roleName || member.teamLabel}</span>{member.departments.map((department) => <span key={department} className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85">{department}</span>)}<span className="rounded-full bg-[#F4B942]/20 px-3 py-1.5 text-[11px] font-semibold text-[#F9D989]">Rank {member.rank ?? "—"}</span></div>
               </header>
+
+              <nav className="flex shrink-0 gap-2 border-b border-lava/[0.07] bg-white px-4 py-3 sm:px-7" aria-label="Member profile sections">
+                {[{ id: "overview", label: "Overview" }, { id: "records", label: "Staff file" }].map((pane) => <button key={pane.id} type="button" onClick={() => setActivePane(pane.id)} aria-current={activePane === pane.id ? "page" : undefined} className={`min-h-10 rounded-xl px-4 text-xs font-bold transition ${activePane === pane.id ? "bg-reef-navy text-white shadow-sm" : "bg-[#F6F8F3] text-lava/55 hover:bg-[#EEF3EC] hover:text-reef-navy"}`}>{pane.label}{pane.id === "records" && entries.length > 0 ? <span className="ml-2 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">{entries.length}</span> : null}</button>)}
+              </nav>
 
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-7 sm:py-6">
                 <div className="space-y-4 sm:space-y-5">
-                  <WeeklyActivity member={member} />
-                  <section><div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.17em] text-[#6F8A70]"><AlertTriangle className="h-4 w-4" />Staff actions</div><div className="grid gap-3 sm:grid-cols-2"><RecordForm kind="warning" title="Add warning" description="Record a formal staff warning." placeholder="Enter a warning reason…" icon={AlertTriangle} value={drafts.warning} onChange={(value) => setDrafts((current) => ({ ...current, warning: value }))} onSubmit={addEntry} busy={savingKind === "warning"} canManage={canManage} /><RecordForm kind="suspension" title="Add suspension" description="Record a suspension and its reason." placeholder="Enter suspension details…" icon={ShieldCheck} value={drafts.suspension} onChange={(value) => setDrafts((current) => ({ ...current, suspension: value }))} onSubmit={addEntry} busy={savingKind === "suspension"} canManage={canManage} /></div></section>
-                  <RecordForm kind="note" title="Private staff notes" description="Only the Honolua owner can view or add these notes." placeholder="Add a private staff note…" icon={FileText} value={drafts.note} onChange={(value) => setDrafts((current) => ({ ...current, note: value }))} onSubmit={addEntry} busy={savingKind === "note"} canManage={canManage} />
+                  {activePane === "overview" ? <>
+                    <WeeklyActivity member={member} />
+                    <section><div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.17em] text-[#6F8A70]"><AlertTriangle className="h-4 w-4" />Staff actions</div><div className="grid gap-3 sm:grid-cols-2"><RecordForm kind="warning" title="Add warning" description="Record a formal staff warning." placeholder="Enter a warning reason…" icon={AlertTriangle} value={drafts.warning} onChange={(value) => setDrafts((current) => ({ ...current, warning: value }))} onSubmit={addEntry} busy={savingKind === "warning"} canManage={canManage} /><RecordForm kind="suspension" title="Add suspension" description="Record a suspension and its reason." placeholder="Enter suspension details…" icon={ShieldCheck} value={drafts.suspension} onChange={(value) => setDrafts((current) => ({ ...current, suspension: value }))} onSubmit={addEntry} busy={savingKind === "suspension"} canManage={canManage} /></div></section>
+                  </> : <>
+                    <RecordForm kind="note" title="Private staff notes" description="Only the Honolua owner can view or add these notes." placeholder="Add a private staff note…" icon={FileText} value={drafts.note} onChange={(value) => setDrafts((current) => ({ ...current, note: value }))} onSubmit={addEntry} busy={savingKind === "note"} canManage={canManage} />
+                  </>}
                   {message ? <p role="status" className="rounded-xl border border-lava/[0.07] bg-white px-4 py-3 text-xs font-medium text-reef-navy/70">{message}</p> : null}
-                  <section className="rounded-[22px] border border-lava/[0.07] bg-white p-4 sm:p-5">
+                  {activePane === "records" ? <section className="rounded-[22px] border border-lava/[0.07] bg-white p-4 sm:p-5">
                     <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-bold text-reef-navy">Recent record history</h3><p className="mt-0.5 text-xs text-lava/45">Warnings, suspensions, and private notes</p></div>{loadingEntries ? <span className="text-[10px] text-lava/40">Loading…</span> : null}</div>
                     {!canManage ? <p className="mt-4 rounded-xl bg-lava/[0.035] px-3.5 py-3 text-xs leading-5 text-lava/45">Private staff records are restricted to the Honolua owner.</p> : entries.length === 0 && !loadingEntries ? <p className="mt-4 rounded-xl border border-dashed border-lava/10 px-3.5 py-4 text-xs text-lava/45">No staff records for this member yet.</p> : null}
-                    {canManage ? <div className="mt-3 space-y-2">{[...actions, ...notes].map((entry) => <article key={entry.id} className="rounded-xl border border-lava/[0.06] bg-[#FFFCF7] px-3.5 py-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold capitalize ${entry.kind === "note" ? "bg-[#F1F7F0] text-[#456A50]" : entry.kind === "warning" ? "bg-[#FFF4D9] text-[#9C6A13]" : "bg-[#FCEAEC] text-[#B54750]"}`}>{entry.kind}</span><span className="text-[10px] text-lava/40">{formatDate(entry.createdAt)}{entry.createdByName ? ` · ${entry.createdByName}` : ""}</span></div><p className="mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-reef-navy/75">{entry.content}</p></article>)}</div> : null}
-                  </section>
+                    {canManage ? <div className="mt-3 space-y-2">{[...actions, ...notes].map((entry) => <article key={entry.id} className="rounded-2xl border border-lava/[0.07] bg-[#FBFCF9] p-4 transition hover:border-[#E6736F]/20 sm:p-5"><div className="flex flex-wrap items-start justify-between gap-3"><span className={`rounded-full px-3 py-1.5 text-[10px] font-bold capitalize ${entry.kind === "note" ? "bg-[#EAF3E9] text-[#456A50]" : entry.kind === "warning" ? "bg-[#FFF1D2] text-[#9C6A13]" : "bg-[#FCEAEC] text-[#B54750]"}`}>{entry.kind}</span><div className="flex items-center gap-2"><span className="text-right text-[10px] text-lava/40">{formatDate(entry.createdAt)}{entry.createdByName ? ` · ${entry.createdByName}` : ""}</span><button type="button" onClick={() => void deleteEntry(entry)} disabled={Boolean(deletingId)} aria-label={`Delete ${entry.kind}`} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#B54750]/15 text-[#B54750] transition hover:bg-[#FCEAEC] disabled:opacity-50"><Trash2 className="h-4 w-4" /></button></div></div><p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-reef-navy/75">{entry.content}</p></article>)}</div> : null}
+                  </section> : null}
                 </div>
               </div>
             </motion.aside>

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server"
 import { getUserFromSession } from "@/lib/auth"
 import { dbConnect } from "@/lib/db"
 import StaffMemberRecord from "@/model/StaffMemberRecord"
+import { logStaffAction } from "@/lib/audit"
 
 async function requireOwner() {
   const session = await getUserFromSession()
@@ -74,6 +75,41 @@ export async function POST(request, { params }) {
     { $setOnInsert: { username: String(payload?.username || "").slice(0, 64) }, $push: { entries: entry } },
     { new: true, upsert: true, setDefaultsOnInsert: true }
   ).lean()
+
+  await logStaffAction({
+    session,
+    action: "member_record_added",
+    meta: { robloxUserId, username: String(payload?.username || "").slice(0, 64), recordType: kind, recordId: entry.id },
+  })
+
+  return NextResponse.json({ ok: true, entries: serializeEntries(record) }, { headers: { "Cache-Control": "private, no-store" } })
+}
+
+export async function DELETE(request, { params }) {
+  const { error, session } = await requireOwner()
+  if (error) return error
+
+  const robloxUserId = await getMemberId(params)
+  if (!robloxUserId) return NextResponse.json({ ok: false, error: "invalid_member_id" }, { status: 400 })
+  const payload = await request.json().catch(() => null)
+  const recordId = typeof payload?.recordId === "string" ? payload.recordId : ""
+  if (!recordId || recordId.length > 64) return NextResponse.json({ ok: false, error: "invalid_record_id" }, { status: 400 })
+
+  const existing = await StaffMemberRecord.findOne({ robloxUserId, "entries.id": recordId }).lean()
+  const entry = existing?.entries?.find((candidate) => candidate.id === recordId)
+  if (!entry) return NextResponse.json({ ok: false, error: "record_not_found" }, { status: 404 })
+
+  const record = await StaffMemberRecord.findOneAndUpdate(
+    { robloxUserId },
+    { $pull: { entries: { id: recordId } } },
+    { new: true }
+  ).lean()
+
+  await logStaffAction({
+    session,
+    action: "member_record_deleted",
+    meta: { robloxUserId, username: existing.username || "", recordType: entry.kind, recordId },
+  })
 
   return NextResponse.json({ ok: true, entries: serializeEntries(record) }, { headers: { "Cache-Control": "private, no-store" } })
 }

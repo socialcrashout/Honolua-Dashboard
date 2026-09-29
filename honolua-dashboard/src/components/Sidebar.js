@@ -79,6 +79,7 @@ const NAV_GROUPS = [
     minLevel: ROLE_LEVELS.manager,
     items: [
       { href: "/staff/staff", label: "Staff", icon: UserCog },
+      { href: "/staff/members", label: "Members", icon: Users },
       { href: "/staff/applications", label: "Applications", icon: ClipboardList },
       { href: "/staff/partnership-control", label: "Partnerships", icon: Handshake },
       { href: "/staff/email", label: "Email", icon: Mail },

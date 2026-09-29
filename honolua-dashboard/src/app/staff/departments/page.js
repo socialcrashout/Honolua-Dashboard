@@ -62,6 +62,18 @@ function actionLabel(action) {
     .join(" ")
 }
 
+async function logAction(action, meta = {}) {
+  try {
+    await fetch("/api/staff/audit/audit-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, meta }),
+    })
+  } catch {
+    // Audit logging must not prevent the department action from completing.
+  }
+}
+
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
@@ -86,29 +98,84 @@ function StatusPill({ status }) {
 function DepartmentRow({ dept }) {
   const Icon = ICON_MAP[dept.icon] || Users
   return (
-    <Link
-      href={`/staff/departments/${dept.id}`}
-      className="group relative flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-lava/[0.025] sm:gap-4 sm:px-5"
-    >
-      <div
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: `${dept.color}1A`, color: dept.color }}
+    <div className="group flex items-center gap-2 px-2 py-1 transition hover:bg-lava/[0.025] sm:px-3">
+      <Link
+        href={`/staff/departments/${dept.id}`}
+        className="flex min-w-0 flex-1 items-center gap-3 py-3 pl-2 text-left sm:gap-4 sm:py-4 sm:pl-2"
       >
-        <Icon className="h-4.5 w-4.5" />
-      </div>
+        <div
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+          style={{ background: `${dept.color}1A`, color: dept.color }}
+        >
+          <Icon className="h-4.5 w-4.5" />
+        </div>
 
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold text-reef-navy">{dept.name}</div>
-        <div className="mt-0.5 truncate text-xs text-lava/45">{dept.description}</div>
-      </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-semibold text-reef-navy">{dept.name}</div>
+          <div className="mt-0.5 truncate text-xs text-lava/45">{dept.description}</div>
+        </div>
 
-      <div className="hidden shrink-0 items-center gap-1.5 text-xs text-lava/40 sm:flex">
-        <Users className="h-3.5 w-3.5" />
-        {dept.members.length}
-      </div>
+        <div className="hidden shrink-0 items-center gap-1.5 text-xs text-lava/40 sm:flex">
+          <Users className="h-3.5 w-3.5" />
+          {dept.members.length}
+        </div>
 
-      <StatusPill status={dept.status} />
-    </Link>
+        <StatusPill status={dept.status} />
+      </Link>
+      <button
+        type="button"
+        aria-label={`Remove ${dept.name} from active departments`}
+        title="Remove department"
+        onClick={() => dept.onArchive?.(dept)}
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lava/35 transition hover:bg-[#E6736F]/10 hover:text-[#D45F66] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6736F]/40 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  )
+}
+
+function ArchiveDepartmentDialog({ department, onClose, onConfirm, busy }) {
+  return (
+    <AnimatePresence>
+      {department ? (
+        <>
+          <motion.button
+            type="button"
+            aria-label="Close confirmation"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 z-40 cursor-default bg-reef-navy/30 backdrop-blur-sm"
+          />
+          <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="archive-department-title"
+              initial={{ opacity: 0, y: 18, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              transition={{ duration: 0.22, ease: EASE }}
+              className="w-full max-w-md rounded-[24px] border border-lava/10 bg-white p-5 shadow-2xl sm:p-6"
+            >
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E6736F]/10 text-[#D45F66]"><Trash2 className="h-4 w-4" /></span>
+                <div>
+                  <h2 id="archive-department-title" className="text-base font-bold text-reef-navy">Remove {department.name}?</h2>
+                  <p className="mt-1 text-sm leading-6 text-lava/55">This removes the department from the active list. Its record is archived and can be restored from the database if needed.</p>
+                </div>
+              </div>
+              <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button type="button" onClick={onClose} disabled={busy} className="h-11 rounded-xl px-4 text-sm font-semibold text-lava/60 transition hover:bg-lava/5 disabled:opacity-50">Keep department</button>
+                <button type="button" onClick={onConfirm} disabled={busy} className="h-11 rounded-xl bg-[#D45F66] px-4 text-sm font-semibold text-white transition hover:bg-[#bd5158] disabled:opacity-60">{busy ? "Removing…" : "Remove department"}</button>
+              </div>
+            </motion.div>
+          </div>
+        </>
+      ) : null}
+    </AnimatePresence>
   )
 }
 
@@ -384,6 +451,8 @@ export default function DepartmentsListPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [creating, setCreating] = useState(false)
   const [activityRefreshKey, setActivityRefreshKey] = useState(0)
+  const [archiveTarget, setArchiveTarget] = useState(null)
+  const [archiving, setArchiving] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -439,6 +508,25 @@ export default function DepartmentsListPage() {
       return false
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleArchive() {
+    if (!archiveTarget || archiving) return
+    setArchiving(true)
+    try {
+      const res = await fetch(`/api/departments/${archiveTarget.id}`, { method: "DELETE" })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.ok) throw new Error(data?.error || "unable to remove department")
+      setDepartments((current) => current.filter((department) => department.id !== archiveTarget.id))
+      toast.success(`${archiveTarget.name} removed from departments`)
+      logAction("department_archived", { department: archiveTarget.name })
+      bumpActivity()
+      setArchiveTarget(null)
+    } catch {
+      toast.error("unable to remove department")
+    } finally {
+      setArchiving(false)
     }
   }
 
@@ -550,7 +638,7 @@ export default function DepartmentsListPage() {
             ) : (
               <div className="divide-y divide-lava/8 pb-2">
                 {filtered.map((dept) => (
-                  <DepartmentRow key={dept.id} dept={dept} />
+                  <DepartmentRow key={dept.id} dept={{ ...dept, onArchive: setArchiveTarget }} />
                 ))}
               </div>
             )}
@@ -569,6 +657,7 @@ export default function DepartmentsListPage() {
       </div>
 
       <CreateModal open={createOpen} onClose={() => setCreateOpen(false)} onCreate={handleCreate} submitting={creating} />
+      <ArchiveDepartmentDialog department={archiveTarget} onClose={() => !archiving && setArchiveTarget(null)} onConfirm={handleArchive} busy={archiving} />
     </div>
   )
 }

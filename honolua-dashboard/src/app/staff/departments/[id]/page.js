@@ -281,10 +281,11 @@ export default function DepartmentDetailPage() {
 
   async function handleArchive() {
     if (!dept) return
+    if (!window.confirm(`Remove ${dept.name} from the active departments list? Its record will be archived.`)) return
     try {
       const res = await fetch(`/api/departments/${id}`, { method: "DELETE" })
       if (!res.ok) throw new Error()
-      toast.success("department archived")
+      toast.success("department removed from active departments")
       logAction("department_archived", { department: dept.name })
       router.push("/staff/departments")
     } catch {

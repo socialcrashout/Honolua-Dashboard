@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
-import { Activity, Crown, RefreshCw, Search, ShieldCheck, Users } from "lucide-react"
+import { Activity, AlertTriangle, CalendarClock, Crown, FileText, RefreshCw, Search, ShieldCheck, Users, X } from "lucide-react"
 
 const EASE = [0.16, 1, 0.3, 1]
 
@@ -32,16 +32,19 @@ function MemberAvatar({ member, large = false }) {
   )
 }
 
-function MemberCard({ member, index, reduceMotion }) {
+function MemberCard({ member, index, reduceMotion, onSelect }) {
   return (
-    <motion.article
+    <motion.button
+      type="button"
       layout
       initial={reduceMotion ? false : { opacity: 0, y: 18, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={reduceMotion ? undefined : { opacity: 0, y: 8, scale: 0.98 }}
       transition={{ duration: 0.32, delay: reduceMotion ? 0 : Math.min(index * 0.035, 0.28), ease: EASE, layout: { duration: 0.22 } }}
       whileHover={reduceMotion ? undefined : { y: -4, transition: { duration: 0.18 } }}
-      className="group relative min-w-0 overflow-hidden rounded-[22px] border border-lava/[0.08] bg-white p-4 shadow-[0_4px_18px_rgba(30,55,40,0.035)] transition-shadow hover:shadow-[0_16px_32px_rgba(30,55,40,0.09)] sm:p-5"
+      onClick={() => onSelect(member)}
+      aria-label={`Open profile for ${member.displayName || member.username}`}
+      className="group relative min-w-0 overflow-hidden rounded-[22px] border border-lava/[0.08] bg-white p-4 text-left shadow-[0_4px_18px_rgba(30,55,40,0.035)] transition-shadow hover:shadow-[0_16px_32px_rgba(30,55,40,0.09)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6736F]/50 sm:p-5"
     >
       <div className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full bg-[#F4B942]/[0.10] blur-2xl transition-opacity group-hover:opacity-100 sm:opacity-60" />
       <div className="relative flex min-w-0 items-center gap-3.5">
@@ -71,7 +74,138 @@ function MemberCard({ member, index, reduceMotion }) {
         <span className="inline-flex items-center gap-1.5"><Activity className="h-3.5 w-3.5 text-[#D7A138]" /> Group rank {member.rank ?? "—"}</span>
         {member.connected ? <span className="font-semibold text-emerald-700">You</span> : <span>{member.teamLabel}</span>}
       </div>
-    </motion.article>
+    </motion.button>
+  )
+}
+
+function formatDate(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "Recently"
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date)
+}
+
+function WeeklyActivity({ member }) {
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  return (
+    <section className="rounded-[22px] border border-lava/[0.07] bg-white p-4 sm:p-5">
+      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.17em] text-[#6F8A70]"><CalendarClock className="h-4 w-4" />Weekly activity</div>
+      <div className="mt-5 grid grid-cols-7 gap-2 sm:gap-3">
+        {days.map((day) => (
+          <div key={`${member.userId}-${day}`} className="flex min-w-0 flex-col items-center gap-2">
+            <span className="text-[10px] font-semibold text-lava/40">—</span>
+            <div className="flex h-14 w-full max-w-9 items-end overflow-hidden rounded-full bg-[#EFF5EF] sm:h-16"><div className="h-1.5 w-full rounded-full bg-gradient-to-r from-[#A9DDBD] to-[#5FA678]" /></div>
+            <span className="text-[9px] font-semibold text-lava/45 sm:text-[10px]">{day}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-xs leading-5 text-lava/45">Activity tracking isn’t connected yet. Weekly hours will appear here when session data is available.</p>
+    </section>
+  )
+}
+
+function RecordForm({ kind, title, description, placeholder, icon: Icon, value, onChange, onSubmit, busy, canManage }) {
+  const isNote = kind === "note"
+  const accent = isNote ? "#476B50" : kind === "warning" ? "#B8862B" : "#C4565F"
+  return (
+    <section className="rounded-[22px] border border-lava/[0.07] bg-white p-4 sm:p-5">
+      <div className="flex items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${accent}12`, color: accent }}><Icon className="h-4 w-4" /></span><div className="min-w-0"><h3 className="text-sm font-bold text-reef-navy">{title}</h3><p className="mt-0.5 text-xs leading-5 text-lava/45">{description}</p></div></div>
+      {canManage ? (
+        <form onSubmit={(event) => { event.preventDefault(); onSubmit(kind) }} className="mt-4">
+          <textarea value={value} onChange={(event) => onChange(event.target.value)} maxLength={1200} rows={3} placeholder={placeholder} aria-label={title} className="w-full resize-y rounded-xl border border-lava/10 bg-[#FFFCF7] px-3.5 py-3 text-sm leading-6 text-reef-navy outline-none placeholder:text-lava/35 focus:border-[#E6736F]/45 focus:ring-2 focus:ring-[#E6736F]/10" />
+          <div className="mt-2 flex items-center justify-between gap-3"><span className="text-[10px] text-lava/35">Private · visible to owners only</span><button type="submit" disabled={busy || !value.trim()} className="min-h-10 rounded-xl px-4 text-xs font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50" style={{ background: accent }}>{busy ? "Saving…" : isNote ? "Add note" : `Add ${kind}`}</button></div>
+        </form>
+      ) : <p className="mt-4 rounded-xl bg-lava/[0.035] px-3.5 py-3 text-xs leading-5 text-lava/45">Private staff records are restricted to the Honolua owner.</p>}
+    </section>
+  )
+}
+
+function MemberDetailsDrawer({ member, profile, onClose, reduceMotion }) {
+  const [entries, setEntries] = useState([])
+  const [loadingEntries, setLoadingEntries] = useState(true)
+  const [savingKind, setSavingKind] = useState("")
+  const [drafts, setDrafts] = useState({ note: "", warning: "", suspension: "" })
+  const [message, setMessage] = useState("")
+  const canManage = (profile?.robloxRankId ?? 0) >= 255
+  const memberId = member?.userId
+
+  useEffect(() => {
+    if (!memberId) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    const closeOnEscape = (event) => { if (event.key === "Escape") onClose() }
+    window.addEventListener("keydown", closeOnEscape)
+    let cancelled = false
+    fetch(`/api/staff/members/${memberId}`, { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}))
+        if (response.ok && !cancelled) setEntries(Array.isArray(data.entries) ? data.entries : [])
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadingEntries(false) })
+    return () => {
+      cancelled = true
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener("keydown", closeOnEscape)
+    }
+  }, [memberId, onClose])
+
+  async function addEntry(kind) {
+    const content = drafts[kind]?.trim()
+    if (!content || savingKind) return
+    setSavingKind(kind)
+    setMessage("")
+    try {
+      const response = await fetch(`/api/staff/members/${member.userId}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, content }) })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error === "forbidden" ? "Only the owner can manage private staff records." : data.error || "Could not save this record.")
+      setEntries(Array.isArray(data.entries) ? data.entries : [])
+      setDrafts((current) => ({ ...current, [kind]: "" }))
+      setMessage(kind === "note" ? "Private note saved." : `${kind === "warning" ? "Warning" : "Suspension"} recorded.`)
+    } catch (error) {
+      setMessage(error.message || "Could not save this record.")
+    } finally {
+      setSavingKind("")
+    }
+  }
+
+  const notes = entries.filter((entry) => entry.kind === "note").slice().reverse()
+  const actions = entries.filter((entry) => entry.kind !== "note").slice().reverse()
+
+  return (
+    <AnimatePresence>
+      {member ? (
+        <>
+          <motion.button type="button" aria-label="Close member profile" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 cursor-default bg-reef-navy/35 backdrop-blur-sm" />
+          <div className="pointer-events-none fixed inset-0 z-50 flex justify-end">
+            <motion.aside role="dialog" aria-modal="true" aria-labelledby="member-profile-name" initial={reduceMotion ? { opacity: 0 } : { x: "100%", opacity: 0.6 }} animate={{ x: 0, opacity: 1 }} exit={reduceMotion ? { opacity: 0 } : { x: "100%", opacity: 0.6 }} transition={{ duration: reduceMotion ? 0.12 : 0.36, ease: EASE }} className="pointer-events-auto flex h-[100dvh] w-full flex-col overflow-hidden border-l border-lava/10 bg-[#F8FBF7] shadow-2xl sm:max-w-3xl">
+              <header className="relative shrink-0 overflow-hidden border-b border-lava/[0.07] bg-white px-4 pb-5 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-6">
+                <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-[#F4B942]/[0.12] blur-3xl" />
+                <div className="relative flex items-start gap-3 sm:gap-4">
+                  <MemberAvatar member={member} large />
+                  <div className="min-w-0 flex-1 pt-0.5"><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6F8A70]">Member profile</div><h2 id="member-profile-name" className="mt-1 truncate text-xl font-bold text-reef-navy sm:text-2xl">{member.displayName || member.username}</h2><p className="mt-0.5 truncate text-sm text-lava/45">@{member.username} · {member.roleName || member.teamLabel}</p></div>
+                  <button type="button" onClick={onClose} aria-label="Close member profile" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-lava/10 bg-white text-lava/50 transition hover:bg-[#FFF8EF] hover:text-reef-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6736F]/40"><X className="h-4 w-4" /></button>
+                </div>
+                <div className="relative mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-reef-navy px-3 py-1.5 text-[11px] font-semibold text-white">{member.roleName || member.teamLabel}</span>{member.departments.map((department) => <span key={department} className="rounded-full border border-[#E4EDE3] bg-[#F1F7F0] px-3 py-1.5 text-[11px] font-semibold text-[#456A50]">{department}</span>)}<span className="rounded-full bg-lava/[0.05] px-3 py-1.5 text-[11px] font-semibold text-lava/50">Rank {member.rank ?? "—"}</span></div>
+              </header>
+
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-7 sm:py-6">
+                <div className="space-y-4 sm:space-y-5">
+                  <WeeklyActivity member={member} />
+                  <section><div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.17em] text-[#6F8A70]"><AlertTriangle className="h-4 w-4" />Staff actions</div><div className="grid gap-3 sm:grid-cols-2"><RecordForm kind="warning" title="Add warning" description="Record a formal staff warning." placeholder="Enter a warning reason…" icon={AlertTriangle} value={drafts.warning} onChange={(value) => setDrafts((current) => ({ ...current, warning: value }))} onSubmit={addEntry} busy={savingKind === "warning"} canManage={canManage} /><RecordForm kind="suspension" title="Add suspension" description="Record a suspension and its reason." placeholder="Enter suspension details…" icon={ShieldCheck} value={drafts.suspension} onChange={(value) => setDrafts((current) => ({ ...current, suspension: value }))} onSubmit={addEntry} busy={savingKind === "suspension"} canManage={canManage} /></div></section>
+                  <RecordForm kind="note" title="Private staff notes" description="Only the Honolua owner can view or add these notes." placeholder="Add a private staff note…" icon={FileText} value={drafts.note} onChange={(value) => setDrafts((current) => ({ ...current, note: value }))} onSubmit={addEntry} busy={savingKind === "note"} canManage={canManage} />
+                  {message ? <p role="status" className="rounded-xl border border-lava/[0.07] bg-white px-4 py-3 text-xs font-medium text-reef-navy/70">{message}</p> : null}
+                  <section className="rounded-[22px] border border-lava/[0.07] bg-white p-4 sm:p-5">
+                    <div className="flex items-center justify-between gap-3"><div><h3 className="text-sm font-bold text-reef-navy">Recent record history</h3><p className="mt-0.5 text-xs text-lava/45">Warnings, suspensions, and private notes</p></div>{loadingEntries ? <span className="text-[10px] text-lava/40">Loading…</span> : null}</div>
+                    {!canManage ? <p className="mt-4 rounded-xl bg-lava/[0.035] px-3.5 py-3 text-xs leading-5 text-lava/45">Private staff records are restricted to the Honolua owner.</p> : entries.length === 0 && !loadingEntries ? <p className="mt-4 rounded-xl border border-dashed border-lava/10 px-3.5 py-4 text-xs text-lava/45">No staff records for this member yet.</p> : null}
+                    {canManage ? <div className="mt-3 space-y-2">{[...actions, ...notes].map((entry) => <article key={entry.id} className="rounded-xl border border-lava/[0.06] bg-[#FFFCF7] px-3.5 py-3"><div className="flex flex-wrap items-center justify-between gap-2"><span className={`rounded-full px-2.5 py-1 text-[10px] font-bold capitalize ${entry.kind === "note" ? "bg-[#F1F7F0] text-[#456A50]" : entry.kind === "warning" ? "bg-[#FFF4D9] text-[#9C6A13]" : "bg-[#FCEAEC] text-[#B54750]"}`}>{entry.kind}</span><span className="text-[10px] text-lava/40">{formatDate(entry.createdAt)}{entry.createdByName ? ` · ${entry.createdByName}` : ""}</span></div><p className="mt-2 whitespace-pre-wrap break-words text-xs leading-5 text-reef-navy/75">{entry.content}</p></article>)}</div> : null}
+                  </section>
+                </div>
+              </div>
+            </motion.aside>
+          </div>
+        </>
+      ) : null}
+    </AnimatePresence>
   )
 }
 
@@ -94,6 +228,7 @@ export default function MembersPage() {
   const [activeTeam, setActiveTeam] = useState("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [selectedMember, setSelectedMember] = useState(null)
 
   async function loadDirectory() {
     setLoading(true)
@@ -149,7 +284,7 @@ export default function MembersPage() {
       ...member,
       departments: departmentNamesByMember.get(String(member.userId)) || [],
       connected: Boolean(connectedUsername && member.username?.toLocaleLowerCase() === connectedUsername),
-    }))).sort((left, right) => (right.rank || 0) - (left.rank || 0) || left.username.localeCompare(right.username))
+    }))).sort((left, right) => (right.rank || 0) - (left.rank || 0) || String(left.username || "").localeCompare(String(right.username || "")))
   }, [teams, membersByTeam, departmentNamesByMember, profile])
 
   const visibleMembers = useMemo(() => {
@@ -231,7 +366,7 @@ export default function MembersPage() {
           ) : visibleMembers.length ? (
             <motion.div layout className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <AnimatePresence mode="popLayout">
-                {visibleMembers.map((member, index) => <MemberCard key={member.userId} member={member} index={index} reduceMotion={reduceMotion} />)}
+                {visibleMembers.map((member, index) => <MemberCard key={member.userId} member={member} index={index} reduceMotion={reduceMotion} onSelect={setSelectedMember} />)}
               </AnimatePresence>
             </motion.div>
           ) : (
@@ -243,6 +378,7 @@ export default function MembersPage() {
           )}
         </section>
       </div>
+      <MemberDetailsDrawer member={selectedMember} profile={profile} reduceMotion={reduceMotion} onClose={() => setSelectedMember(null)} />
     </main>
   )
 }

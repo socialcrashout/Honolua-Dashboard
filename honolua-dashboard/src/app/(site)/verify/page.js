@@ -67,7 +67,7 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
 
   return (
     <div
-      className="relative flex items-center gap-5 rounded-[22px] bg-white border border-lava/10 p-6 md:p-7 opacity-0"
+      className="relative flex flex-col items-stretch gap-4 rounded-[22px] border border-lava/10 bg-white p-4 opacity-0 sm:flex-row sm:items-center sm:gap-5 sm:p-6 md:p-7"
       style={{
         animation: mounted ? "stepIn 0.6s cubic-bezier(0.16,1,0.3,1) forwards" : "none",
         animationDelay: mounted ? `${delay}ms` : "0ms",
@@ -97,14 +97,14 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
         <p className="text-sm text-lava/55 leading-relaxed">{desc}</p>
       </div>
 
-      <div className="shrink-0">{action}</div>
+      <div className="w-full min-w-0 sm:w-auto sm:shrink-0 [&>div]:items-stretch sm:[&>div]:items-end">{action}</div>
     </div>
   );
 }
 
 function LinkedAccountRow({ label, avatarUrl, fallbackIcon, name, id }) {
   return (
-    <div className="flex items-center gap-4 rounded-2xl bg-cream/60 border border-lava/10 px-5 py-4">
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl bg-cream/60 border border-lava/10 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4">
       <div className="shrink-0 w-11 h-11 rounded-xl overflow-hidden bg-white border border-lava/10 flex items-center justify-center">
         {avatarUrl ? (
           <img src={avatarUrl} alt={name} className="w-full h-full object-cover" />
@@ -119,7 +119,7 @@ function LinkedAccountRow({ label, avatarUrl, fallbackIcon, name, id }) {
         <div className="font-bold text-reef-navy truncate">{name}</div>
       </div>
       {id && (
-        <div className="shrink-0 text-xs font-mono text-lava/45 bg-white border border-lava/10 rounded-full px-3 py-1.5">
+        <div className="max-w-[42%] shrink-0 truncate rounded-full border border-lava/10 bg-white px-2 py-1.5 font-mono text-[10px] text-lava/45 sm:max-w-none sm:px-3 sm:text-xs">
           {id}
         </div>
       )}
@@ -130,7 +130,7 @@ function LinkedAccountRow({ label, avatarUrl, fallbackIcon, name, id }) {
 function LinkedSuccessScreen({ mounted, status }) {
   return (
     <div
-      className="bg-white rounded-[26px] border border-lava/10 p-8 md:p-10 shadow-[0_1px_2px_rgba(0,0,0,0.03)] opacity-0"
+      className="bg-white rounded-[26px] border border-lava/10 p-5 shadow-[0_1px_2px_rgba(0,0,0,0.03)] opacity-0 sm:p-8 md:p-10"
       style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
     >
       <div className="flex items-center justify-center gap-4 mb-6">
@@ -149,7 +149,7 @@ function LinkedSuccessScreen({ mounted, status }) {
         </div>
       </div>
 
-      <h1 className="font-serif italic font-medium text-reef-navy text-3xl text-center mb-2">
+      <h1 className="font-serif italic font-medium text-reef-navy text-2xl text-center mb-2 sm:text-3xl">
         Successfully Linked with Honolua Systems
       </h1>
       <p className="text-sm text-lava/55 text-center mb-8 leading-relaxed">
@@ -274,7 +274,7 @@ function VerifyContent() {
 
   return (
     <section
-      className="pt-40 pb-28 min-h-screen"
+      className="min-h-screen pt-28 pb-16 sm:pt-40 sm:pb-28"
       style={{
         background:
           "linear-gradient(135deg, #FFFFFF 0%, #FFF8EF 20%, #FDEFE0 38%, #FFF6EC 58%, #FFFFFF 80%, #FFFFFF 100%), radial-gradient(85% 65% at 8% 100%, rgba(244,114,182,0.08), transparent 60%), radial-gradient(70% 50% at 95% 0%, rgba(244,185,66,0.10), transparent 60%)",
@@ -295,22 +295,22 @@ function VerifyContent() {
         }
       `}</style>
 
-      <div className="max-w-[720px] mx-auto px-6 md:px-8">
+      <div className="mx-auto max-w-[720px] px-4 sm:px-6 md:px-8">
         <div
-          className="mb-10 opacity-0"
+          className="mb-7 opacity-0 sm:mb-10"
           style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
         >
-          <div className="inline-flex items-center gap-2.5 text-xs font-bold tracking-[0.18em] uppercase text-hibiscus mb-5">
+          <div className="mb-4 inline-flex items-center gap-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-hibiscus sm:mb-5 sm:text-xs sm:tracking-[0.18em]">
             <span
               className="h-px bg-hibiscus/60 transition-all duration-700 ease-out"
               style={{ width: mounted ? 20 : 0 }}
             />
             Roblox &amp; Discord Verification
           </div>
-          <h1 className="font-serif italic font-medium text-reef-navy text-4xl md:text-5xl leading-tight mb-5">
+          <h1 className="mb-3 font-serif text-3xl font-medium italic leading-tight text-reef-navy sm:mb-5 sm:text-4xl md:text-5xl">
             Verify to enter Honolua.
           </h1>
-          <p className="text-lg leading-relaxed text-lava/60 max-w-[520px]">
+          <p className="max-w-[520px] text-base leading-relaxed text-lava/60 sm:text-lg">
             Log in with Discord and we'll pull your linked Roblox account to
             confirm your staff role.
           </p>
@@ -330,7 +330,7 @@ function VerifyContent() {
         )}
 
         {!loading && !done && (
-          <div className="flex flex-col gap-4 mb-10">
+          <div className="mb-7 flex flex-col gap-3 sm:mb-10 sm:gap-4">
             <StepCard
               index={1}
               title="Discord account"
@@ -350,7 +350,7 @@ function VerifyContent() {
                 ) : (
                   <a
                     href="/api/auth/discord"
-                    className="flex items-center gap-2 text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
+                    className="flex w-full items-center justify-center gap-2 text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform sm:w-auto"
                     style={{ background: "linear-gradient(90deg, #F4B942, #E6736F, #F472B6)" }}
                   >
                     <DiscordIcon color="ffffff" className="w-3.5 h-3.5" />
@@ -388,7 +388,7 @@ function VerifyContent() {
                       href={BLOXLINK_VERIFY_URL}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
+                      className="inline-flex w-full justify-center text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform sm:w-auto"
                       style={{ background: "linear-gradient(90deg, #F4B942, #E6736F, #F472B6)" }}
                     >
                       Verify with Bloxlink

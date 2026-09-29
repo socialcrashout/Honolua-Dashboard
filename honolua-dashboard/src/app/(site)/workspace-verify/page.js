@@ -70,7 +70,7 @@ const BRAND_GRADIENT = "linear-gradient(90deg, #F4B942, #E6736F, #F472B6)";
 function LightBackground({ children }) {
   return (
     <section
-      className="relative min-h-screen pt-40 pb-28 overflow-hidden"
+      className="relative min-h-screen overflow-hidden pt-28 pb-16 sm:pt-40 sm:pb-28"
       style={{
         background:
           "linear-gradient(135deg, #FFFFFF 0%, #FFF8EF 20%, #FDEFE0 38%, #FFF6EC 58%, #FFFFFF 80%, #FFFFFF 100%), radial-gradient(85% 65% at 8% 100%, rgba(244,114,182,0.08), transparent 60%), radial-gradient(70% 50% at 95% 0%, rgba(244,185,66,0.12), transparent 60%)",
@@ -101,7 +101,7 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
 
   return (
     <div
-      className="relative flex items-center gap-5 rounded-2xl border p-6 md:p-7 opacity-0"
+      className="relative flex flex-col items-stretch gap-4 rounded-2xl border p-4 opacity-0 sm:flex-row sm:items-center sm:gap-5 sm:p-6 md:p-7"
       style={{
         background: isActive ? "rgba(230,115,111,0.06)" : "rgba(138,107,96,0.03)",
         borderColor: isActive ? "rgba(244,114,182,0.35)" : "rgba(138,107,96,0.08)",
@@ -124,7 +124,7 @@ function StepCard({ index, title, desc, status, action, delay, mounted }) {
         <p className="text-sm text-lava/55 leading-relaxed">{desc}</p>
       </div>
 
-      <div className="shrink-0">{action}</div>
+      <div className="w-full min-w-0 sm:w-auto sm:shrink-0 [&>div]:items-stretch sm:[&>div]:items-end">{action}</div>
     </div>
   );
 }
@@ -303,13 +303,13 @@ function WorkspaceVerifyContent() {
         }
       `}</style>
 
-      <div className="max-w-[760px] mx-auto px-6 md:px-8">
+      <div className="mx-auto max-w-[760px] px-4 sm:px-6 md:px-8">
         <div
-          className="rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)] p-8 md:p-12 opacity-0"
+          className="rounded-[24px] border border-lava/10 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)] opacity-0 sm:rounded-[28px] sm:p-8 md:p-12"
           style={{ animation: mounted ? "heroFadeUp 0.6s ease-out forwards" : "none" }}
         >
           {!showVerified && (
-            <div className="flex flex-col items-center text-center mb-10">
+            <div className="mb-7 flex flex-col items-center text-center sm:mb-10">
               <div className="flex items-center gap-2.5 mb-6">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #5865F2, #7289DA)" }}>
                   <DiscordIcon color="ffffff" className="w-4.5 h-4.5" />
@@ -320,14 +320,14 @@ function WorkspaceVerifyContent() {
                 </div>
               </div>
 
-              <h1 className="font-serif italic font-medium text-reef-navy text-4xl md:text-5xl leading-tight mb-4">
+              <h1 className="mb-3 font-serif text-3xl font-medium italic leading-tight text-reef-navy sm:mb-4 sm:text-4xl md:text-5xl">
                 Verify to enter the workspace.
               </h1>
-              <p className="text-lg leading-relaxed text-lava/60 max-w-[480px] mb-6">
+              <p className="mb-5 max-w-[480px] text-base leading-relaxed text-lava/60 sm:mb-6 sm:text-lg">
                 Log in with Discord — we'll check your Roblox group rank to confirm workspace access.
               </p>
 
-              <div className="flex flex-wrap items-center justify-center gap-2.5">
+              <div className="flex flex-wrap items-center justify-center gap-2">
                 <TrustPill icon={<ShieldIcon className="w-3.5 h-3.5" />} label="Auto rank check" color="#E6736F" />
                 <TrustPill icon={<BoltIcon className="w-3.5 h-3.5" />} label="No manual review" color="#F4B942" />
                 <TrustPill icon={<CheckIcon className="w-3.5 h-3.5" />} label="Powered by Bloxlink" color="#F472B6" />
@@ -345,7 +345,7 @@ function WorkspaceVerifyContent() {
           )}
 
           {!loading && !showDenied && !showVerified && (
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3 sm:gap-4">
               <StepCard
                 index={1}
                 title="Discord account"
@@ -359,7 +359,7 @@ function WorkspaceVerifyContent() {
                   ) : (
                     <a
                       href="/api/auth/discord?flow=workspace"
-                      className="flex items-center gap-2 text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
+                      className="flex w-full items-center justify-center gap-2 text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform sm:w-auto"
                       style={{ background: BRAND_GRADIENT }}
                     >
                       <DiscordIcon color="ffffff" className="w-3.5 h-3.5" />
@@ -393,7 +393,7 @@ function WorkspaceVerifyContent() {
                         href={BLOXLINK_VERIFY_URL}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform"
+                        className="inline-flex w-full justify-center text-white font-bold text-xs px-4 py-2.5 rounded-full hover:-translate-y-0.5 transition-transform sm:w-auto"
                         style={{ background: BRAND_GRADIENT }}
                       >
                         Verify with Bloxlink

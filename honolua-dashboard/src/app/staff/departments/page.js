@@ -88,7 +88,7 @@ function DepartmentRow({ dept }) {
   return (
     <Link
       href={`/staff/departments/${dept.id}`}
-      className="group relative flex w-full items-center gap-4 py-4 pl-5 pr-4 text-left transition hover:bg-lava/[0.02]"
+      className="group relative flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-lava/[0.025] sm:gap-4 sm:px-5"
     >
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
@@ -98,7 +98,7 @@ function DepartmentRow({ dept }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-semibold text-reef-navy">{dept.name}</div>
+        <div className="truncate text-sm font-semibold text-reef-navy">{dept.name}</div>
         <div className="mt-0.5 truncate text-xs text-lava/45">{dept.description}</div>
       </div>
 
@@ -461,34 +461,53 @@ export default function DepartmentsListPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
-        <div className="flex flex-col overflow-hidden rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-          <div className="p-6 pb-0">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: "rgba(230,115,111,0.1)" }}>
-                  <Users className="h-5 w-5" style={{ color: "#E6736F" }} />
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-reef-navy">Departments</h1>
-                  <p className="text-xs text-lava/45">Create, manage, and organize your team departments.</p>
-                </div>
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10">
+      <div className="mb-6 overflow-hidden rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+        <div className="relative overflow-hidden px-5 py-6 sm:px-7 sm:py-7">
+          <div className="pointer-events-none absolute -right-12 -top-20 h-52 w-52 rounded-full bg-[#F4B942]/[0.12] blur-3xl" />
+          <div className="pointer-events-none absolute right-24 -top-24 h-48 w-48 rounded-full bg-[#F472B6]/[0.09] blur-3xl" />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl" style={{ background: "rgba(230,115,111,0.1)" }}>
+                <Users className="h-5 w-5" style={{ color: "#E6736F" }} />
               </div>
-              <motion.button
-                onClick={() => setCreateOpen(true)}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white shadow-sm"
-                style={{ background: BRAND_GRADIENT }}
-              >
-                <Plus className="h-4 w-4" />
-                Create Department
-              </motion.button>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#B8862B]">Team structure</p>
+                <h1 className="text-xl font-bold text-reef-navy sm:text-2xl">Departments</h1>
+                <p className="mt-0.5 text-xs leading-relaxed text-lava/45 sm:text-sm">Create, manage, and organize your team departments.</p>
+              </div>
             </div>
+            <motion.button
+              onClick={() => setCreateOpen(true)}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="inline-flex h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-white shadow-sm sm:w-auto"
+              style={{ background: BRAND_GRADIENT }}
+            >
+              <Plus className="h-4 w-4" />
+              Create Department
+            </motion.button>
+          </div>
+          <div className="relative mt-6 grid grid-cols-3 gap-2 sm:max-w-lg sm:gap-3">
+            {[
+              { label: "Total teams", value: departments.length, color: "#123646" },
+              { label: "Active", value: departments.filter((d) => d.status === "Active").length, color: "#059669" },
+              { label: "Restricted", value: departments.filter((d) => d.status === "Restricted").length, color: "#B8862B" },
+            ].map((stat) => (
+              <div key={stat.label} className="rounded-2xl border border-lava/[0.07] bg-white/75 px-3 py-3 sm:px-4">
+                <div className="text-lg font-bold" style={{ color: stat.color }}>{stat.value}</div>
+                <div className="text-[10px] font-medium text-lava/45 sm:text-xs">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <div className="relative min-w-[180px] flex-1">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_320px] lg:items-start">
+        <div className="flex min-w-0 flex-col overflow-hidden rounded-[28px] border border-lava/10 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+          <div className="p-4 pb-0 sm:p-6 sm:pb-0">
+            <div className="mt-1 flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+              <div className="relative min-w-0 flex-1">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-lava/30" />
                 <input
                   value={query}
@@ -497,12 +516,12 @@ export default function DepartmentsListPage() {
                   className="h-10 w-full rounded-full border border-lava/10 bg-lava/[0.03] pl-10 pr-3 text-sm text-reef-navy outline-none transition placeholder:text-lava/30 focus:border-hibiscus/40"
                 />
               </div>
-              <div className="flex items-center gap-1.5 rounded-full border border-lava/10 bg-lava/[0.02] p-1">
+              <div className="flex w-full items-center justify-between gap-1 rounded-full border border-lava/10 bg-lava/[0.02] p-1 sm:w-auto sm:justify-start">
                 {FILTERS.map((f) => (
                   <button
                     key={f}
                     onClick={() => setFilter(f)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+                    className={`flex-1 rounded-full px-3 py-2 text-xs font-semibold transition sm:flex-none sm:py-1.5 ${
                       filter === f ? "text-white shadow-sm" : "text-lava/45 hover:text-reef-navy"
                     }`}
                     style={filter === f ? { background: BRAND_GRADIENT } : undefined}
@@ -522,7 +541,12 @@ export default function DepartmentsListPage() {
                 <div className="h-[72px] animate-pulse bg-lava/[0.04]" />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="px-6 py-10 text-center text-sm text-lava/40">No departments match your search.</div>
+              <div className="px-5 py-14 text-center sm:px-6">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F4B942]/10 text-[#B8862B]"><Users className="h-5 w-5" /></div>
+                <p className="mt-3 text-sm font-semibold text-reef-navy">No departments found</p>
+                <p className="mt-1 text-xs text-lava/45">Try another search or create a department to get started.</p>
+                {!query && departments.length === 0 && <button onClick={() => setCreateOpen(true)} className="mt-4 text-xs font-bold text-[#D45F66] hover:underline">Create your first department</button>}
+              </div>
             ) : (
               <div className="divide-y divide-lava/8 pb-2">
                 {filtered.map((dept) => (

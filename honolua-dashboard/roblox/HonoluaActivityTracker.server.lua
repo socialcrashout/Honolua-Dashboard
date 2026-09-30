@@ -4,6 +4,7 @@
 
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
+local TextService = game:GetService("TextService")
 
 local GROUP_ID = 743137138
 local ENDPOINT = "https://honolua-dashboard.vercel.app/api/activity/ingest"
@@ -23,9 +24,10 @@ end
 
 local sessionId = HttpService:GenerateGUID(false)
 local activePlayers = {}
+local lastChatSentAt = {}
 local closing = false
 
-local function sendEvent(eventName, player, rank)
+local function sendEvent(eventName, player, rank, filteredMessage, messageId)
 	local payload = {
 		event = eventName,
 		userId = tostring(player.UserId),
@@ -35,6 +37,11 @@ local function sendEvent(eventName, player, rank)
 		sessionId = sessionId,
 		at = DateTime.now():ToIsoDate(),
 	}
+	if eventName == "chat" then
+		payload.message = filteredMessage
+		payload.messageId = messageId
+		payload.channel = "Experience chat"
+	end
 	local body = HttpService:JSONEncode(payload)
 	local lastError
 
@@ -78,6 +85,24 @@ local function beginTracking(player)
 
 	activePlayers[player.UserId] = { player = player, rank = rank }
 	sendEvent("join", player, rank)
+
+	player.Chatted:Connect(function(message)
+		local now = os.clock()
+		if now - (lastChatSentAt[player.UserId] or 0) < 1 then
+			return
+		end
+		lastChatSentAt[player.UserId] = now
+
+		local filteredOk, filteredMessage = pcall(function()
+			local filterResult = TextService:FilterStringAsync(message, player.UserId, Enum.TextFilterContext.PublicChat)
+			return filterResult:GetChatForUserAsync(player.UserId)
+		end)
+		if not filteredOk or type(filteredMessage) ~= "string" or filteredMessage == "" then
+			warn("Honolua activity could not safely filter a chat message for " .. player.Name)
+			return
+		end
+		task.spawn(sendEvent, "chat", player, rank, filteredMessage, HttpService:GenerateGUID(false))
+	end)
 end
 
 Players.PlayerAdded:Connect(function(player)
@@ -87,6 +112,7 @@ end)
 Players.PlayerRemoving:Connect(function(player)
 	local tracked = activePlayers[player.UserId]
 	activePlayers[player.UserId] = nil
+	lastChatSentAt[player.UserId] = nil
 	if tracked then
 		task.spawn(sendEvent, "leave", player, tracked.rank)
 	end

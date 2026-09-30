@@ -64,6 +64,7 @@ const NAV_GROUPS = [
       { href: "/staff/payroll", label: "Payroll", icon: Wallet },
       { href: "/staff/my-leave", label: "My Leave", icon: CalendarClock },
       { href: "/staff/site-stats", label: "Site Stats", icon: BarChart3 },
+      { href: "/staff/activity", label: "Activity", icon: Activity },
     ],
   },
   {
@@ -81,7 +82,6 @@ const NAV_GROUPS = [
     items: [
       { href: "/staff/staff", label: "Staff", icon: UserCog },
       { href: "/staff/members", label: "Members", icon: Users },
-      { href: "/staff/activity", label: "Activity", icon: Activity },
       { href: "/staff/applications", label: "Applications", icon: ClipboardList },
       { href: "/staff/partnership-control", label: "Partnerships", icon: Handshake },
       { href: "/staff/email", label: "Email", icon: Mail },
@@ -94,6 +94,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/staff/loa", label: "Manage Leaves", icon: CalendarCheck2 },
       { href: "/staff/loa/settings", label: "Leave Settings", icon: SlidersHorizontal },
+      { href: "/staff/activity/settings", label: "Activity Settings", icon: Activity },
       { href: "/staff/binds", label: "Binds", icon: Link2 },
       { href: "/staff/departments", label: "Departments", icon: Building2 },
       { href: "/staff/ranking", label: "Ranking Logs", icon: TrendingUp },

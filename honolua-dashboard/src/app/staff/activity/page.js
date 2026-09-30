@@ -1,90 +1,166 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
-import { Activity, ArrowDownRight, ArrowUpRight, Check, ChevronDown, Clock3, Crown, LoaderCircle, Radio, RefreshCw, Save, Settings2, Shield, Users, Wifi, X } from "lucide-react"
+import { motion, useReducedMotion } from "framer-motion"
+import { Activity, CalendarDays, Clock3, Flame, MessageCircle, Radio, RefreshCw, Sparkles } from "lucide-react"
 
 const EASE = [0.16, 1, 0.3, 1]
 const reduceDuration = (reduceMotion, duration) => reduceMotion ? 0.01 : duration
 
-function minutesLabel(minutes) {
-  const safeMinutes = Math.max(0, Math.floor(minutes || 0))
-  const hours = Math.floor(safeMinutes / 60)
-  const remaining = safeMinutes % 60
-  return hours ? `${hours}h ${remaining}m` : `${remaining}m`
+function timeLabel(minutes) {
+  const safe = Math.max(0, Math.floor(Number(minutes) || 0))
+  const hours = Math.floor(safe / 60)
+  const rest = safe % 60
+  return hours ? `${hours}h ${rest}m` : `${rest}m`
 }
 
-function relativeTime(value) {
-  if (!value) return "No sessions yet"
-  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000))
-  if (elapsedMinutes < 1) return "Just now"
-  if (elapsedMinutes < 60) return `${elapsedMinutes}m ago`
-  const hours = Math.floor(elapsedMinutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.floor(hours / 24)}d ago`
+function dateLabel(value, options = { dateStyle: "medium" }) {
+  if (!value) return "Recently"
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? "Recently" : new Intl.DateTimeFormat(undefined, options).format(date)
 }
 
-function MetricCard({ icon: Icon, eyebrow, value, detail, index, reduceMotion, accent = "#E6736F" }) {
+function SummaryCard({ icon: Icon, label, value, note, tint, index, reduceMotion }) {
   return (
-    <motion.section initial={reduceMotion ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceDuration(reduceMotion, 0.42), delay: reduceMotion ? 0 : 0.07 * index, ease: EASE }} className="relative min-w-0 overflow-hidden rounded-[22px] border border-lava/[0.07] bg-white p-4 shadow-[0_8px_26px_rgba(34,52,39,0.04)] sm:p-5">
-      <div className="pointer-events-none absolute -right-7 -top-8 h-24 w-24 rounded-full blur-2xl" style={{ background: `${accent}18` }} />
-      <div className="relative flex items-center justify-between gap-3"><div className="text-[10px] font-bold uppercase tracking-[0.17em] text-lava/40">{eyebrow}</div><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${accent}14`, color: accent }}><Icon className="h-4 w-4" /></span></div>
-      <div className="relative mt-2 truncate text-3xl font-bold tracking-tight text-reef-navy tabular-nums sm:text-4xl">{value}</div>
-      <p className="relative mt-1 truncate text-xs text-lava/45">{detail}</p>
-    </motion.section>
+    <motion.article
+      initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: reduceDuration(reduceMotion, 0.42), delay: reduceMotion ? 0 : index * 0.07, ease: EASE }}
+      whileHover={reduceMotion ? undefined : { y: -4, transition: { duration: 0.18 } }}
+      className="relative overflow-hidden rounded-[22px] border border-[#E9DFD1] bg-white p-4 shadow-[0_8px_24px_rgba(46,38,29,0.045)] sm:p-5"
+    >
+      <span className="pointer-events-none absolute -right-6 -top-7 h-24 w-24 rounded-full blur-2xl" style={{ background: `${tint}22` }} />
+      <div className="relative flex items-center justify-between gap-3">
+        <span className="text-[10px] font-bold uppercase tracking-[0.17em] text-lava/40">{label}</span>
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: `${tint}17`, color: tint }}><Icon className="h-4 w-4" /></span>
+      </div>
+      <motion.div initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: reduceMotion ? 0 : 0.12 + index * 0.07, duration: 0.28 }} className="relative mt-3 truncate text-3xl font-bold tracking-tight text-reef-navy tabular-nums sm:text-4xl">{value}</motion.div>
+      <p className="relative mt-1 truncate text-xs text-lava/45">{note}</p>
+    </motion.article>
   )
 }
 
-function RankProgress({ role, index, activity, quota, reduceMotion }) {
-  const count = activity.filter((session) => session.rank === role.rank).length
-  const trackedMinutes = activity.filter((session) => session.rank === role.rank).reduce((sum, session) => sum + session.minutes, 0)
-  const progress = quota > 0 ? Math.min(100, Math.round((trackedMinutes / quota) * 100)) : 0
-  const fulfilled = quota > 0 && trackedMinutes >= quota
+function contributionColor(minutes) {
+  if (minutes >= 180) return "#C7551F"
+  if (minutes >= 90) return "#E67336"
+  if (minutes >= 30) return "#F4A261"
+  if (minutes > 0) return "#F9D7B2"
+  return "#F3F0EC"
+}
+
+function ActivityCalendar({ days, reduceMotion }) {
+  const cells = useMemo(() => {
+    if (!days.length) return []
+    const first = new Date(`${days[0].date}T00:00:00Z`)
+    const mondayOffset = (first.getUTCDay() + 6) % 7
+    return [...Array(mondayOffset).fill(null), ...days]
+  }, [days])
+  const monthLabels = useMemo(() => {
+    const columns = []
+    for (let start = 0; start < cells.length; start += 7) {
+      const week = cells.slice(start, start + 7)
+      const firstOfMonth = week.find((day) => day && Number(day.date.slice(-2)) <= 7)
+      columns.push(firstOfMonth ? new Intl.DateTimeFormat(undefined, { month: "short", timeZone: "UTC" }).format(new Date(`${firstOfMonth.date}T00:00:00Z`)) : "")
+    }
+    return columns
+  }, [cells])
+
   return (
-    <motion.article layout initial={reduceMotion ? false : { opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: reduceMotion ? 0 : Math.min(index * 0.025, 0.25), duration: reduceDuration(reduceMotion, 0.32), ease: EASE }} className="group rounded-2xl border border-lava/[0.065] bg-white p-4 transition hover:border-[#E6736F]/20 hover:shadow-[0_10px_25px_rgba(34,52,39,0.045)] sm:p-5">
-      <div className="flex items-start gap-3">
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] ${role.rank >= 240 ? "bg-[#FFF3D6] text-[#A87419]" : "bg-[#EEF5EE] text-[#52775A]"}`}>{role.rank >= 240 ? <Crown className="h-4 w-4" /> : <Shield className="h-4 w-4" />}</span>
-        <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-bold text-reef-navy">{role.name}</h3><span className="rounded-full bg-lava/[0.045] px-2 py-0.5 text-[10px] font-semibold text-lava/45">Rank {role.rank}</span></div><p className="mt-1 text-xs text-lava/45">{count} {count === 1 ? "session" : "sessions"} · {minutesLabel(trackedMinutes)} tracked</p></div>
-        {fulfilled ? <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><Check className="h-4 w-4" /></span> : null}
+    <section className="overflow-hidden rounded-[26px] border border-[#E9DFD1] bg-white p-5 shadow-[0_8px_24px_rgba(46,38,29,0.04)] sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">Your rhythm</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Six months, one small square at a time</h2></div>
+        <span className="text-[10px] font-medium text-lava/40">Minutes played each day</span>
       </div>
-      <div className="mt-4">
-        <div className="mb-2 flex items-center justify-between gap-3 text-[10px]"><span className="font-semibold uppercase tracking-[0.13em] text-lava/35">Weekly quota</span><span className="font-bold tabular-nums text-reef-navy">{quota > 0 ? `${minutesLabel(trackedMinutes)} / ${minutesLabel(quota)}` : "Not set"}</span></div>
-        <div className="h-2 overflow-hidden rounded-full bg-[#EEF2EB]"><motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} transition={{ duration: reduceDuration(reduceMotion, 0.7), delay: reduceMotion ? 0 : 0.08, ease: EASE }} className="h-full rounded-full" style={{ background: fulfilled ? "linear-gradient(90deg,#73B48A,#55A779)" : "linear-gradient(90deg,#F4B942,#E6736F,#F472B6)" }} /></div>
+      <div className="mt-5 overflow-x-auto pb-1">
+        <div className="min-w-[660px]">
+          <div className="grid gap-[5px] pl-8 text-[9px] font-medium text-lava/40" style={{ gridTemplateColumns: `repeat(${monthLabels.length}, minmax(0, 1fr))` }}>
+            {monthLabels.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}
+          </div>
+          <div className="mt-2 grid grid-flow-col grid-rows-7 gap-[5px]">
+            {["M", "", "W", "", "F", "", ""].map((label, index) => <span key={`weekday-${index}`} className="flex h-3.5 w-5 items-center text-[9px] font-medium text-lava/35">{label}</span>)}
+            {cells.map((day, index) => day ? (
+              <motion.div key={day.date} initial={reduceMotion ? false : { opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: reduceMotion ? 0 : Math.min(index * 0.0015, 0.2), duration: 0.22 }} title={`${dateLabel(day.date, { month: "short", day: "numeric", timeZone: "UTC" })} · ${timeLabel(day.minutes)}`} className="h-3.5 w-3.5 rounded-[4px] ring-1 ring-black/[0.025] transition-transform hover:z-10 hover:scale-125" style={{ backgroundColor: contributionColor(day.minutes) }} />
+            ) : <span key={`pad-${index}`} className="h-3.5 w-3.5" />)}
+          </div>
+        </div>
       </div>
-    </motion.article>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#F0E8DE] pt-4">
+        <p className="text-[10px] text-lava/40">A day counts toward your streak after {10} minutes in-game.</p>
+        <div className="flex items-center gap-1.5 text-[9px] font-medium text-lava/40"><span>Quiet</span>{["#F3F0EC", "#F9D7B2", "#F4A261", "#E67336", "#C7551F"].map((color) => <span key={color} className="h-3 w-3 rounded-[3px]" style={{ backgroundColor: color }} />)}<span>More time</span></div>
+      </div>
+    </section>
+  )
+}
+
+function FourteenDayPulse({ days, reduceMotion }) {
+  const lastDays = days.slice(-14)
+  const max = Math.max(30, ...lastDays.map((day) => day.minutes))
+  return (
+    <section className="rounded-[26px] border border-[#E9DFD1] bg-[#FFF9F1] p-5 sm:p-6">
+      <div className="flex items-center justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">Two week pulse</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Small steps add up</h2></div><Activity className="h-5 w-5 text-[#D8792B]" /></div>
+      <div className="mt-6 flex h-36 items-end gap-2">
+        {lastDays.map((day, index) => {
+          const height = day.minutes ? Math.max(7, Math.round((day.minutes / max) * 100)) : 4
+          return <div key={day.date} className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+            <motion.div initial={reduceMotion ? false : { height: 0 }} animate={{ height: `${height}%` }} transition={{ duration: reduceDuration(reduceMotion, 0.55), delay: reduceMotion ? 0 : index * 0.035, ease: EASE }} title={`${timeLabel(day.minutes)} on ${dateLabel(day.date, { month: "short", day: "numeric", timeZone: "UTC" })}`} className={`w-full max-w-7 rounded-t-lg ${day.minutes ? "bg-gradient-to-t from-[#D66527] to-[#F4B942]" : "bg-[#EAE0D4]"}`} />
+            <span className="text-[9px] font-medium text-lava/45">{new Date(`${day.date}T00:00:00Z`).getUTCDate()}</span>
+          </div>
+        })}
+      </div>
+      <p className="mt-3 text-[10px] text-lava/40">Each bar is one day. Hover to see your time.</p>
+    </section>
+  )
+}
+
+function SessionList({ sessions, reduceMotion }) {
+  return (
+    <section className="rounded-[26px] border border-[#E9DFD1] bg-white p-5 shadow-[0_8px_24px_rgba(46,38,29,0.04)] sm:p-6">
+      <div className="flex items-center justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">Recent visits</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Your time in Honolua</h2></div><CalendarDays className="h-5 w-5 text-[#D8792B]" /></div>
+      {sessions.length ? <div className="mt-4 divide-y divide-[#F0E8DE]">{sessions.slice(0, 6).map((session, index) => (
+        <motion.article key={`${session.startedAt}-${index}`} initial={reduceMotion ? false : { opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: reduceMotion ? 0 : index * 0.045, duration: 0.28 }} className="flex items-center gap-3 py-3.5">
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${session.isActive ? "bg-[#EAF5EA] text-[#4B9461]" : "bg-[#FFF3E1] text-[#B36D20]"}`}><Clock3 className="h-4 w-4" /></span>
+          <div className="min-w-0 flex-1"><div className="truncate text-xs font-semibold text-reef-navy">{dateLabel(session.startedAt, { weekday: "short", month: "short", day: "numeric" })}</div><div className="mt-0.5 text-[10px] text-lava/40">{dateLabel(session.startedAt, { hour: "numeric", minute: "2-digit" })}{session.isActive ? " · In game now" : " · Visit"}</div></div>
+          <span className="shrink-0 text-xs font-bold tabular-nums text-reef-navy">{timeLabel(session.minutes)}</span>
+        </motion.article>
+      ))}</div> : <div className="mt-5 rounded-2xl bg-[#FFFAF4] px-4 py-8 text-center"><Radio className="mx-auto h-5 w-5 text-[#D8792B]" /><p className="mt-2 text-xs font-semibold text-reef-navy">Your first visit will show up here</p><p className="mt-1 text-[10px] text-lava/45">Join the Honolua game to start your activity trail.</p></div>}
+    </section>
+  )
+}
+
+function MessageList({ messages, reduceMotion }) {
+  return (
+    <section className="relative overflow-hidden rounded-[26px] border border-[#E9DFD1] bg-white p-5 shadow-[0_8px_24px_rgba(46,38,29,0.04)] sm:p-6">
+      <div className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-[#F4B942]/15 blur-3xl" />
+      <div className="relative flex items-center justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">From the island chat</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Your in-game messages</h2></div><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#FFF2DF] text-[#C36722]"><MessageCircle className="h-5 w-5" /></span></div>
+      <p className="relative mt-1 text-[10px] text-lava/40">Only your own filtered messages appear here · last 30 days</p>
+      {messages.length ? <div className="relative mt-4 max-h-[440px] divide-y divide-[#F0E8DE] overflow-y-auto pr-1">{messages.map((message, index) => (
+        <motion.article key={message.id} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: reduceMotion ? 0 : Math.min(index * 0.025, 0.22), duration: 0.26 }} className="py-3.5 first:pt-2">
+          <div className="mb-1.5 flex items-center justify-between gap-3"><span className="rounded-full bg-[#FFF5E8] px-2.5 py-1 text-[9px] font-semibold text-[#A76425]">{message.channel}</span><time className="shrink-0 text-[9px] text-lava/40">{dateLabel(message.createdAt, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</time></div>
+          <p className="whitespace-pre-wrap break-words text-xs leading-5 text-reef-navy/85">{message.text}</p>
+        </motion.article>
+      ))}</div> : <div className="relative mt-5 rounded-2xl border border-dashed border-[#EADBC7] bg-[#FFFAF4] px-4 py-10 text-center"><motion.span animate={reduceMotion ? undefined : { y: [0, -4, 0] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }} className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#D8792B] shadow-sm"><MessageCircle className="h-5 w-5" /></motion.span><p className="mt-3 text-xs font-semibold text-reef-navy">Your chat trail starts with a hello</p><p className="mx-auto mt-1 max-w-[230px] text-[10px] leading-5 text-lava/45">Messages you send in the Honolua game will appear here after Roblox filters them.</p></div>}
+    </section>
   )
 }
 
 export default function StaffActivityPage() {
   const reduceMotion = useReducedMotion()
-  const [roles, setRoles] = useState([])
-  const [quotas, setQuotas] = useState({})
-  const [draftQuotas, setDraftQuotas] = useState({})
-  const [activity, setActivity] = useState([])
-  const [lastEventAt, setLastEventAt] = useState(null)
+  const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
-  const [notice, setNotice] = useState("")
-  const [editingQuotas, setEditingQuotas] = useState(false)
-  const [showAll, setShowAll] = useState(false)
 
-  const load = useCallback(async ({ background = false } = {}) => {
+  const load = useCallback(async (background = false) => {
     if (background) setRefreshing(true)
     else setLoading(true)
     setError("")
     try {
       const response = await fetch("/api/staff/activity", { cache: "no-store" })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data.error || "Could not load staff activity.")
-      setRoles(Array.isArray(data.roles) ? data.roles : [])
-      setQuotas(data.quotas || {})
-      setDraftQuotas(Object.fromEntries(Object.entries(data.quotas || {}).map(([rank, minutes]) => [rank, String(minutes / 60)])))
-      setActivity(Array.isArray(data.activity) ? data.activity : [])
-      setLastEventAt(data.lastEventAt || null)
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "Could not load your activity.")
+      setData(result)
     } catch (loadError) {
-      setError(loadError.message || "Could not load staff activity.")
+      setError(loadError.message || "Could not load your activity.")
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -93,100 +169,49 @@ export default function StaffActivityPage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)
-    const interval = window.setInterval(() => void load({ background: true }), 45000)
+    const interval = window.setInterval(() => void load(true), 60000)
     return () => { window.clearTimeout(timer); window.clearInterval(interval) }
   }, [load])
 
-  const memberActivity = useMemo(() => {
-    const byUser = new Map()
-    activity.forEach((session) => {
-      const existing = byUser.get(session.userId) || { ...session, minutes: 0, sessionCount: 0, isActive: false }
-      existing.minutes += session.minutes
-      existing.sessionCount += 1
-      existing.isActive ||= session.isActive
-      if (new Date(session.startedAt) > new Date(existing.startedAt)) {
-        existing.startedAt = session.startedAt
-        existing.username = session.username
-        existing.rank = session.rank
-      }
-      byUser.set(session.userId, existing)
-    })
-    return [...byUser.values()].sort((a, b) => Number(b.isActive) - Number(a.isActive) || b.minutes - a.minutes)
-  }, [activity])
-
-  const onlineCount = activity.filter((session) => session.isActive).length
-  const weeklyMinutes = activity.reduce((total, session) => total + session.minutes, 0)
-  const activeRanks = roles.filter((role) => memberActivity.some((member) => member.rank === role.rank)).length
-  const orderedRoles = [...roles].sort((a, b) => b.rank - a.rank)
-  const shownRoles = showAll ? orderedRoles : orderedRoles.slice(0, 8)
-  const loggedSessions = activity.length > 0
-
-  async function saveQuotas() {
-    setSaving(true)
-    setNotice("")
-    try {
-      const nextQuotas = Object.fromEntries(roles.map((role) => {
-        const hours = Number(draftQuotas[role.rank] || 0)
-        return [String(role.rank), Math.round(hours * 60)]
-      }))
-      const response = await fetch("/api/staff/activity", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ quotas: nextQuotas }) })
-      const data = await response.json().catch(() => ({}))
-      if (!response.ok) throw new Error(data.error || "Could not save rank quotas.")
-      setQuotas(data.quotas || nextQuotas)
-      setEditingQuotas(false)
-      setNotice("Weekly rank quotas saved.")
-    } catch (saveError) {
-      setNotice(saveError.message || "Could not save rank quotas.")
-    } finally {
-      setSaving(false)
-    }
-  }
+  const days = data?.days || []
+  const messages = data?.messages || []
+  const sessions = data?.sessions || []
+  const stats = data?.stats
 
   return (
-    <main className="min-h-screen px-4 pb-10 pt-6 sm:px-6 sm:pt-9">
+    <main className="min-h-screen px-4 pb-12 pt-6 sm:px-6 sm:pt-9">
       <div className="mx-auto max-w-7xl">
-        <motion.header initial={reduceMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceDuration(reduceMotion, 0.5), ease: EASE }} className="relative isolate overflow-hidden rounded-[28px] bg-reef-navy px-5 py-6 text-white shadow-[0_18px_55px_rgba(18,52,42,0.16)] sm:px-8 sm:py-8">
-          <motion.div aria-hidden="true" animate={reduceMotion ? undefined : { rotate: 360 }} transition={{ duration: 42, repeat: Infinity, ease: "linear" }} className="pointer-events-none absolute -right-20 -top-36 h-[27rem] w-[27rem] rounded-full border border-white/[0.09]" />
-          <motion.div aria-hidden="true" animate={reduceMotion ? undefined : { x: [0, 18, 0], y: [0, 12, 0] }} transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }} className="pointer-events-none absolute right-8 top-3 h-48 w-48 rounded-full bg-[#6BB9D2]/20 blur-[70px]" />
-          <div className="relative grid gap-7 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div className="min-w-0"><div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.07] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-[#F8D57C]"><Activity className="h-3.5 w-3.5" />Staff rhythm · one group</div><h1 className="max-w-2xl text-3xl font-bold leading-tight tracking-tight sm:text-4xl">See the week<br className="hidden sm:block" /> take shape.</h1><p className="mt-3 max-w-lg text-sm leading-6 text-white/60">A live pulse of Honolua sessions, with a fair weekly target for every rank.</p></div>
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 lg:justify-end">
-              <div className="inline-flex min-h-11 items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.07] px-3.5"><span className={`relative h-2.5 w-2.5 rounded-full ${loggedSessions ? "bg-emerald-400" : "bg-[#F4B942]"}`}><span className={`absolute inset-0 rounded-full ${loggedSessions ? "animate-ping bg-emerald-400/60" : ""}`} /></span><span className="text-xs font-semibold text-white/75">{loggedSessions ? "Receiving game activity" : "Waiting for game activity"}</span></div>
-              <button type="button" onClick={() => void load({ background: true })} disabled={refreshing || loading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.08] px-4 text-xs font-semibold text-white transition hover:bg-white/[0.15] disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${refreshing && !reduceMotion ? "animate-spin" : ""}`} />Refresh</button>
+        <motion.header initial={reduceMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceDuration(reduceMotion, 0.48), ease: EASE }} className="relative isolate overflow-hidden rounded-[30px] border border-[#E7D4BD] bg-gradient-to-br from-white via-[#FFFCF7] to-[#FFF0DB] px-5 py-6 shadow-[0_20px_55px_rgba(125,78,27,0.09)] sm:px-8 sm:py-8">
+          <motion.div aria-hidden="true" animate={reduceMotion ? undefined : { rotate: 360 }} transition={{ duration: 52, repeat: Infinity, ease: "linear" }} className="pointer-events-none absolute -right-16 -top-40 h-[28rem] w-[28rem] rounded-full border border-[#E6B978]/30" />
+          <motion.div aria-hidden="true" animate={reduceMotion ? undefined : { scale: [0.92, 1.08, 0.92], opacity: [0.45, 0.8, 0.45] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="pointer-events-none absolute right-24 top-10 h-40 w-40 rounded-full bg-[#F4B942]/25 blur-[60px]" />
+          <div className="relative flex flex-wrap items-end justify-between gap-5">
+            <div className="max-w-2xl">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#E9C994] bg-white/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.17em] text-[#A9631F]"><Sparkles className="h-3.5 w-3.5" />A little rhythm, every day</div>
+              <h1 className="text-3xl font-bold leading-tight tracking-tight text-reef-navy sm:text-4xl">{data?.member?.username ? `Welcome back, ${data.member.username}.` : "Your island activity"}</h1>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-lava/55">Your game time, your streak, and a trail of moments from the Honolua chat.</p>
             </div>
+            <button type="button" onClick={() => void load(true)} disabled={loading || refreshing} className="relative inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[#E6D5C1] bg-white/90 px-4 text-xs font-semibold text-reef-navy shadow-sm transition hover:border-[#E1A34D] hover:bg-white disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${refreshing && !reduceMotion ? "animate-spin" : ""}`} />Refresh</button>
           </div>
-          <div className="relative mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-4 text-[11px] text-white/45"><span className="inline-flex items-center gap-1.5"><Wifi className="h-3.5 w-3.5" />Roblox group 743137138</span><span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5" />Week resets Monday</span><span className="inline-flex items-center gap-1.5"><Radio className="h-3.5 w-3.5" />Last game event {relativeTime(lastEventAt)}</span></div>
+          <div className="relative mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[#E7D9C7] pt-4 text-[10px] text-lava/45"><span className="inline-flex items-center gap-1.5"><Radio className="h-3.5 w-3.5 text-[#BA7024]" />Honolua group activity</span><span className="inline-flex items-center gap-1.5"><Flame className="h-3.5 w-3.5 text-[#D96F35]" />10 minutes keeps a day in your streak</span><span className="ml-auto">Private to your account</span></div>
         </motion.header>
 
-        <section className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-          <MetricCard icon={Clock3} eyebrow="This week" value={loading ? "—" : minutesLabel(weeklyMinutes)} detail="Total tracked play time" index={0} reduceMotion={reduceMotion} accent="#E6736F" />
-          <MetricCard icon={Users} eyebrow="In game now" value={loading ? "—" : onlineCount} detail="Live staff sessions" index={1} reduceMotion={reduceMotion} accent="#5FA678" />
-          <MetricCard icon={Shield} eyebrow="Ranks active" value={loading ? "—" : `${activeRanks}/${roles.length || 0}`} detail="Ranks with play time this week" index={2} reduceMotion={reduceMotion} accent="#A87419" />
-          <MetricCard icon={Activity} eyebrow="Staff tracked" value={loading ? "—" : memberActivity.length} detail="Unique members this week" index={3} reduceMotion={reduceMotion} accent="#A967A3" />
-        </section>
+        {error ? <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-2xl border border-[#E9B8A8] bg-white p-4 text-sm text-reef-navy"><p className="font-semibold">{error}</p><button onClick={() => void load()} className="mt-2 text-xs font-semibold text-[#B45B25] underline underline-offset-2">Try again</button></motion.div> : null}
+        {!loading && data?.linked === false ? <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-[24px] border border-[#E7D4BD] bg-white p-6 text-center shadow-sm"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF1DC] text-[#B36D20]"><Activity className="h-5 w-5" /></span><h2 className="mt-3 text-base font-bold text-reef-navy">Link your Roblox account to see your rhythm</h2><p className="mx-auto mt-1 max-w-lg text-xs leading-5 text-lava/50">Connect your Roblox account through the Honolua Discord verification flow, then refresh this page.</p></motion.section> : null}
 
-        <div className="mt-7 grid items-start gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.8fr)]">
-          <section className="min-w-0">
-            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><div className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#A87419]">Rank by rank</div><h2 className="mt-1 text-xl font-bold tracking-tight text-reef-navy">Quota current</h2><p className="mt-1 text-xs text-lava/45">Each Roblox rank keeps its own weekly target.</p></div><button type="button" onClick={() => { setEditingQuotas((value) => !value); setNotice("") }} className="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-lava/10 bg-white px-3.5 text-xs font-semibold text-reef-navy shadow-sm transition hover:border-[#E6736F]/30 hover:bg-[#FFF9F1] sm:self-auto"><Settings2 className="h-4 w-4" />{editingQuotas ? "Close quota editor" : "Set rank quotas"}<ChevronDown className={`h-3.5 w-3.5 transition-transform ${editingQuotas ? "rotate-180" : ""}`} /></button></div>
-
-            <AnimatePresence initial={false}>
-              {editingQuotas ? <motion.section initial={reduceMotion ? false : { opacity: 0, height: 0, y: -8 }} animate={{ opacity: 1, height: "auto", y: 0 }} exit={{ opacity: 0, height: 0, y: -8 }} transition={{ duration: reduceDuration(reduceMotion, 0.24), ease: EASE }} className="mb-4 overflow-hidden rounded-[24px] border border-[#F4B942]/25 bg-[#FFFDF8] shadow-[0_12px_32px_rgba(175,133,48,0.07)]"><div className="flex flex-col gap-3 border-b border-[#F4B942]/15 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5"><div><h3 className="text-sm font-bold text-reef-navy">Weekly targets by Roblox rank</h3><p className="mt-1 text-xs text-lava/45">Enter hours. Set 0 to leave a rank without a quota.</p></div><button type="button" onClick={() => setEditingQuotas(false)} aria-label="Close quota editor" className="absolute right-5 hidden h-8 w-8 items-center justify-center rounded-lg text-lava/45 hover:bg-lava/5 sm:flex"><X className="h-4 w-4" /></button></div><div className="grid gap-2 p-3 sm:grid-cols-2 sm:p-4">{orderedRoles.map((role) => <label key={role.id} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-lava/[0.06] bg-white px-3 py-2.5"><span className="min-w-0"><span className="block truncate text-xs font-semibold text-reef-navy">{role.name}</span><span className="text-[10px] text-lava/40">Rank {role.rank}</span></span><span className="flex shrink-0 items-center gap-2"><input aria-label={`${role.name} weekly quota in hours`} type="number" min="0" max="168" step="0.5" value={draftQuotas[role.rank] ?? "0"} onChange={(event) => setDraftQuotas((current) => ({ ...current, [role.rank]: event.target.value }))} className="h-10 w-20 rounded-lg border border-lava/10 bg-[#FBFCF9] px-2 text-right text-sm font-bold tabular-nums text-reef-navy outline-none focus:border-[#E6736F]/50 focus:ring-2 focus:ring-[#E6736F]/10" /><span className="text-[10px] text-lava/40">hrs</span></span></label>)}</div><div className="flex flex-col gap-2 border-t border-[#F4B942]/15 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5"><p className="text-[10px] leading-4 text-lava/40">Saved to Honolua and recorded in Audit Logs.</p><button type="button" onClick={() => void saveQuotas()} disabled={saving || !roles.length} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-reef-navy px-4 text-xs font-semibold text-white transition hover:bg-reef-navy/90 disabled:opacity-50">{saving ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}{saving ? "Saving…" : "Save quotas"}</button></div></motion.section> : null}
-            </AnimatePresence>
-            {notice ? <p role="status" className="mb-3 rounded-xl border border-lava/[0.07] bg-white px-4 py-3 text-xs font-medium text-reef-navy/70">{notice}</p> : null}
-
-            {error ? <div className="rounded-[24px] border border-[#E6736F]/20 bg-white px-5 py-12 text-center"><p className="text-sm font-semibold text-reef-navy">{error}</p><button type="button" onClick={() => void load()} className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl bg-reef-navy px-4 text-xs font-semibold text-white">Try again</button></div> : loading ? <div className="grid gap-2.5 sm:grid-cols-2">{Array.from({ length: 6 }, (_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-white/80" />)}</div> : roles.length ? <motion.div layout className="grid gap-2.5 sm:grid-cols-2">{shownRoles.map((role, index) => <RankProgress key={role.id} role={role} index={index} activity={activity} quota={Number(quotas[role.rank]) || 0} reduceMotion={reduceMotion} />)}</motion.div> : <div className="rounded-2xl border border-dashed border-lava/15 bg-white/70 px-5 py-10 text-center text-sm text-lava/45">No Roblox group ranks were returned.</div>}
-            {orderedRoles.length > 8 ? <button type="button" onClick={() => setShowAll((value) => !value)} className="mt-3 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-lava/[0.07] bg-white text-xs font-semibold text-lava/55 transition hover:border-[#E6736F]/25 hover:text-reef-navy">{showAll ? "Show top ranks" : `Show all ${orderedRoles.length} ranks`}<ChevronDown className={`h-3.5 w-3.5 transition-transform ${showAll ? "rotate-180" : ""}`} /></button> : null}
+        {loading ? <section className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="h-32 animate-pulse rounded-[22px] bg-white/80" />)}</section> : data?.linked ? <>
+          <section className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+            <SummaryCard icon={Clock3} label="Last 30 days" value={timeLabel(stats?.last30DaysMinutes)} note="Time in-game" tint="#D7792A" index={0} reduceMotion={reduceMotion} />
+            <SummaryCard icon={CalendarDays} label="Visits" value={stats?.visits || 0} note="Game sessions this month" tint="#B98736" index={1} reduceMotion={reduceMotion} />
+            <SummaryCard icon={Activity} label="Average visit" value={timeLabel(stats?.averageVisitMinutes)} note="Per session" tint="#5FA678" index={2} reduceMotion={reduceMotion} />
+            <SummaryCard icon={Flame} label="Current streak" value={`${stats?.currentStreakDays || 0} days`} note="Consecutive active days" tint="#E67336" index={3} reduceMotion={reduceMotion} />
           </section>
 
-          <aside className="min-w-0">
-            <div className="mb-3 flex items-end justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#A87419]">The roster pulse</div><h2 className="mt-1 text-xl font-bold tracking-tight text-reef-navy">Who’s showing up</h2></div><span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-lava/45">This week</span></div>
-            <section className="overflow-hidden rounded-[24px] border border-lava/[0.07] bg-white shadow-[0_8px_26px_rgba(34,52,39,0.04)]">
-              <div className="flex items-center justify-between border-b border-lava/[0.06] px-4 py-3.5"><span className="text-[10px] font-bold uppercase tracking-[0.15em] text-lava/40">Member sessions</span><span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-lava/40"><span className="h-1.5 w-1.5 rounded-full bg-[#5FA678]" />{onlineCount} active</span></div>
-              {loading ? <div className="space-y-3 p-4">{[0, 1, 2, 3].map((n) => <div key={n} className="h-14 animate-pulse rounded-xl bg-lava/[0.035]" />)}</div> : memberActivity.length ? <div className="divide-y divide-lava/[0.055]">{memberActivity.slice(0, 10).map((member, index) => <motion.article key={member.userId} initial={reduceMotion ? false : { opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: reduceMotion ? 0 : Math.min(index * 0.04, 0.24), duration: reduceDuration(reduceMotion, 0.3) }} className="flex items-center gap-3 px-4 py-3.5"><div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#FFF3D6] to-[#FCE6E4] text-xs font-bold text-reef-navy">{member.username.slice(0, 2).toUpperCase()}<span className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-white ${member.isActive ? "bg-emerald-500" : "bg-[#D6D8D2]"}`} /></div><div className="min-w-0 flex-1"><div className="truncate text-xs font-bold text-reef-navy">{member.username}</div><div className="mt-0.5 truncate text-[10px] text-lava/40">Rank {member.rank} · {member.isActive ? "In game now" : `${member.sessionCount} sessions`}</div></div><div className="shrink-0 text-right"><div className="text-xs font-bold tabular-nums text-reef-navy">{minutesLabel(member.minutes)}</div><div className="mt-0.5 inline-flex items-center gap-0.5 text-[9px] text-lava/40">{member.isActive ? <ArrowUpRight className="h-3 w-3 text-emerald-600" /> : <ArrowDownRight className="h-3 w-3" />}{member.isActive ? "live" : "this week"}</div></div></motion.article>)}</div> : <div className="px-5 py-12 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF5E1] text-[#AD7D23]"><Radio className="h-5 w-5" /></div><p className="mt-3 text-sm font-bold text-reef-navy">Quiet before the first session</p><p className="mx-auto mt-1 max-w-[250px] text-xs leading-5 text-lava/45">Member sessions will appear here as soon as the game starts sending activity.</p></div>}
-              <div className="border-t border-lava/[0.06] bg-[#FBFCF9] px-4 py-3 text-[10px] text-lava/40">Refreshes automatically every 45 seconds</div>
-            </section>
-          </aside>
-        </div>
+          <div className="mt-4"><ActivityCalendar days={days} reduceMotion={reduceMotion} /></div>
+          <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
+            <div className="grid gap-4"><FourteenDayPulse days={days} reduceMotion={reduceMotion} /><SessionList sessions={sessions} reduceMotion={reduceMotion} /></div>
+            <MessageList messages={messages} reduceMotion={reduceMotion} />
+          </div>
+        </> : null}
       </div>
     </main>
   )

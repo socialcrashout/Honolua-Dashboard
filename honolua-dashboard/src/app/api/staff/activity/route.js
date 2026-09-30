@@ -1,107 +1,127 @@
 import { NextResponse } from "next/server"
 import clientPromise from "@/lib/mongodb"
 import { getUserFromSession } from "@/lib/auth"
-import { canManageUpdates } from "@/lib/staff"
-import { logStaffAction } from "@/lib/audit"
 
 const GROUP_ID = 743137138
 const DB_NAME = "honolua"
+const HISTORY_DAYS = 183
 const ACTIVE_WINDOW_MS = 2 * 60 * 1000
+const STREAK_MINUTES_PER_DAY = 10
 
-async function requireStaff() {
-  const session = await getUserFromSession()
-  if (!session?.discordId) return { response: NextResponse.json({ error: "Sign in to view activity." }, { status: 401 }) }
-  if (!canManageUpdates(session.workspaceRank)) return { response: NextResponse.json({ error: "You do not have access to staff activity." }, { status: 403 }) }
-  return { session }
+function dayKey(date) {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())).toISOString().slice(0, 10)
 }
 
-function mondayStart(date) {
-  const start = new Date(date)
-  start.setUTCHours(0, 0, 0, 0)
-  const daysSinceMonday = (start.getUTCDay() + 6) % 7
-  start.setUTCDate(start.getUTCDate() - daysSinceMonday)
-  return start
+function addSessionToDays(dayMinutes, start, end) {
+  if (!(end > start)) return
+  let cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()))
+  while (cursor < end) {
+    const next = new Date(cursor)
+    next.setUTCDate(next.getUTCDate() + 1)
+    const overlapStart = start > cursor ? start : cursor
+    const overlapEnd = end < next ? end : next
+    const minutes = Math.max(0, Math.floor((overlapEnd - overlapStart) / 60000))
+    const key = dayKey(cursor)
+    dayMinutes.set(key, (dayMinutes.get(key) || 0) + minutes)
+    cursor = next
+  }
+}
+
+async function getLinkedRobloxId(discordId) {
+  const guildId = process.env.DISCORD_GUILD_ID
+  const apiKey = process.env.BLOXLINK_API_KEY
+  if (!guildId || !apiKey) throw new Error("Roblox account linking is not configured.")
+  const response = await fetch(
+    `https://api.blox.link/v4/public/guilds/${guildId}/discord-to-roblox/${discordId}`,
+    { headers: { Authorization: apiKey }, cache: "no-store" }
+  )
+  if (response.status === 404) return null
+  if (!response.ok) throw new Error("Could not verify your linked Roblox account.")
+  const data = await response.json()
+  return /^\d{1,20}$/.test(String(data.robloxID || "")) ? String(data.robloxID) : null
 }
 
 export async function GET() {
-  const { response } = await requireStaff()
-  if (response) return response
+  const session = await getUserFromSession()
+  if (!session?.discordId) return NextResponse.json({ error: "Sign in to view your activity." }, { status: 401 })
 
   try {
+    const robloxUserId = await getLinkedRobloxId(String(session.discordId))
+    if (!robloxUserId) {
+      return NextResponse.json({ ok: true, linked: false, sessions: [], messages: [], days: [], stats: null }, { headers: { "Cache-Control": "private, no-store" } })
+    }
+
     const client = await clientPromise
     const db = client.db(DB_NAME)
     const now = new Date()
-    const weekStart = mondayStart(now)
-    const [rolesResponse, settings, sessions] = await Promise.all([
-      fetch(`https://groups.roblox.com/v1/groups/${GROUP_ID}/roles`, { cache: "no-store" }),
-      db.collection("activitySettings").findOne({ groupId: GROUP_ID }),
-      db.collection("activitySessions").find({
-        groupId: GROUP_ID,
-        startedAt: { $lt: now },
-        $or: [{ endedAt: { $gte: weekStart } }, { isActive: true }],
-      }).sort({ startedAt: -1 }).limit(5000).toArray(),
+    const historyStart = new Date(now.getTime() - HISTORY_DAYS * 24 * 60 * 60 * 1000)
+    const messageStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const [sessionRecords, messageRecords, profileResponse] = await Promise.all([
+      db.collection("activitySessions").find({ groupId: GROUP_ID, userId: robloxUserId, startedAt: { $gte: historyStart, $lt: now } }).sort({ startedAt: -1 }).limit(1000).toArray(),
+      db.collection("activityMessages").find({ groupId: GROUP_ID, userId: robloxUserId, createdAt: { $gte: messageStart, $lt: now } }).sort({ createdAt: -1 }).limit(60).toArray(),
+      fetch(`https://users.roblox.com/v1/users/${robloxUserId}`, { cache: "no-store" }),
     ])
 
-    if (!rolesResponse.ok) throw new Error("Roblox role list unavailable")
-    const rolesData = await rolesResponse.json()
-    const roles = (rolesData.roles || []).map((role) => ({ id: role.id, name: role.name, rank: role.rank }))
-    const activity = sessions.map((session) => {
-      const startedAt = new Date(session.startedAt)
-      const lastSeenAt = new Date(session.lastSeenAt || session.endedAt || session.startedAt)
-      const isActive = Boolean(session.isActive) && now - lastSeenAt <= ACTIVE_WINDOW_MS
-      const endedAt = isActive ? now : new Date(session.endedAt || lastSeenAt)
-      const overlapStart = startedAt > weekStart ? startedAt : weekStart
-      const minutes = Math.max(0, Math.floor((endedAt - overlapStart) / 60000))
+    const dayMinutes = new Map()
+    const sessions = sessionRecords.map((record) => {
+      const startedAt = new Date(record.startedAt)
+      const lastSeenAt = new Date(record.lastSeenAt || record.endedAt || record.startedAt)
+      const isActive = Boolean(record.isActive) && now - lastSeenAt <= ACTIVE_WINDOW_MS
+      const endedAt = isActive ? now : new Date(record.endedAt || lastSeenAt)
+      addSessionToDays(dayMinutes, startedAt, endedAt)
       return {
-        userId: String(session.userId), username: session.username || "Unknown", rank: Number(session.rank) || 0,
-        minutes, isActive, startedAt: session.startedAt, endedAt: session.endedAt || (isActive ? null : lastSeenAt), lastSeenAt,
-        serverId: session.serverId || "",
+        startedAt: record.startedAt,
+        endedAt: isActive ? null : (record.endedAt || lastSeenAt),
+        minutes: Math.max(0, Math.floor((endedAt - startedAt) / 60000)),
+        isActive,
       }
     })
 
+    const days = Array.from({ length: HISTORY_DAYS }, (_, index) => {
+      const date = new Date(now)
+      date.setUTCDate(date.getUTCDate() - (HISTORY_DAYS - index - 1))
+      const key = dayKey(date)
+      return { date: key, minutes: dayMinutes.get(key) || 0 }
+    })
+    const today = dayKey(now)
+    const yesterdayDate = new Date(now)
+    yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1)
+    const yesterday = dayKey(yesterdayDate)
+    const dayLookup = new Map(days.map((day) => [day.date, day.minutes]))
+    let streakCursor = dayLookup.get(today) >= STREAK_MINUTES_PER_DAY ? new Date(now) : dayLookup.get(yesterday) >= STREAK_MINUTES_PER_DAY ? yesterdayDate : null
+    let currentStreakDays = 0
+    while (streakCursor && dayLookup.get(dayKey(streakCursor)) >= STREAK_MINUTES_PER_DAY) {
+      currentStreakDays += 1
+      streakCursor.setUTCDate(streakCursor.getUTCDate() - 1)
+    }
+
+    const thirtyDayStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const recentSessions = sessions.filter((item) => new Date(item.startedAt) >= thirtyDayStart)
+    const totalRecentMinutes = recentSessions.reduce((total, item) => total + item.minutes, 0)
+    const profile = profileResponse.ok ? await profileResponse.json().catch(() => null) : null
+
     return NextResponse.json({
-      ok: true, group: { id: GROUP_ID, name: "Honolua" }, roles,
-      quotas: settings?.quotas || {}, activity, weekStartsAt: weekStart,
-      lastEventAt: activity.reduce((latest, session) => {
-        const timestamp = new Date(session.lastSeenAt || session.endedAt || session.startedAt).getTime()
-        return timestamp > latest ? timestamp : latest
-      }, 0) || null,
+      ok: true,
+      linked: true,
+      member: { username: profile?.name || session.robloxUsername || "Honolua member" },
+      stats: {
+        last30DaysMinutes: totalRecentMinutes,
+        visits: recentSessions.length,
+        averageVisitMinutes: recentSessions.length ? Math.round(totalRecentMinutes / recentSessions.length) : 0,
+        currentStreakDays,
+        streakMinimumMinutes: STREAK_MINUTES_PER_DAY,
+      },
+      days,
+      sessions: sessions.slice(0, 40),
+      messages: messageRecords.map((record) => ({
+        id: String(record._id),
+        text: record.message,
+        channel: record.channel || "Experience chat",
+        createdAt: record.createdAt,
+      })),
     }, { headers: { "Cache-Control": "private, no-store" } })
   } catch (error) {
-    console.error("staff activity GET error:", error)
-    return NextResponse.json({ error: "Could not load activity. Try again shortly." }, { status: 502 })
+    console.error("personal activity GET error:", error)
+    return NextResponse.json({ error: "Could not load your activity right now." }, { status: 502 })
   }
-}
-
-export async function PUT(request) {
-  const { session, response } = await requireStaff()
-  if (response) return response
-
-  const body = await request.json().catch(() => null)
-  if (!body?.quotas || typeof body.quotas !== "object" || Array.isArray(body.quotas)) {
-    return NextResponse.json({ error: "Choose a weekly quota for each group rank." }, { status: 400 })
-  }
-
-  const quotas = {}
-  for (const [rank, rawMinutes] of Object.entries(body.quotas)) {
-    const minutes = Number(rawMinutes)
-    if (!/^\d{1,3}$/.test(rank) || Number(rank) > 255 || !Number.isInteger(minutes) || minutes < 0 || minutes > 10080) {
-      return NextResponse.json({ error: "Rank quotas must be whole minutes from 0 to 10,080." }, { status: 400 })
-    }
-    quotas[rank] = minutes
-  }
-
-  const client = await clientPromise
-  await client.db(DB_NAME).collection("activitySettings").updateOne(
-    { groupId: GROUP_ID },
-    { $set: { quotas, updatedAt: new Date(), updatedBy: String(session.discordId) }, $setOnInsert: { createdAt: new Date() } },
-    { upsert: true }
-  )
-  await logStaffAction({
-    session: { discordId: session.discordId, discordUsername: session.discordUsername || session.username },
-    action: "activity_quotas_updated",
-    meta: { groupId: GROUP_ID, ranksConfigured: Object.keys(quotas).length },
-  })
-
-  return NextResponse.json({ ok: true, quotas })
 }

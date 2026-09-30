@@ -48,7 +48,7 @@ export async function GET() {
   try {
     const robloxUserId = await getLinkedRobloxId(String(session.discordId))
     if (!robloxUserId) {
-      return NextResponse.json({ ok: true, linked: false, sessions: [], messages: [], days: [], stats: null }, { headers: { "Cache-Control": "private, no-store" } })
+      return NextResponse.json({ ok: true, linked: false, trackingReady: Boolean(process.env.ROBLOX_ACTIVITY_SECRET), sessions: [], messages: [], days: [], stats: null }, { headers: { "Cache-Control": "private, no-store" } })
     }
 
     const client = await clientPromise
@@ -74,6 +74,7 @@ export async function GET() {
         endedAt: isActive ? null : (record.endedAt || lastSeenAt),
         minutes: Math.max(0, Math.floor((endedAt - startedAt) / 60000)),
         isActive,
+        experienceName: record.experienceName || "Honolua",
       }
     })
 
@@ -103,6 +104,8 @@ export async function GET() {
     return NextResponse.json({
       ok: true,
       linked: true,
+      trackingReady: Boolean(process.env.ROBLOX_ACTIVITY_SECRET),
+      currentSession: sessions.find((item) => item.isActive) || null,
       member: { username: profile?.name || session.robloxUsername || "Honolua member" },
       stats: {
         last30DaysMinutes: totalRecentMinutes,

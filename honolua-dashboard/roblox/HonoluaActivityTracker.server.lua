@@ -1,6 +1,6 @@
 -- Place this as a Script in ServerScriptService (never LocalScript).
--- Set ActivitySecret to the same long random value as Vercel's
--- ROBLOX_ACTIVITY_SECRET environment variable before publishing.
+-- Store the same secret value under HONOLUA_ACTIVITY_SECRET in Roblox Secrets
+-- and Vercel's ROBLOX_ACTIVITY_SECRET environment variable.
 
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
@@ -8,12 +8,16 @@ local TextService = game:GetService("TextService")
 
 local GROUP_ID = 743137138
 local ENDPOINT = "https://honolua-dashboard.vercel.app/api/activity/ingest"
-local ACTIVITY_SECRET = "SET_THE_SAME_RANDOM_SECRET_IN_VERCEL_AND_HERE"
+local EXPERIENCE_NAME = "Honolua"
+local SECRET_NAME = "HONOLUA_ACTIVITY_SECRET"
 local HEARTBEAT_SECONDS = 45
 local MAX_ATTEMPTS = 3
 
-if ACTIVITY_SECRET == "SET_THE_SAME_RANDOM_SECRET_IN_VERCEL_AND_HERE" then
-	warn("Honolua activity tracker is installed but not configured: set ACTIVITY_SECRET and Vercel ROBLOX_ACTIVITY_SECRET.")
+local secretOk, activitySecret = pcall(function()
+	return HttpService:GetSecret(SECRET_NAME)
+end)
+if not secretOk then
+	warn("Honolua activity tracker is waiting for the HONOLUA_ACTIVITY_SECRET Roblox experience secret.")
 	return
 end
 
@@ -33,6 +37,7 @@ local function sendEvent(eventName, player, rank, filteredMessage, messageId)
 		userId = tostring(player.UserId),
 		username = player.Name,
 		rank = rank,
+		experienceName = EXPERIENCE_NAME,
 		serverId = serverId,
 		sessionId = sessionId,
 		at = DateTime.now():ToIsoDate(),
@@ -52,7 +57,7 @@ local function sendEvent(eventName, player, rank, filteredMessage, messageId)
 				Method = "POST",
 				Headers = {
 					["Content-Type"] = "application/json",
-					["Authorization"] = "Bearer " .. ACTIVITY_SECRET,
+					["Authorization"] = activitySecret:AddPrefix("Bearer "),
 				},
 				Body = body,
 			})

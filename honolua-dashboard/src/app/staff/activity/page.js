@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { Activity, CalendarDays, Clock3, Flame, MessageCircle, Radio, RefreshCw, Sparkles } from "lucide-react"
+import { Activity, CalendarDays, Clock3, Flame, Gamepad2, MessageCircle, Radio, RefreshCw, Sparkles } from "lucide-react"
 
 const EASE = [0.16, 1, 0.3, 1]
 const reduceDuration = (reduceMotion, duration) => reduceMotion ? 0.01 : duration
@@ -40,79 +40,108 @@ function SummaryCard({ icon: Icon, label, value, note, tint, index, reduceMotion
   )
 }
 
-function contributionColor(minutes) {
-  if (minutes >= 180) return "#C7551F"
-  if (minutes >= 90) return "#E67336"
-  if (minutes >= 30) return "#F4A261"
-  if (minutes > 0) return "#F9D7B2"
-  return "#F3F0EC"
+function CurrentSession({ session, now, trackingReady, reduceMotion }) {
+  const elapsed = session?.startedAt ? Math.max(0, Math.floor((now - new Date(session.startedAt).getTime()) / 60000)) : 0
+  const active = Boolean(session?.isActive)
+  return (
+    <motion.section initial={reduceMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceDuration(reduceMotion, 0.4), ease: EASE }} className={`relative mt-4 overflow-hidden rounded-[28px] border p-5 shadow-[0_12px_36px_rgba(125,78,27,0.07)] sm:flex sm:items-center sm:gap-6 sm:px-7 ${active ? "border-[#E8B970]/50 bg-[linear-gradient(105deg,#fff_0%,#FFF5E5_50%,#FFE9CE_100%)]" : "border-[#E9DFD1] bg-white"}`}>
+      {active ? <motion.span aria-hidden="true" animate={reduceMotion ? undefined : { scale: [1, 1.2, 1], opacity: [0.18, 0.38, 0.18] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }} className="pointer-events-none absolute -right-3 -top-20 h-56 w-56 rounded-full bg-[#F4B942] blur-[55px]" /> : null}
+      <span className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] ${active ? "bg-[#D96E2A] text-white shadow-[0_10px_22px_rgba(217,110,42,0.25)]" : "bg-[#FFF3E2] text-[#B36D20]"}`}>
+        {active ? <motion.span aria-hidden="true" animate={reduceMotion ? undefined : { scale: [1, 1.35, 1], opacity: [0.55, 0, 0.55] }} transition={{ duration: 2, repeat: Infinity }} className="absolute inset-0 rounded-[20px] border-2 border-[#E67336]" /> : null}
+        <Gamepad2 className="relative h-6 w-6" />
+      </span>
+      <div className="relative mt-4 min-w-0 flex-1 sm:mt-0">
+        <div className="flex flex-wrap items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#A9631F]">{active ? "Live session" : "Now playing"}</span>{active ? <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[#A9631F]"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#E67336]" />Live</span> : null}</div>
+        <h2 className="mt-1 truncate text-xl font-bold tracking-tight text-reef-navy">{active ? `Playing ${session.experienceName || "Honolua"}` : trackingReady ? "No active game session" : "Activity tracker needs setup"}</h2>
+        <p className="mt-1 text-xs leading-5 text-lava/50">{active ? `Joined at ${dateLabel(session.startedAt, { hour: "numeric", minute: "2-digit" })} · this time is updating live` : trackingReady ? "When you join the Honolua experience, your current session will appear here." : "Roblox cannot send activity until the experience secret and HTTP requests are configured."}</p>
+      </div>
+      {active ? <div className="relative mt-4 flex shrink-0 items-baseline gap-2 sm:mt-0 sm:pl-6 sm:text-right"><motion.span key={elapsed} initial={reduceMotion ? false : { opacity: 0.4, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-4xl font-bold tabular-nums tracking-tight text-reef-navy">{timeLabel(elapsed)}</motion.span><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#A9631F]">in game</span></div> : null}
+    </motion.section>
+  )
 }
 
-function ActivityCalendar({ days, reduceMotion }) {
-  const cells = useMemo(() => {
-    if (!days.length) return []
-    const first = new Date(`${days[0].date}T00:00:00Z`)
-    const mondayOffset = (first.getUTCDay() + 6) % 7
-    return [...Array(mondayOffset).fill(null), ...days]
-  }, [days])
-  const monthLabels = useMemo(() => {
-    const columns = []
-    for (let start = 0; start < cells.length; start += 7) {
-      const week = cells.slice(start, start + 7)
-      const firstOfMonth = week.find((day) => day && Number(day.date.slice(-2)) <= 7)
-      columns.push(firstOfMonth ? new Intl.DateTimeFormat(undefined, { month: "short", timeZone: "UTC" }).format(new Date(`${firstOfMonth.date}T00:00:00Z`)) : "")
+function SixMonthVoyage({ days, reduceMotion }) {
+  const months = useMemo(() => {
+    const monthMap = new Map()
+    for (const day of days) {
+      const date = new Date(`${day.date}T00:00:00Z`)
+      const key = `${date.getUTCFullYear()}-${date.getUTCMonth()}`
+      if (!monthMap.has(key)) monthMap.set(key, { key, date, weeks: [0, 0, 0, 0, 0], minutes: 0 })
+      const month = monthMap.get(key)
+      month.weeks[Math.min(4, Math.floor((date.getUTCDate() - 1) / 7))] += day.minutes
+      month.minutes += day.minutes
     }
-    return columns
-  }, [cells])
-
+    return Array.from(monthMap.values()).slice(-6)
+  }, [days])
+  const maxWeek = Math.max(30, ...months.flatMap((month) => month.weeks))
   return (
-    <section className="overflow-hidden rounded-[26px] border border-[#E9DFD1] bg-white p-5 shadow-[0_8px_24px_rgba(46,38,29,0.04)] sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">Your rhythm</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Six months, one small square at a time</h2></div>
-        <span className="text-[10px] font-medium text-lava/40">Minutes played each day</span>
+    <section className="relative overflow-hidden rounded-[28px] border border-[#E9D7C0] bg-[#FFF9F1] p-5 sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">Long view · six months</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Little visits, gathered into seasons</h2></div><span className="text-[10px] text-lava/40">Each curve marks a week</span></div>
+      <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
+        {months.map((month, monthIndex) => (
+          <motion.article key={month.key} initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: reduceMotion ? 0 : monthIndex * 0.04, duration: 0.28 }} className="rounded-[20px] border border-[#E8DFD2] bg-white/85 p-3.5 sm:p-4">
+            <div className="flex items-baseline justify-between gap-2"><h3 className="text-xs font-bold text-reef-navy">{new Intl.DateTimeFormat(undefined, { month: "short", timeZone: "UTC" }).format(month.date)}</h3><span className="truncate text-[10px] font-semibold tabular-nums text-[#A9631F]">{timeLabel(month.minutes)}</span></div>
+            <div className="mt-4 flex h-16 items-end gap-1.5 border-b border-dashed border-[#E8DCCB] pb-1">
+              {month.weeks.map((minutes, weekIndex) => {
+                const height = minutes ? Math.max(5, (minutes / maxWeek) * 58) : 3
+                return <motion.span key={weekIndex} initial={reduceMotion ? false : { scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ delay: reduceMotion ? 0 : monthIndex * 0.04 + weekIndex * 0.025, duration: 0.38, ease: EASE }} title={`Week ${weekIndex + 1}: ${timeLabel(minutes)}`} className={`min-w-0 flex-1 origin-bottom rounded-t-md ${minutes ? "bg-gradient-to-t from-[#D66527] to-[#F4B942]" : "bg-[#F0E8DC]"}`} style={{ height }} />
+              })}
+            </div>
+            <div className="mt-1.5 flex justify-between text-[8px] font-medium text-lava/35"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+          </motion.article>
+        ))}
       </div>
-      <div className="mt-5 overflow-x-auto pb-1">
-        <div className="min-w-[660px]">
-          <div className="grid gap-[5px] pl-8 text-[9px] font-medium text-lava/40" style={{ gridTemplateColumns: `repeat(${monthLabels.length}, minmax(0, 1fr))` }}>
-            {monthLabels.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}
-          </div>
-          <div className="mt-2 grid grid-flow-col grid-rows-7 gap-[5px]">
-            {["M", "", "W", "", "F", "", ""].map((label, index) => <span key={`weekday-${index}`} className="flex h-3.5 w-5 items-center text-[9px] font-medium text-lava/35">{label}</span>)}
-            {cells.map((day, index) => day ? (
-              <motion.div key={day.date} initial={reduceMotion ? false : { opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: reduceMotion ? 0 : Math.min(index * 0.0015, 0.2), duration: 0.22 }} title={`${dateLabel(day.date, { month: "short", day: "numeric", timeZone: "UTC" })} · ${timeLabel(day.minutes)}`} className="h-3.5 w-3.5 rounded-[4px] ring-1 ring-black/[0.025] transition-transform hover:z-10 hover:scale-125" style={{ backgroundColor: contributionColor(day.minutes) }} />
-            ) : <span key={`pad-${index}`} className="h-3.5 w-3.5" />)}
-          </div>
-        </div>
-      </div>
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#F0E8DE] pt-4">
-        <p className="text-[10px] text-lava/40">A day counts toward your streak after {10} minutes in-game.</p>
-        <div className="flex items-center gap-1.5 text-[9px] font-medium text-lava/40"><span>Quiet</span>{["#F3F0EC", "#F9D7B2", "#F4A261", "#E67336", "#C7551F"].map((color) => <span key={color} className="h-3 w-3 rounded-[3px]" style={{ backgroundColor: color }} />)}<span>More time</span></div>
-      </div>
+      <p className="mt-4 border-t border-[#E9DDCE] pt-3 text-[10px] text-lava/45">A streak day begins at 10 minutes of play. Hover a weekly bar to see its total.</p>
     </section>
   )
 }
 
-function FourteenDayPulse({ days, reduceMotion }) {
-  const lastDays = days.slice(-14)
-  const max = Math.max(30, ...lastDays.map((day) => day.minutes))
+function curveThrough(points) {
+  if (!points.length) return ""
+  return points.reduce((path, point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`
+    const previous = points[index - 1]
+    const before = points[index - 2] || previous
+    const after = points[index + 1] || point
+    const c1x = previous.x + (point.x - before.x) / 6
+    const c1y = previous.y + (point.y - before.y) / 6
+    const c2x = point.x - (after.x - previous.x) / 6
+    const c2y = point.y - (after.y - previous.y) / 6
+    return `${path} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${point.x} ${point.y}`
+  }, "")
+}
+
+function ThirtyDayTide({ days, reduceMotion }) {
+  const chartDays = days.slice(-30)
+  const max = Math.max(30, ...chartDays.map((day) => day.minutes))
+  const points = chartDays.map((day, index) => ({
+    ...day,
+    x: chartDays.length <= 1 ? 400 : 24 + (index / (chartDays.length - 1)) * 752,
+    y: 156 - Math.min(112, (day.minutes / max) * 112),
+  }))
+  const line = curveThrough(points)
+  const area = points.length ? `${line} L ${points.at(-1).x} 164 L ${points[0].x} 164 Z` : ""
+  const ticks = points.filter((_, index) => index % 5 === 0 || index === points.length - 1)
   return (
-    <section className="rounded-[26px] border border-[#E9DFD1] bg-[#FFF9F1] p-5 sm:p-6">
-      <div className="flex items-center justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">Two week pulse</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Small steps add up</h2></div><Activity className="h-5 w-5 text-[#D8792B]" /></div>
-      <div className="mt-6 flex h-36 items-end gap-2">
-        {lastDays.map((day, index) => {
-          const height = day.minutes ? Math.max(7, Math.round((day.minutes / max) * 100)) : 4
-          return <div key={day.date} className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
-            <motion.div initial={reduceMotion ? false : { height: 0 }} animate={{ height: `${height}%` }} transition={{ duration: reduceDuration(reduceMotion, 0.55), delay: reduceMotion ? 0 : index * 0.035, ease: EASE }} title={`${timeLabel(day.minutes)} on ${dateLabel(day.date, { month: "short", day: "numeric", timeZone: "UTC" })}`} className={`w-full max-w-7 rounded-t-lg ${day.minutes ? "bg-gradient-to-t from-[#D66527] to-[#F4B942]" : "bg-[#EAE0D4]"}`} />
-            <span className="text-[9px] font-medium text-lava/45">{new Date(`${day.date}T00:00:00Z`).getUTCDate()}</span>
-          </div>
-        })}
+    <section className="relative overflow-hidden rounded-[28px] border border-[#E8D7C1] bg-[linear-gradient(135deg,#fff_0%,#FFFBF5_55%,#FFF2E1_100%)] p-5 shadow-[0_12px_34px_rgba(125,78,27,0.055)] sm:p-6">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border border-[#E8AA5D]/20" />
+      <div className="relative flex flex-wrap items-end justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">The island tide · 30 days</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Your playtime, in waves</h2></div><span className="rounded-full border border-[#EAD6B9] bg-white/80 px-3 py-1.5 text-[9px] font-semibold text-lava/50">Daily minutes</span></div>
+      <div className="relative mt-4 overflow-hidden">
+        {points.length ? <svg viewBox="0 0 800 204" role="img" aria-label="A wave chart of your daily minutes in game for the last 30 days" className="h-[190px] w-full overflow-visible sm:h-[220px]">
+          <defs><linearGradient id="activity-tide-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#E87932" stopOpacity="0.34" /><stop offset="100%" stopColor="#F4B942" stopOpacity="0.015" /></linearGradient><linearGradient id="activity-tide-line" x1="0" x2="1" y1="0" y2="0"><stop offset="0%" stopColor="#F4B942" /><stop offset="52%" stopColor="#E87932" /><stop offset="100%" stopColor="#D85648" /></linearGradient></defs>
+          {[44, 100, 156].map((y) => <line key={y} x1="20" x2="780" y1={y} y2={y} stroke="#E8DCCB" strokeDasharray="3 8" />)}
+          <path d={area} fill="url(#activity-tide-fill)" />
+          <motion.path d={line} fill="none" stroke="url(#activity-tide-line)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" initial={reduceMotion ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: reduceDuration(reduceMotion, 1.15), ease: EASE }} />
+          {points.map((point, index) => <circle key={point.date} cx={point.x} cy={point.y} r={index === points.length - 1 ? 5 : point.minutes ? 2.5 : 1.5} fill={index === points.length - 1 ? "#D85648" : point.minutes ? "#E87932" : "#D9CDBD"}><title>{`${dateLabel(point.date, { month: "short", day: "numeric", timeZone: "UTC" })}: ${timeLabel(point.minutes)}`}</title></circle>)}
+          {ticks.map((point) => <text key={`tick-${point.date}`} x={point.x} y="190" textAnchor="middle" fill="#998C7C" fontSize="9">{new Date(`${point.date}T00:00:00Z`).getUTCDate()}</text>)}
+        </svg> : <div className="flex h-48 items-center justify-center rounded-2xl bg-white/55 text-xs text-lava/45">Your first session will draw the tide.</div>}
       </div>
-      <p className="mt-3 text-[10px] text-lava/40">Each bar is one day. Hover to see your time.</p>
+      <div className="relative flex items-center justify-between gap-3 border-t border-[#E9DDCE] pt-3 text-[10px] text-lava/45"><span>30 days ago</span><span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[#E67336]" />More minutes lift the wave</span><span>Today</span></div>
     </section>
   )
 }
 
-function SessionList({ sessions, reduceMotion }) {
+function SessionList({ sessions, reduceMotion, now }) {
   return (
     <section className="rounded-[26px] border border-[#E9DFD1] bg-white p-5 shadow-[0_8px_24px_rgba(46,38,29,0.04)] sm:p-6">
       <div className="flex items-center justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">Recent visits</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Your time in Honolua</h2></div><CalendarDays className="h-5 w-5 text-[#D8792B]" /></div>
@@ -120,7 +149,7 @@ function SessionList({ sessions, reduceMotion }) {
         <motion.article key={`${session.startedAt}-${index}`} initial={reduceMotion ? false : { opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: reduceMotion ? 0 : index * 0.045, duration: 0.28 }} className="flex items-center gap-3 py-3.5">
           <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${session.isActive ? "bg-[#EAF5EA] text-[#4B9461]" : "bg-[#FFF3E1] text-[#B36D20]"}`}><Clock3 className="h-4 w-4" /></span>
           <div className="min-w-0 flex-1"><div className="truncate text-xs font-semibold text-reef-navy">{dateLabel(session.startedAt, { weekday: "short", month: "short", day: "numeric" })}</div><div className="mt-0.5 text-[10px] text-lava/40">{dateLabel(session.startedAt, { hour: "numeric", minute: "2-digit" })}{session.isActive ? " · In game now" : " · Visit"}</div></div>
-          <span className="shrink-0 text-xs font-bold tabular-nums text-reef-navy">{timeLabel(session.minutes)}</span>
+          <span className="shrink-0 text-xs font-bold tabular-nums text-reef-navy">{timeLabel(session.isActive && session.startedAt ? Math.max(0, Math.floor((now - new Date(session.startedAt).getTime()) / 60000)) : session.minutes)}</span>
         </motion.article>
       ))}</div> : <div className="mt-5 rounded-2xl bg-[#FFFAF4] px-4 py-8 text-center"><Radio className="mx-auto h-5 w-5 text-[#D8792B]" /><p className="mt-2 text-xs font-semibold text-reef-navy">Your first visit will show up here</p><p className="mt-1 text-[10px] text-lava/45">Join the Honolua game to start your activity trail.</p></div>}
     </section>
@@ -146,6 +175,7 @@ function MessageList({ messages, reduceMotion }) {
 export default function StaffActivityPage() {
   const reduceMotion = useReducedMotion()
   const [data, setData] = useState(null)
+  const [clock, setClock] = useState(() => Date.now())
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState("")
@@ -169,13 +199,15 @@ export default function StaffActivityPage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)
-    const interval = window.setInterval(() => void load(true), 60000)
-    return () => { window.clearTimeout(timer); window.clearInterval(interval) }
+    const interval = window.setInterval(() => void load(true), 30000)
+    const clockInterval = window.setInterval(() => setClock(Date.now()), 5000)
+    return () => { window.clearTimeout(timer); window.clearInterval(interval); window.clearInterval(clockInterval) }
   }, [load])
 
   const days = data?.days || []
   const messages = data?.messages || []
   const sessions = data?.sessions || []
+  const currentSession = data?.currentSession || sessions.find((session) => session.isActive) || null
   const stats = data?.stats
 
   return (
@@ -199,16 +231,17 @@ export default function StaffActivityPage() {
         {!loading && data?.linked === false ? <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-4 rounded-[24px] border border-[#E7D4BD] bg-white p-6 text-center shadow-sm"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FFF1DC] text-[#B36D20]"><Activity className="h-5 w-5" /></span><h2 className="mt-3 text-base font-bold text-reef-navy">Link your Roblox account to see your rhythm</h2><p className="mx-auto mt-1 max-w-lg text-xs leading-5 text-lava/50">Connect your Roblox account through the Honolua Discord verification flow, then refresh this page.</p></motion.section> : null}
 
         {loading ? <section className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="h-32 animate-pulse rounded-[22px] bg-white/80" />)}</section> : data?.linked ? <>
+          <CurrentSession session={currentSession} now={clock} trackingReady={data.trackingReady} reduceMotion={reduceMotion} />
           <section className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
             <SummaryCard icon={Clock3} label="Last 30 days" value={timeLabel(stats?.last30DaysMinutes)} note="Time in-game" tint="#D7792A" index={0} reduceMotion={reduceMotion} />
             <SummaryCard icon={CalendarDays} label="Visits" value={stats?.visits || 0} note="Game sessions this month" tint="#B98736" index={1} reduceMotion={reduceMotion} />
-            <SummaryCard icon={Activity} label="Average visit" value={timeLabel(stats?.averageVisitMinutes)} note="Per session" tint="#5FA678" index={2} reduceMotion={reduceMotion} />
+            <SummaryCard icon={Activity} label="Average visit" value={timeLabel(stats?.averageVisitMinutes)} note="Per session" tint="#C08B40" index={2} reduceMotion={reduceMotion} />
             <SummaryCard icon={Flame} label="Current streak" value={`${stats?.currentStreakDays || 0} days`} note="Consecutive active days" tint="#E67336" index={3} reduceMotion={reduceMotion} />
           </section>
 
-          <div className="mt-4"><ActivityCalendar days={days} reduceMotion={reduceMotion} /></div>
+          <div className="mt-4"><SixMonthVoyage days={days} reduceMotion={reduceMotion} /></div>
           <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
-            <div className="grid gap-4"><FourteenDayPulse days={days} reduceMotion={reduceMotion} /><SessionList sessions={sessions} reduceMotion={reduceMotion} /></div>
+            <div className="grid gap-4"><ThirtyDayTide days={days} reduceMotion={reduceMotion} /><SessionList sessions={sessions} now={clock} reduceMotion={reduceMotion} /></div>
             <MessageList messages={messages} reduceMotion={reduceMotion} />
           </div>
         </> : null}

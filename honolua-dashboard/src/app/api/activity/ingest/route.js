@@ -16,6 +16,7 @@ export async function POST(request) {
   const serverId = typeof body?.serverId === "string" ? body.serverId.trim() : ""
   const sessionId = typeof body?.sessionId === "string" ? body.sessionId.trim() : ""
   const username = typeof body?.username === "string" ? body.username.trim().slice(0, 64) : ""
+  const experienceName = typeof body?.experienceName === "string" ? body.experienceName.trim().slice(0, 100) : "Honolua"
   const rank = Number(body?.rank)
   const message = typeof body?.message === "string" ? body.message.trim().slice(0, 500) : ""
   const messageId = typeof body?.messageId === "string" ? body.messageId.trim().slice(0, 128) : ""
@@ -46,7 +47,7 @@ export async function POST(request) {
     if (event === "join") {
       await collection.updateOne(
         { _id: id },
-        { $setOnInsert: { groupId: GROUP_ID, userId, sessionId, serverId, startedAt: at }, $set: { username, rank, isActive: true, lastSeenAt: at } },
+        { $setOnInsert: { groupId: GROUP_ID, userId, sessionId, serverId, startedAt: at }, $set: { username, rank, experienceName, isActive: true, lastSeenAt: at } },
         { upsert: true }
       )
       return NextResponse.json({ ok: true, event: "join" })
@@ -55,7 +56,7 @@ export async function POST(request) {
     if (event === "heartbeat") {
       const result = await collection.updateOne(
         { _id: id, groupId: GROUP_ID, serverId, isActive: true },
-        { $set: { username, rank, lastSeenAt: at } }
+        { $set: { username, rank, experienceName, lastSeenAt: at } }
       )
       if (!result.matchedCount) return NextResponse.json({ error: "Matching active session not found." }, { status: 404 })
       return NextResponse.json({ ok: true, event: "heartbeat" })
@@ -66,7 +67,7 @@ export async function POST(request) {
     const endedAt = at < new Date(active.startedAt) ? new Date(active.startedAt) : at
     await collection.updateOne(
       { _id: id, isActive: true },
-      { $set: { username, rank, endedAt, isActive: false, durationMinutes: Math.floor((endedAt - new Date(active.startedAt)) / 60000), lastSeenAt: at } }
+      { $set: { username, rank, experienceName, endedAt, isActive: false, durationMinutes: Math.floor((endedAt - new Date(active.startedAt)) / 60000), lastSeenAt: at } }
     )
     return NextResponse.json({ ok: true, event: "leave" })
   } catch (error) {

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
-import { Activity, AlertTriangle, CalendarClock, Crown, FileText, RefreshCw, Search, ShieldCheck, Trash2, Users, X } from "lucide-react"
+import { Activity, AlertTriangle, ArrowUpRight, CalendarClock, FileText, RefreshCw, Search, ShieldCheck, Trash2, Users, X } from "lucide-react"
 
 const EASE = [0.16, 1, 0.3, 1]
 
@@ -41,39 +41,26 @@ function MemberCard({ member, index, reduceMotion, onSelect }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={reduceMotion ? undefined : { opacity: 0, y: 8, scale: 0.98 }}
       transition={{ duration: 0.32, delay: reduceMotion ? 0 : Math.min(index * 0.035, 0.28), ease: EASE, layout: { duration: 0.22 } }}
-      whileHover={reduceMotion ? undefined : { y: -4, transition: { duration: 0.18 } }}
+      whileHover={reduceMotion ? undefined : { x: 5, transition: { duration: 0.18 } }}
       onClick={() => onSelect(member)}
       aria-label={`Open profile for ${member.displayName || member.username}`}
-      className="group relative min-w-0 overflow-hidden rounded-[22px] border border-lava/[0.08] bg-white p-4 text-left shadow-[0_4px_18px_rgba(30,55,40,0.035)] transition-shadow hover:shadow-[0_16px_32px_rgba(30,55,40,0.09)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6736F]/50 sm:p-5"
+      className="group relative flex min-w-0 items-center gap-3 overflow-hidden border-b border-[#173B4A]/[0.09] px-2 py-4 text-left transition-colors hover:bg-[#FFF8EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E6736F]/50 sm:gap-5 sm:px-4 sm:py-[18px]"
     >
-      <div className="pointer-events-none absolute -right-10 -top-12 h-28 w-28 rounded-full bg-[#F4B942]/[0.10] blur-2xl transition-opacity group-hover:opacity-100 sm:opacity-60" />
-      <div className="relative flex min-w-0 items-center gap-3.5">
-        <MemberAvatar member={member} />
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-bold text-reef-navy sm:text-[15px]">{member.displayName || member.username}</div>
-          <div className="mt-0.5 truncate text-xs text-lava/45">@{member.username}</div>
+      <span className="absolute bottom-2 left-0 top-2 w-[3px] origin-center scale-y-0 rounded-full bg-[#E6736F] transition-transform duration-300 group-hover:scale-y-100 group-focus-visible:scale-y-100" />
+      <MemberAvatar member={member} />
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5">
+          <span className="truncate text-sm font-bold text-reef-navy sm:text-[15px]">{member.displayName || member.username}</span>
+          <span className="truncate text-xs text-lava/40">@{member.username}</span>
+          {member.connected ? <span className="rounded-full bg-[#E9F5EC] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-emerald-700">You</span> : null}
         </div>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F4B942]/10 text-[#A87419]">
-          {member.rank >= 240 ? <Crown className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
-        </span>
+        <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-lava/48">
+          <span className="font-semibold text-[#A87419]">{member.roleName || member.teamLabel || "Team member"}</span>
+          {member.departments.slice(0, 3).map((department) => <span key={department} className="before:mr-2 before:text-[#E7B56B] before:content-['·']">{department}</span>)}
+          {member.departments.length > 3 ? <span>+{member.departments.length - 3}</span> : null}
+        </div>
       </div>
-
-      <div className="relative mt-4 flex min-h-7 flex-wrap gap-1.5">
-        <span className="inline-flex max-w-full items-center rounded-full bg-reef-navy px-3 py-1.5 text-[10px] font-semibold text-white sm:text-[11px]">
-          <span className="truncate">{member.roleName || member.teamLabel || "Team member"}</span>
-        </span>
-        {member.departments.slice(0, 2).map((department) => (
-          <span key={department} className="inline-flex max-w-full items-center rounded-full border border-[#E4EDE3] bg-[#F1F7F0] px-3 py-1.5 text-[10px] font-semibold text-[#456A50] sm:text-[11px]">
-            <span className="truncate">{department}</span>
-          </span>
-        ))}
-        {member.departments.length > 2 ? <span className="rounded-full bg-lava/5 px-2.5 py-1.5 text-[10px] font-semibold text-lava/50">+{member.departments.length - 2}</span> : null}
-      </div>
-
-      <div className="relative mt-3 flex items-center justify-between border-t border-lava/[0.06] pt-3 text-[11px] text-lava/45">
-        <span className="inline-flex items-center gap-1.5"><Activity className="h-3.5 w-3.5 text-[#D7A138]" /> Group rank {member.rank ?? "—"}</span>
-        {member.connected ? <span className="font-semibold text-emerald-700">You</span> : <span>{member.teamLabel}</span>}
-      </div>
+      <ArrowUpRight className="h-4 w-4 shrink-0 text-[#C18B37] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
     </motion.button>
   )
 }
@@ -87,13 +74,13 @@ function formatDate(value) {
 function WeeklyActivity({ member }) {
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
   return (
-    <section className="rounded-[22px] border border-lava/[0.07] bg-white p-4 sm:p-5">
-      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.17em] text-[#6F8A70]"><CalendarClock className="h-4 w-4" />Weekly activity</div>
+    <section className="rounded-[22px] border border-[#E8AA5D]/20 bg-white p-4 shadow-[0_10px_35px_rgba(184,134,43,0.05)] sm:p-5">
+      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.17em] text-[#A87419]"><CalendarClock className="h-4 w-4" />Weekly activity</div>
       <div className="mt-5 grid grid-cols-7 gap-2 sm:gap-3">
         {days.map((day) => (
           <div key={`${member.userId}-${day}`} className="flex min-w-0 flex-col items-center gap-2">
             <span className="text-[10px] font-semibold text-lava/40">—</span>
-            <div className="flex h-14 w-full max-w-9 items-end overflow-hidden rounded-full bg-[#EFF5EF] sm:h-16"><div className="h-1.5 w-full rounded-full bg-gradient-to-r from-[#A9DDBD] to-[#5FA678]" /></div>
+            <div className="flex h-14 w-full max-w-9 items-end overflow-hidden rounded-full bg-[#FFF5E6] sm:h-16"><div className="h-1.5 w-full rounded-full bg-gradient-to-r from-[#F4B942] to-[#E6736F]" /></div>
             <span className="text-[9px] font-semibold text-lava/45 sm:text-[10px]">{day}</span>
           </div>
         ))}
@@ -105,7 +92,7 @@ function WeeklyActivity({ member }) {
 
 function RecordForm({ kind, title, description, placeholder, icon: Icon, value, onChange, onSubmit, busy, canManage }) {
   const isNote = kind === "note"
-  const accent = isNote ? "#476B50" : kind === "warning" ? "#B8862B" : "#C4565F"
+  const accent = isNote ? "#B77927" : kind === "warning" ? "#B8862B" : "#C4565F"
   return (
     <section className="rounded-[22px] border border-lava/[0.07] bg-white p-4 sm:p-5">
       <div className="flex items-start gap-3"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: `${accent}12`, color: accent }}><Icon className="h-4 w-4" /></span><div className="min-w-0"><h3 className="text-sm font-bold text-reef-navy">{title}</h3><p className="mt-0.5 text-xs leading-5 text-lava/45">{description}</p></div></div>
@@ -196,23 +183,24 @@ function MemberDetailsDrawer({ member, profile, onClose, reduceMotion }) {
       {member ? (
         <>
           <motion.button type="button" aria-label="Close member profile" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-40 cursor-default bg-reef-navy/35 backdrop-blur-sm" />
-          <div className="pointer-events-none fixed inset-0 z-50 flex justify-end">
-            <motion.aside role="dialog" aria-modal="true" aria-labelledby="member-profile-name" initial={reduceMotion ? { opacity: 0 } : { x: "100%", opacity: 0.6 }} animate={{ x: 0, opacity: 1 }} exit={reduceMotion ? { opacity: 0 } : { x: "100%", opacity: 0.6 }} transition={{ duration: reduceMotion ? 0.12 : 0.36, ease: EASE }} className="pointer-events-auto flex h-[100dvh] w-full flex-col overflow-hidden border-l border-lava/10 bg-[#F6F8F3] shadow-2xl sm:max-w-3xl">
-              <header className="relative shrink-0 overflow-hidden bg-reef-navy px-4 pb-5 pt-[max(1rem,env(safe-area-inset-top))] text-white sm:px-7 sm:pb-6">
-                <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-[#F4B942]/[0.20] blur-3xl" />
+          <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-6">
+          <motion.aside role="dialog" aria-modal="true" aria-labelledby="member-profile-name" initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 28, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.98 }} transition={{ duration: reduceMotion ? 0.12 : 0.38, ease: EASE }} className="pointer-events-auto flex h-[min(92dvh,900px)] w-full max-w-5xl flex-col overflow-hidden rounded-[28px] border border-white/80 bg-[#FFFCF7] shadow-[0_32px_100px_rgba(23,59,74,0.25)] sm:rounded-[34px]">
+              <header className="relative shrink-0 overflow-hidden border-b border-[#173B4A]/[0.08] bg-[linear-gradient(115deg,#fffaf1_0%,#fff_58%,#fff2df_100%)] px-4 pb-5 pt-[max(1rem,env(safe-area-inset-top))] text-reef-navy sm:px-8 sm:pb-7">
+                <div className="pointer-events-none absolute -right-10 -top-20 h-64 w-64 rounded-full border border-[#E8AA5D]/20 motion-safe:animate-[spin_36s_linear_infinite] after:absolute after:inset-5 after:rounded-full after:border after:border-dashed after:border-[#E8AA5D]/20" />
+                <div className="pointer-events-none absolute -right-12 -top-20 h-64 w-64 rounded-full bg-[#F4B942]/20 blur-3xl" />
                 <div className="relative flex items-start gap-3 sm:gap-4">
                   <MemberAvatar member={member} large />
-                  <div className="min-w-0 flex-1 pt-0.5"><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#F4C96F]">Honolua · member file</div><h2 id="member-profile-name" className="mt-1 truncate text-xl font-bold text-white sm:text-2xl">{member.displayName || member.username}</h2><p className="mt-0.5 truncate text-sm text-white/65">@{member.username} · {member.roleName || member.teamLabel}</p></div>
-                  <button type="button" onClick={onClose} aria-label="Close member profile" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-white/75 transition hover:bg-white/20 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F4B942]/60"><X className="h-4 w-4" /></button>
+                  <div className="min-w-0 flex-1 pt-0.5"><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B77927]">Honolua · member profile</div><h2 id="member-profile-name" className="mt-1 truncate text-xl font-bold text-reef-navy sm:text-3xl">{member.displayName || member.username}</h2><p className="mt-0.5 truncate text-sm text-lava/55">@{member.username} · {member.roleName || member.teamLabel}</p></div>
+                  <button type="button" onClick={onClose} aria-label="Close member profile" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#173B4A]/10 bg-white/85 text-reef-navy/60 shadow-sm transition hover:rotate-90 hover:border-[#E6736F]/35 hover:bg-[#FFF4E8] hover:text-reef-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F4B942]/60"><X className="h-4 w-4" /></button>
                 </div>
-                <div className="relative mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-white/15 px-3 py-1.5 text-[11px] font-semibold text-white">{member.roleName || member.teamLabel}</span>{member.departments.map((department) => <span key={department} className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/85">{department}</span>)}<span className="rounded-full bg-[#F4B942]/20 px-3 py-1.5 text-[11px] font-semibold text-[#F9D989]">Rank {member.rank ?? "—"}</span></div>
+                <div className="relative mt-4 flex flex-wrap gap-2"><span className="rounded-full bg-reef-navy px-3.5 py-1.5 text-[11px] font-semibold text-white">{member.roleName || member.teamLabel || "Team member"}</span>{member.departments.map((department) => <span key={department} className="rounded-full border border-[#E8AA5D]/25 bg-white/75 px-3.5 py-1.5 text-[11px] font-semibold text-[#9C6A2B]">{department}</span>)}</div>
               </header>
 
-              <nav className="flex shrink-0 gap-2 border-b border-lava/[0.07] bg-white px-4 py-3 sm:px-7" aria-label="Member profile sections">
-                {[{ id: "overview", label: "Overview" }, { id: "records", label: "Staff file" }].map((pane) => <button key={pane.id} type="button" onClick={() => setActivePane(pane.id)} aria-current={activePane === pane.id ? "page" : undefined} className={`min-h-10 rounded-xl px-4 text-xs font-bold transition ${activePane === pane.id ? "bg-reef-navy text-white shadow-sm" : "bg-[#F6F8F3] text-lava/55 hover:bg-[#EEF3EC] hover:text-reef-navy"}`}>{pane.label}{pane.id === "records" && entries.length > 0 ? <span className="ml-2 rounded-full bg-white/20 px-1.5 py-0.5 text-[10px]">{entries.length}</span> : null}</button>)}
+              <nav className="flex shrink-0 gap-6 border-b border-lava/[0.07] bg-white px-4 sm:px-8" aria-label="Member profile sections">
+                {[{ id: "overview", label: "Overview" }, { id: "records", label: "Staff file" }].map((pane) => <button key={pane.id} type="button" onClick={() => setActivePane(pane.id)} aria-current={activePane === pane.id ? "page" : undefined} className={`relative min-h-12 px-1 text-xs font-bold transition ${activePane === pane.id ? "text-[#A87419]" : "text-lava/45 hover:text-reef-navy"}`}>{pane.label}{pane.id === "records" && entries.length > 0 ? <span className="ml-2 rounded-full bg-[#FFF2DF] px-1.5 py-0.5 text-[10px] text-[#A87419]">{entries.length}</span> : null}{activePane === pane.id ? <motion.span layoutId="member-pane-underline" className="absolute inset-x-0 bottom-0 h-[3px] rounded-full bg-gradient-to-r from-[#F4B942] to-[#E6736F]" /> : null}</button>)}
               </nav>
 
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-7 sm:py-6">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[radial-gradient(ellipse_at_top_right,rgba(244,185,66,0.10),transparent_40%),linear-gradient(180deg,#FFFCF7_0%,#fff_100%)] px-4 py-4 sm:px-8 sm:py-6">
                 <div className="space-y-4 sm:space-y-5">
                   {activePane === "overview" ? <>
                     <WeeklyActivity member={member} />
@@ -238,9 +226,8 @@ function MemberDetailsDrawer({ member, profile, onClose, reduceMotion }) {
 
 function MemberSkeleton({ index }) {
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.04 }} className="h-[154px] animate-pulse rounded-[22px] border border-lava/[0.06] bg-white/80 p-5">
-      <div className="flex items-center gap-3"><div className="h-12 w-12 rounded-full bg-lava/[0.07]" /><div className="flex-1"><div className="h-3 w-2/3 rounded bg-lava/[0.07]" /><div className="mt-2 h-2.5 w-1/2 rounded bg-lava/[0.05]" /></div></div>
-      <div className="mt-5 flex gap-2"><div className="h-6 w-24 rounded-full bg-lava/[0.06]" /><div className="h-6 w-20 rounded-full bg-lava/[0.05]" /></div>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.04 }} className="flex animate-pulse items-center gap-4 border-b border-lava/[0.07] px-4 py-5">
+      <div className="h-12 w-12 rounded-full bg-lava/[0.07]" /><div className="flex-1"><div className="h-3 w-1/3 rounded bg-lava/[0.07]" /><div className="mt-2 h-2.5 w-1/4 rounded bg-lava/[0.05]" /></div><div className="h-3 w-3 rounded bg-lava/[0.05]" />
     </motion.div>
   )
 }
@@ -311,7 +298,7 @@ export default function MembersPage() {
       ...member,
       departments: departmentNamesByMember.get(String(member.userId)) || [],
       connected: Boolean(connectedUsername && member.username?.toLocaleLowerCase() === connectedUsername),
-    }))).sort((left, right) => (right.rank || 0) - (left.rank || 0) || String(left.username || "").localeCompare(String(right.username || "")))
+    }))).sort((left, right) => String(left.displayName || left.username || "").localeCompare(String(right.displayName || right.username || "")))
   }, [teams, membersByTeam, departmentNamesByMember, profile])
 
   const visibleMembers = useMemo(() => {
@@ -389,9 +376,9 @@ export default function MembersPage() {
               <button type="button" onClick={() => void loadDirectory()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-reef-navy px-4 text-sm font-semibold text-white transition hover:bg-reef-navy/90">Try again</button>
             </div>
           ) : loading ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <MemberSkeleton key={index} index={index} />)}</div>
+            <div>{Array.from({ length: 6 }, (_, index) => <MemberSkeleton key={index} index={index} />)}</div>
           ) : visibleMembers.length ? (
-            <motion.div layout className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <motion.div layout className="px-2 sm:px-4">
               <AnimatePresence mode="popLayout">
                 {visibleMembers.map((member, index) => <MemberCard key={member.userId} member={member} index={index} reduceMotion={reduceMotion} onSelect={setSelectedMember} />)}
               </AnimatePresence>

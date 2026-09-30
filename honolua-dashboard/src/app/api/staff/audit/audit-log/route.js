@@ -73,6 +73,7 @@ const ALLOWED_ACTIONS = new Set([
   "member_removed",
   "member_record_added",
   "member_record_deleted",
+  "activity_quotas_updated",
   // Trigger automation actions
   "trigger_created",
   "trigger_updated",

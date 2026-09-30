@@ -31,7 +31,8 @@ import {
   LineChart,
   BarChart3,
   TrendingUp,
-  Link2
+  Link2,
+  Activity
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -80,6 +81,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/staff/staff", label: "Staff", icon: UserCog },
       { href: "/staff/members", label: "Members", icon: Users },
+      { href: "/staff/activity", label: "Activity", icon: Activity },
       { href: "/staff/applications", label: "Applications", icon: ClipboardList },
       { href: "/staff/partnership-control", label: "Partnerships", icon: Handshake },
       { href: "/staff/email", label: "Email", icon: Mail },

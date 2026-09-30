@@ -222,6 +222,57 @@ export async function GET() {
       avatarUrl: avatarMap[m.userId] || null,
     }));
 
+    // Presence is public Roblox data; experience names can be hidden by a
+    // member's privacy settings. Only resolve names Roblox exposes directly.
+    const presenceByUserId = {};
+    const universeIds = new Set();
+    for (let i = 0; i < userIds.length; i += 100) {
+      const batch = userIds.slice(i, i + 100).map(Number).filter(Number.isSafeInteger);
+      if (!batch.length) continue;
+      try {
+        const presenceRes = await fetch("https://presence.roblox.com/v1/presence/users", {
+          method: "POST",
+          headers: { ...ROBLOX_HEADERS, "Content-Type": "application/json" },
+          body: JSON.stringify({ userIds: batch }),
+          cache: "no-store",
+        });
+        if (!presenceRes.ok) continue;
+        const presenceData = await presenceRes.json();
+        for (const presence of presenceData.userPresences || []) {
+          const userId = String(presence.userId);
+          const playing = Number(presence.userPresenceType) === 2;
+          const universeId = playing && presence.universeId ? String(presence.universeId) : null;
+          presenceByUserId[userId] = { presenceType: Number(presence.userPresenceType), universeId };
+          if (universeId) universeIds.add(universeId);
+        }
+      } catch (presenceError) {
+        console.warn("Roblox presence lookup unavailable", { batchSize: batch.length, error: presenceError?.message });
+      }
+    }
+
+    const experienceNames = {};
+    const uniqueUniverseIds = Array.from(universeIds);
+    for (let i = 0; i < uniqueUniverseIds.length; i += 50) {
+      const batch = uniqueUniverseIds.slice(i, i + 50);
+      try {
+        const gamesRes = await fetch(`https://games.roblox.com/v1/games?universeIds=${batch.join(",")}`, {
+          headers: ROBLOX_HEADERS,
+          cache: "no-store",
+        });
+        if (!gamesRes.ok) continue;
+        const gamesData = await gamesRes.json();
+        for (const game of gamesData.data || []) experienceNames[String(game.id)] = game.name;
+      } catch (gameError) {
+        console.warn("Roblox experience name lookup unavailable", { batchSize: batch.length, error: gameError?.message });
+      }
+    }
+
+    for (const member of withAvatars) {
+      const presence = presenceByUserId[String(member.userId)];
+      member.presenceType = Number.isInteger(presence?.presenceType) ? presence.presenceType : null;
+      member.experienceName = presence?.universeId ? experienceNames[presence.universeId] || null : null;
+    }
+
     // 4. Group into { leadership: [...], executive: [...], ... }, preserving TEAMS order
     const grouped = {};
     for (const team of TEAMS) {
@@ -238,7 +289,7 @@ export async function GET() {
         teams: TEAMS.map((t) => ({ key: t.key, label: t.label })),
         members: grouped,
       },
-      { headers: { "Cache-Control": "s-maxage=300, stale-while-revalidate=600" } }
+      { headers: { "Cache-Control": "private, no-store, max-age=0" } }
     );
   } catch (err) {
     console.error("Team fetch error:", err);

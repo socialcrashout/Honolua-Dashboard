@@ -44,9 +44,9 @@ function MemberCard({ member, index, reduceMotion, onSelect }) {
       whileHover={reduceMotion ? undefined : { x: 5, transition: { duration: 0.18 } }}
       onClick={() => onSelect(member)}
       aria-label={`Open profile for ${member.displayName || member.username}`}
-      className="group relative flex min-w-0 items-center gap-3 overflow-hidden border-b border-[#173B4A]/[0.09] px-2 py-4 text-left transition-colors hover:bg-[#FFF8EF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#E6736F]/50 sm:gap-5 sm:px-4 sm:py-[18px]"
+      className="group relative flex min-h-[92px] w-full min-w-0 items-center gap-3 overflow-hidden rounded-[24px] border border-[#173B4A]/[0.08] bg-white px-4 py-4 text-left shadow-[0_5px_20px_rgba(30,55,40,0.035)] transition-[background-color,border-color,box-shadow] duration-300 hover:border-[#E8AA5D]/35 hover:bg-[#FFFEFC] hover:shadow-[0_12px_30px_rgba(30,55,40,0.075)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E6736F]/50 sm:gap-5 sm:px-6 sm:py-5"
     >
-      <span className="absolute bottom-2 left-0 top-2 w-[3px] origin-center scale-y-0 rounded-full bg-[#E6736F] transition-transform duration-300 group-hover:scale-y-100 group-focus-visible:scale-y-100" />
+      <span className="absolute bottom-4 left-0 top-4 w-[3px] origin-center scale-y-0 rounded-full bg-[#E6736F] transition-transform duration-300 group-hover:scale-y-100 group-focus-visible:scale-y-100" />
       <MemberAvatar member={member} />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-0.5">
@@ -58,9 +58,22 @@ function MemberCard({ member, index, reduceMotion, onSelect }) {
           <span className="font-semibold text-[#A87419]">{member.roleName || member.teamLabel || "Team member"}</span>
           {member.departments.slice(0, 3).map((department) => <span key={department} className="before:mr-2 before:text-[#E7B56B] before:content-['·']">{department}</span>)}
           {member.departments.length > 3 ? <span>+{member.departments.length - 3}</span> : null}
+          {member.presenceType === 2 ? (
+            <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-[#FFF2DF] px-2.5 py-1 text-[10px] font-semibold text-[#9C6A2B] sm:ml-1">
+              <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-[#E6736F]" />
+              <span className="shrink-0">In game</span>
+              <span className="max-w-[180px] truncate text-reef-navy/65">{member.experienceName || "Experience name unavailable"}</span>
+            </span>
+          ) : member.presenceType === 1 ? (
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-700 sm:ml-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Online</span>
+          ) : member.presenceType === 3 ? (
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-[#A87419] sm:ml-1"><span className="h-1.5 w-1.5 rounded-full bg-[#F4B942]" />In Studio</span>
+          ) : member.presenceType === 0 ? (
+            <span className="inline-flex items-center gap-1.5 text-[10px] text-lava/35 sm:ml-1"><span className="h-1.5 w-1.5 rounded-full bg-lava/25" />Offline</span>
+          ) : null}
         </div>
       </div>
-      <ArrowUpRight className="h-4 w-4 shrink-0 text-[#C18B37] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+      <ArrowUpRight className="mr-1 h-4 w-4 shrink-0 text-[#C18B37] transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 sm:mr-2" />
     </motion.button>
   )
 }
@@ -226,7 +239,7 @@ function MemberDetailsDrawer({ member, profile, onClose, reduceMotion }) {
 
 function MemberSkeleton({ index }) {
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.04 }} className="flex animate-pulse items-center gap-4 border-b border-lava/[0.07] px-4 py-5">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.04 }} className="flex min-h-[92px] animate-pulse items-center gap-4 rounded-[24px] border border-lava/[0.07] bg-white px-5 py-5">
       <div className="h-12 w-12 rounded-full bg-lava/[0.07]" /><div className="flex-1"><div className="h-3 w-1/3 rounded bg-lava/[0.07]" /><div className="mt-2 h-2.5 w-1/4 rounded bg-lava/[0.05]" /></div><div className="h-3 w-3 rounded bg-lava/[0.05]" />
     </motion.div>
   )
@@ -376,9 +389,9 @@ export default function MembersPage() {
               <button type="button" onClick={() => void loadDirectory()} className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-reef-navy px-4 text-sm font-semibold text-white transition hover:bg-reef-navy/90">Try again</button>
             </div>
           ) : loading ? (
-            <div>{Array.from({ length: 6 }, (_, index) => <MemberSkeleton key={index} index={index} />)}</div>
+            <div className="space-y-3">{Array.from({ length: 6 }, (_, index) => <MemberSkeleton key={index} index={index} />)}</div>
           ) : visibleMembers.length ? (
-            <motion.div layout className="px-2 sm:px-4">
+            <motion.div layout className="space-y-3">
               <AnimatePresence mode="popLayout">
                 {visibleMembers.map((member, index) => <MemberCard key={member.userId} member={member} index={index} reduceMotion={reduceMotion} onSelect={setSelectedMember} />)}
               </AnimatePresence>

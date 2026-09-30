@@ -6,6 +6,7 @@ import { logStaffAction } from "@/lib/audit"
 
 const GROUP_ID = 743137138
 const DB_NAME = "honolua"
+const ACTIVE_WINDOW_MS = 2 * 60 * 1000
 
 async function requireStaff() {
   const session = await getUserFromSession()
@@ -46,12 +47,14 @@ export async function GET() {
     const roles = (rolesData.roles || []).map((role) => ({ id: role.id, name: role.name, rank: role.rank }))
     const activity = sessions.map((session) => {
       const startedAt = new Date(session.startedAt)
-      const endedAt = session.isActive ? now : new Date(session.endedAt || session.startedAt)
+      const lastSeenAt = new Date(session.lastSeenAt || session.endedAt || session.startedAt)
+      const isActive = Boolean(session.isActive) && now - lastSeenAt <= ACTIVE_WINDOW_MS
+      const endedAt = isActive ? now : new Date(session.endedAt || lastSeenAt)
       const overlapStart = startedAt > weekStart ? startedAt : weekStart
       const minutes = Math.max(0, Math.floor((endedAt - overlapStart) / 60000))
       return {
         userId: String(session.userId), username: session.username || "Unknown", rank: Number(session.rank) || 0,
-        minutes, isActive: Boolean(session.isActive), startedAt: session.startedAt, endedAt: session.endedAt || null,
+        minutes, isActive, startedAt: session.startedAt, endedAt: session.endedAt || (isActive ? null : lastSeenAt), lastSeenAt,
         serverId: session.serverId || "",
       }
     })
@@ -60,7 +63,7 @@ export async function GET() {
       ok: true, group: { id: GROUP_ID, name: "Honolua" }, roles,
       quotas: settings?.quotas || {}, activity, weekStartsAt: weekStart,
       lastEventAt: activity.reduce((latest, session) => {
-        const timestamp = new Date(session.endedAt || session.startedAt).getTime()
+        const timestamp = new Date(session.lastSeenAt || session.endedAt || session.startedAt).getTime()
         return timestamp > latest ? timestamp : latest
       }, 0) || null,
     }, { headers: { "Cache-Control": "private, no-store" } })

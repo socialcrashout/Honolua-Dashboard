@@ -18,7 +18,7 @@ export async function POST(request) {
   const username = typeof body?.username === "string" ? body.username.trim().slice(0, 64) : ""
   const rank = Number(body?.rank)
   const at = body?.at ? new Date(body.at) : new Date()
-  if (!new Set(["join", "leave"]).has(event) || !/^\d{1,20}$/.test(userId) || !serverId || serverId.length > 128 || !sessionId || sessionId.length > 128 || !Number.isInteger(rank) || rank < 0 || rank > 255 || Number.isNaN(at.getTime())) {
+  if (!new Set(["join", "heartbeat", "leave"]).has(event) || !/^\d{1,20}$/.test(userId) || !serverId || serverId.length > 128 || !sessionId || sessionId.length > 128 || !username || !Number.isInteger(rank) || rank < 0 || rank > 255 || Number.isNaN(at.getTime())) {
     return NextResponse.json({ error: "Invalid activity event." }, { status: 400 })
   }
 
@@ -35,7 +35,16 @@ export async function POST(request) {
       return NextResponse.json({ ok: true, event: "join" })
     }
 
-    const active = await collection.findOne({ _id: id, groupId: GROUP_ID, isActive: true })
+    if (event === "heartbeat") {
+      const result = await collection.updateOne(
+        { _id: id, groupId: GROUP_ID, serverId, isActive: true },
+        { $set: { username, rank, lastSeenAt: at } }
+      )
+      if (!result.matchedCount) return NextResponse.json({ error: "Matching active session not found." }, { status: 404 })
+      return NextResponse.json({ ok: true, event: "heartbeat" })
+    }
+
+    const active = await collection.findOne({ _id: id, groupId: GROUP_ID, serverId, isActive: true })
     if (!active) return NextResponse.json({ error: "Matching active session not found." }, { status: 404 })
     const endedAt = at < new Date(active.startedAt) ? new Date(active.startedAt) : at
     await collection.updateOne(

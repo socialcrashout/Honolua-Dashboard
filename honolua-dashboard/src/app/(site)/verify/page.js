@@ -260,17 +260,18 @@ function VerifyContent() {
 
   const discordConnected = status?.discordConnected;
   const robloxLinked = status?.robloxLinked;
-  const bothReady = discordConnected && robloxLinked;
+  const verificationBlocked = Boolean(status?.verificationBlocked);
+  const bothReady = discordConnected && robloxLinked && !verificationBlocked;
 
   // Auto-confirm the instant both accounts are linked — no button click
   // needed. Guarded by the ref so it only ever fires once per page load,
   // even if bothReady flips true/false/true from a re-fetch.
   useEffect(() => {
-    if (bothReady && !done && !confirming && !autoConfirmedRef.current) {
+    if (bothReady && !verificationBlocked && !done && !confirming && !autoConfirmedRef.current) {
       autoConfirmedRef.current = true;
       handleConfirm();
     }
-  }, [bothReady, done, confirming]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bothReady, verificationBlocked, done, confirming]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section
@@ -329,7 +330,16 @@ function VerifyContent() {
           </div>
         )}
 
-        {!loading && !done && (
+        {!loading && verificationBlocked && (
+          <div role="alert" className="mb-7 rounded-[24px] border border-[#D96B57]/20 bg-white p-6 shadow-[0_10px_30px_rgba(23,59,74,0.06)] sm:p-8">
+            <div className="mb-3 inline-flex rounded-full bg-[#FCECE7] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.15em] text-[#A94D3E]">Verification unavailable</div>
+            <h2 className="text-xl font-bold text-reef-navy">This account can’t be verified right now.</h2>
+            <p className="mt-2 text-sm leading-6 text-lava/60">{status.accessBlock?.reason || "Verification access has been restricted by Honolua staff."}</p>
+            {status.accessBlock?.expiresAt ? <p className="mt-3 text-xs font-medium text-lava/45">Restriction ends {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(status.accessBlock.expiresAt))}.</p> : null}
+          </div>
+        )}
+
+        {!loading && !done && !verificationBlocked && (
           <div className="mb-7 flex flex-col gap-3 sm:mb-10 sm:gap-4">
             <StepCard
               index={1}

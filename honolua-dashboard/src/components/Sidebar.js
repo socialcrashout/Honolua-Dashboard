@@ -93,6 +93,7 @@ const NAV_GROUPS = [
     minLevel: ROLE_LEVELS.executive,
     items: [
       { href: "/staff/loa", label: "Manage Leaves", icon: CalendarCheck2 },
+      { href: "/staff/manage-members", label: "Manage Members", icon: UserCog },
       { href: "/staff/loa/settings", label: "Leave Settings", icon: SlidersHorizontal },
       { href: "/staff/activity/settings", label: "Activity Settings", icon: Activity },
       { href: "/staff/team-page", label: "Team Page", icon: Users },

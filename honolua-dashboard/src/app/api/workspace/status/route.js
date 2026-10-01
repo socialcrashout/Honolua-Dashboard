@@ -1,6 +1,7 @@
 // api/workspace/status/route.js
 import { NextResponse } from "next/server";
 import { getSession, setSessionCookie } from "@/lib/session.js";
+import { findMemberAccessBlock, rememberVerifiedAccount } from "@/lib/memberSanctions";
 
 const GROUP_ID = "743137138";
 const MIN_RANK = 169; // strictly above this passes — 216 itself does NOT
@@ -80,8 +81,13 @@ export async function GET(request) {
     }
   }
 
+  if (session.robloxLinked && session.robloxId) {
+    await rememberVerifiedAccount({ robloxUserId: session.robloxId, discordId: session.discordId, robloxUsername: session.robloxUsername, discordUsername: session.discordUsername });
+  }
+
+  const accessBlock = await findMemberAccessBlock({ discordId: session.discordId, robloxUserId: session.robloxId, surface: "workspace" });
   const rank = session.workspaceRank ?? null;
-  const allowed = rank !== null && rank > MIN_RANK;
+  const allowed = rank !== null && rank > MIN_RANK && !accessBlock;
 
   const response = NextResponse.json({
     discordConnected: true,
@@ -96,6 +102,7 @@ export async function GET(request) {
     workspaceRank: rank,
     workspaceRoleName: session.workspaceRoleName || null,
     workspaceAllowed: allowed,
+    accessBlock,
   });
 
   setSessionCookie(response, session);

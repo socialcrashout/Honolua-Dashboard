@@ -1,6 +1,7 @@
 // api/verify/status/route.js
 import { NextResponse } from "next/server";
 import { getSession, setSessionCookie } from "@/lib/session.js";
+import { findMemberAccessBlock, rememberVerifiedAccount } from "@/lib/memberSanctions";
 
 export async function GET(request) {
   const session = getSession(request);
@@ -52,6 +53,12 @@ export async function GET(request) {
     }
   }
 
+  if (session.robloxLinked && session.robloxId) {
+    await rememberVerifiedAccount({ robloxUserId: session.robloxId, discordId: session.discordId, robloxUsername: session.robloxUsername, discordUsername: session.discordUsername });
+  }
+
+  const accessBlock = await findMemberAccessBlock({ discordId: session.discordId, robloxUserId: session.robloxId, surface: "verification" });
+
   const response = NextResponse.json({
     discordConnected: true,
     discordId: session.discordId,
@@ -62,6 +69,8 @@ export async function GET(request) {
     robloxUsername: session.robloxUsername || null,
     robloxDisplayName: session.robloxDisplayName || null,
     robloxAvatarUrl: session.robloxAvatarUrl || null,
+    verificationBlocked: Boolean(accessBlock),
+    accessBlock,
   });
 
   setSessionCookie(response, session);

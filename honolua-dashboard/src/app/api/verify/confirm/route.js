@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { sendVerificationLog } from "@/lib/discordLog";
+import { findMemberAccessBlock, rememberVerifiedAccount } from "@/lib/memberSanctions";
 
 
 const DOT_EMOJI = "<:zarrow5:1525550609665757409>";
@@ -70,6 +71,9 @@ export async function POST(request) {
       return NextResponse.json({ error: "Not fully verified yet" }, { status: 400 });
     }
 
+    const accessBlock = await findMemberAccessBlock({ discordId: session.discordId, robloxUserId: session.robloxId, surface: "verification" });
+    if (accessBlock) return NextResponse.json({ error: accessBlock.reason || "Verification is restricted for this account.", blocked: true }, { status: 403 });
+
     const guildId = process.env.DISCORD_GUILD_ID;
     const roleId = process.env.DISCORD_VERIFIED_ROLE_ID;
 
@@ -98,6 +102,8 @@ export async function POST(request) {
         { status: 502 }
       );
     }
+
+    await rememberVerifiedAccount({ robloxUserId: session.robloxId, discordId: session.discordId, robloxUsername: session.robloxUsername, discordUsername: session.discordUsername });
 
     try {
       const nickRes = await fetch(

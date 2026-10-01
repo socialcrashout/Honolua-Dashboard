@@ -284,11 +284,12 @@ function WorkspaceVerifyContent() {
 
   const discordConnected = status?.discordConnected;
   const robloxLinked = status?.robloxLinked;
+  const accessRestricted = Boolean(status?.accessBlock);
   const rankChecked = robloxLinked && status?.workspaceRank !== null;
   const workspaceAllowed = status?.workspaceAllowed;
 
-  const showDenied = rankChecked && !workspaceAllowed;
-  const showVerified = rankChecked && workspaceAllowed;
+  const showDenied = rankChecked && !workspaceAllowed && !accessRestricted;
+  const showVerified = rankChecked && workspaceAllowed && !accessRestricted;
 
   return (
     <LightBackground>
@@ -344,7 +345,16 @@ function WorkspaceVerifyContent() {
             </div>
           )}
 
-          {!loading && !showDenied && !showVerified && (
+          {accessRestricted && (
+            <div role="alert" className="mb-6 rounded-2xl border border-[#D96B57]/20 bg-[#FFF7F3] px-5 py-5">
+              <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#A94D3E]">Workspace access restricted</div>
+              <h2 className="mt-1 text-lg font-bold text-reef-navy">This account can’t enter the workspace.</h2>
+              <p className="mt-2 text-sm leading-6 text-lava/60">{status.accessBlock?.reason || "Workspace access has been restricted by Honolua staff."}</p>
+              {status.accessBlock?.expiresAt ? <p className="mt-2 text-xs font-medium text-lava/45">Restriction ends {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(status.accessBlock.expiresAt))}.</p> : null}
+            </div>
+          )}
+
+          {!loading && !accessRestricted && !showDenied && !showVerified && (
             <div className="flex flex-col gap-3 sm:gap-4">
               <StepCard
                 index={1}

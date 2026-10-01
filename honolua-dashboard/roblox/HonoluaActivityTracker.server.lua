@@ -160,8 +160,12 @@ local function hookTextChannel(channel)
 			results = table.pack(true)
 		end
 
-		if results[1] ~= false and textSource then
-			local player = Players:GetPlayerByUserId(textSource.UserId)
+		-- textSource is the recipient for this delivery check. Attribute the
+		-- message to its sender instead, since ShouldDeliverCallback runs once
+		-- for each possible recipient.
+		local sender = message and message.TextSource
+		if results[1] ~= false and sender then
+			local player = Players:GetPlayerByUserId(sender.UserId)
 			if player then
 				task.spawn(captureChat, player, message.Text, message.MessageId)
 			end
@@ -170,11 +174,25 @@ local function hookTextChannel(channel)
 	end
 end
 
-local textChannels = textChatService:WaitForChild("TextChannels")
-for _, channel in textChannels:GetChildren() do
-	hookTextChannel(channel)
+local function hookTextChannels(folder)
+	for _, channel in folder:GetChildren() do
+		hookTextChannel(channel)
+	end
+	folder.ChildAdded:Connect(hookTextChannel)
 end
-textChannels.ChildAdded:Connect(hookTextChannel)
+
+-- Chat setup is optional for session tracking. Never block the join and
+-- heartbeat handlers waiting for Roblox to create the default chat folder.
+local textChannels = textChatService:FindFirstChild("TextChannels")
+if textChannels then
+	hookTextChannels(textChannels)
+else
+	textChatService.ChildAdded:Connect(function(child)
+		if child.Name == "TextChannels" then
+			hookTextChannels(child)
+		end
+	end)
+end
 
 Players.PlayerAdded:Connect(function(player)
 	task.spawn(beginTracking, player)

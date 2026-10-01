@@ -80,6 +80,9 @@ local function sendEvent(eventName, player, rank, filteredMessage, messageId)
 end
 
 local function captureChat(player, message, messageId)
+	if type(messageId) ~= "string" or messageId == "" then
+		messageId = nil
+	end
 	local tracked = activePlayers[player.UserId]
 	if not tracked or player.Parent ~= Players or type(message) ~= "string" or message == "" then
 		return
@@ -100,13 +103,10 @@ local function captureChat(player, message, messageId)
 		end
 	end
 	local dedupeKey = tostring(player.UserId) .. ":" .. message
-	if (messageId and capturedMessageIds[messageId]) or now - (recentChatKeys[dedupeKey] or 0) < 2 then
+	local messageKey = messageId and (tostring(player.UserId) .. ":" .. messageId) or nil
+	if (messageKey and capturedMessageIds[messageKey]) or (not messageKey and now - (recentChatKeys[dedupeKey] or 0) < 2) then
 		return
 	end
-	if messageId then
-		capturedMessageIds[messageId] = now
-	end
-	recentChatKeys[dedupeKey] = now
 
 	local filteredOk, filteredMessage = pcall(function()
 		local filterResult = TextService:FilterStringAsync(message, player.UserId, Enum.TextFilterContext.PublicChat)
@@ -117,7 +117,13 @@ local function captureChat(player, message, messageId)
 		return
 	end
 
-	task.spawn(sendEvent, "chat", player, tracked.rank, filteredMessage, messageId or HttpService:GenerateGUID(false))
+	messageId = messageId or HttpService:GenerateGUID(false)
+	if messageKey then
+		capturedMessageIds[messageKey] = now
+	else
+		recentChatKeys[dedupeKey] = now
+	end
+	task.spawn(sendEvent, "chat", player, tracked.rank, filteredMessage, messageId)
 end
 
 local function beginTracking(player)
@@ -169,6 +175,41 @@ chatRemote.OnServerEvent:Connect(function(player, message, messageId)
 	end
 	captureChat(player, message, messageId)
 end)
+
+-- Capture server-observed TextChannel deliveries as a fallback for chat UI
+-- paths where the client does not emit TextChatService.MessageReceived.
+local TextChatService = game:GetService("TextChatService")
+local watchedTextChannels = {}
+
+local function watchTextChannel(instance)
+	if not instance:IsA("TextChannel") or watchedTextChannels[instance] then
+		return
+	end
+	watchedTextChannels[instance] = true
+	local previousShouldDeliver = instance.ShouldDeliverCallback
+	instance.ShouldDeliverCallback = function(message, recipient)
+		local shouldDeliver = true
+		if previousShouldDeliver then
+			local ok, result = pcall(previousShouldDeliver, message, recipient)
+			if not ok then
+				warn("Honolua activity could not preserve a TextChannel delivery rule: " .. tostring(result))
+				return false
+			end
+			shouldDeliver = result
+		end
+		local source = message and message.TextSource
+		local sender = source and Players:GetPlayerByUserId(source.UserId)
+		if shouldDeliver and sender then
+			captureChat(sender, message.Text, message.MessageId)
+		end
+		return shouldDeliver
+	end
+end
+
+for _, descendant in TextChatService:GetDescendants() do
+	watchTextChannel(descendant)
+end
+TextChatService.DescendantAdded:Connect(watchTextChannel)
 
 Players.PlayerAdded:Connect(function(player)
 	task.spawn(beginTracking, player)

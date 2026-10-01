@@ -199,7 +199,7 @@ export default function StaffActivityPage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0)
-    const interval = window.setInterval(() => void load(true), 30000)
+    const interval = window.setInterval(() => void load(true), 5000)
     const clockInterval = window.setInterval(() => setClock(Date.now()), 5000)
     return () => { window.clearTimeout(timer); window.clearInterval(interval); window.clearInterval(clockInterval) }
   }, [load])

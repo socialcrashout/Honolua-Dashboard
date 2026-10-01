@@ -42,6 +42,7 @@ export async function POST(request) {
         { $setOnInsert: { groupId: GROUP_ID, userId, sessionId, serverId, username, message, channel: channel || "Experience chat", createdAt: at } },
         { upsert: true }
       )
+      console.info("[activity] filtered chat stored")
       return NextResponse.json({ ok: true, event: "chat" })
     }
     if (event === "join") {

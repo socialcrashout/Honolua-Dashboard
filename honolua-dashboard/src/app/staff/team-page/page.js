@@ -7,7 +7,7 @@ import {
   Handshake, HeartHandshake, Medal, Search, ShieldCheck, Sparkles, Star, Tag,
   Users, X,
 } from "lucide-react"
-import { TEAM_TAG_COLORS, TEAM_TAG_ICONS } from "@/lib/teamPageTags"
+import { TEAM_TAG_COLOR_GROUPS, TEAM_TAG_COLORS, TEAM_TAG_ICONS, TEAM_TAG_NEON_COLORS } from "@/lib/teamPageTags"
 
 const ICONS = { Award, BadgeCheck, CircleCheck, Crown, Flower2, Gem, Handshake, HeartHandshake, Medal, ShieldCheck, Sparkles, Star }
 const DEFAULT_COLOR = TEAM_TAG_COLORS[0]
@@ -16,10 +16,20 @@ function initials(member) {
   return (member.displayName || member.username || "?").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()
 }
 
+function tagStyle(color) {
+  const neon = TEAM_TAG_NEON_COLORS.includes(color)
+  return {
+    color: neon ? "#173B4A" : color,
+    backgroundColor: neon ? `${color}35` : `${color}12`,
+    borderColor: neon ? color : `${color}30`,
+    boxShadow: neon ? `0 0 11px ${color}55` : undefined,
+  }
+}
+
 function TagBadge({ tag, onRemove, busy }) {
   const Icon = ICONS[tag.icon] || BadgeCheck
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ color: tag.color, backgroundColor: `${tag.color}12`, borderColor: `${tag.color}30` }}>
+    <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={tagStyle(tag.color)}>
       <Icon className="h-3.5 w-3.5" />{tag.name}
       {onRemove ? <button type="button" aria-label={`Remove ${tag.name}`} disabled={busy} onClick={onRemove} className="ml-0.5 rounded-full p-0.5 opacity-65 transition hover:bg-white/70 hover:opacity-100 disabled:opacity-30"><X className="h-3 w-3" /></button> : null}
     </span>
@@ -80,7 +90,7 @@ function TagEditor({ member, tags, onAdded, onRemoved }) {
         <form onSubmit={addTag} className="rounded-2xl border border-[#E9DDCE] bg-white p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div><h3 className="text-sm font-semibold text-[#173B4A]">Add a tag</h3><p className="mt-0.5 text-xs text-[#918779]">These labels appear on the public team page.</p></div>
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={{ color, backgroundColor: `${color}12` }}><PreviewIcon className="h-3.5 w-3.5" />{name.trim() || "Preview"}</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold" style={tagStyle(color)}><PreviewIcon className="h-3.5 w-3.5" />{name.trim() || "Preview"}</span>
           </div>
           <label className="mb-3 block text-xs font-semibold text-[#59646A]">Tag name
             <input value={name} onChange={(event) => setName(event.target.value)} maxLength={24} placeholder="Verified, Mentor, Builder…" className="mt-1.5 h-10 w-full rounded-xl border border-[#E6DED4] bg-[#FFFCF7] px-3 text-sm font-normal text-[#173B4A] outline-none transition focus:border-[#D99550] focus:ring-2 focus:ring-[#F4B942]/20" required />
@@ -93,8 +103,13 @@ function TagEditor({ member, tags, onAdded, onRemoved }) {
             </label>
             <fieldset>
               <legend className="text-xs font-semibold text-[#59646A]">Color</legend>
-              <div className="mt-2 flex h-8 items-center gap-1.5">
-                {TEAM_TAG_COLORS.map((swatch) => <button key={swatch} type="button" onClick={() => setColor(swatch)} aria-label={`Choose ${swatch}`} aria-pressed={color === swatch} className="flex h-7 w-7 items-center justify-center rounded-full border-2 transition hover:scale-110" style={{ backgroundColor: swatch, borderColor: color === swatch ? "#173B4A" : "white", boxShadow: color === swatch ? "0 0 0 1px #173B4A" : "none" }}>{color === swatch ? <Check className="h-3.5 w-3.5 text-white" /> : null}</button>)}
+              <div className="mt-2 space-y-2">
+                {TEAM_TAG_COLOR_GROUPS.map((group) => <div key={group.label}>
+                  <div className="mb-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-[#918779]">{group.label}</div>
+                  <div className="flex items-center gap-1.5">
+                    {group.colors.map((swatch) => <button key={swatch} type="button" onClick={() => setColor(swatch)} aria-label={`Choose ${group.label.toLowerCase()} color ${swatch}`} aria-pressed={color === swatch} className="flex h-7 w-7 items-center justify-center rounded-full border-2 transition hover:scale-110" style={{ backgroundColor: swatch, borderColor: color === swatch ? "#173B4A" : "white", boxShadow: color === swatch ? `0 0 0 1px #173B4A, 0 0 9px ${swatch}99` : `0 0 4px ${swatch}55` }}>{color === swatch ? <Check className="h-3.5 w-3.5" style={{ color: TEAM_TAG_NEON_COLORS.includes(swatch) ? "#173B4A" : "white" }} /> : null}</button>)}
+                  </div>
+                </div>)}
               </div>
             </fieldset>
           </div>

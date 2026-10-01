@@ -5,8 +5,19 @@ import Image from "next/image"
 import { Award, BadgeCheck, CircleCheck, Crown, Flower2, Gem, Handshake, HeartHandshake, Medal, ShieldCheck, Sparkles, Star, Users } from "lucide-react"
 import Nav from "@/components/Nav.js"
 import Footer from "@/components/Footer.js"
+import { TEAM_TAG_NEON_COLORS } from "@/lib/teamPageTags"
 
 const TAG_ICONS = { Award, BadgeCheck, CircleCheck, Crown, Flower2, Gem, Handshake, HeartHandshake, Medal, ShieldCheck, Sparkles, Star }
+
+function tagStyle(color) {
+  const neon = TEAM_TAG_NEON_COLORS.includes(color)
+  return {
+    color: neon ? "#173B4A" : color,
+    backgroundColor: neon ? `${color}35` : `${color}12`,
+    borderColor: neon ? color : `${color}30`,
+    boxShadow: neon ? `0 0 11px ${color}55` : undefined,
+  }
+}
 
 function initials(member) {
   return (member.displayName || member.username || "?").split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase()
@@ -25,7 +36,7 @@ function MemberCard({ member, tags = [] }) {
           <span className="truncate text-xs text-[#958B7F]">@{member.username}</span>
         </div>
         <p className="mt-1 text-xs font-medium text-[#A9631F]">{member.roleName}</p>
-        {tags.length ? <div className="mt-2.5 flex flex-wrap gap-1.5">{tags.map((tag) => { const Icon = TAG_ICONS[tag.icon] || BadgeCheck; return <span key={tag.id} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ color: tag.color, backgroundColor: `${tag.color}12`, borderColor: `${tag.color}30` }}><Icon className="h-3 w-3" />{tag.name}</span> })}</div> : null}
+        {tags.length ? <div className="mt-2.5 flex flex-wrap gap-1.5">{tags.map((tag) => { const Icon = TAG_ICONS[tag.icon] || BadgeCheck; return <span key={tag.id} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={tagStyle(tag.color)}><Icon className="h-3 w-3" />{tag.name}</span> })}</div> : null}
       </div>
       <span aria-hidden="true" className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#F8F5F0] text-[#A79B8B] sm:flex"><Users className="h-4 w-4" /></span>
     </article>

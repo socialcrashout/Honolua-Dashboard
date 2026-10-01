@@ -1,13 +1,16 @@
-export const TEAM_TAG_COLORS = [
-  "#2F6B57",
-  "#2E6F95",
-  "#7753A6",
-  "#C05662",
-  "#B46924",
-  "#586275",
-  "#BD8B21",
-  "#247A78",
+export const TEAM_TAG_COLOR_GROUPS = [
+  {
+    label: "Classic",
+    colors: ["#2F6B57", "#2E6F95", "#7753A6", "#C05662", "#B46924", "#586275", "#BD8B21", "#247A78"],
+  },
+  {
+    label: "Neon",
+    colors: ["#39FF14", "#00F5FF", "#FF2BD6", "#FF5E00", "#B8FF00", "#A100FF", "#FF1744", "#FFF000"],
+  },
 ]
+
+export const TEAM_TAG_NEON_COLORS = TEAM_TAG_COLOR_GROUPS[1].colors
+export const TEAM_TAG_COLORS = TEAM_TAG_COLOR_GROUPS.flatMap((group) => group.colors)
 
 export const TEAM_TAG_ICONS = [
   "BadgeCheck",

@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
 import UpdatesBanner from "@/components/UpdatesBanner";
+import MemberSanctionBanner from "@/components/MemberSanctionBanner";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -24,6 +25,7 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col">
         <AnnouncementBanner />
         <UpdatesBanner />
+        <MemberSanctionBanner />
     {children}
         <Toaster richColors position="top-right" />
       </body>

@@ -352,6 +352,7 @@ function WorkspaceVerifyContent() {
               <h2 className="mt-1 text-lg font-bold text-reef-navy">This account can’t enter the workspace.</h2>
               <p className="mt-2 text-sm leading-6 text-lava/60">{status.accessBlock?.reason || "Workspace access has been restricted by Honolua staff."}</p>
               {status.accessBlock?.expiresAt ? <p className="mt-2 text-xs font-medium text-lava/45">Restriction ends {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(status.accessBlock.expiresAt))}.</p> : null}
+              <Link href="/account/standing" className="mt-3 inline-flex text-xs font-bold text-[#A35345] underline underline-offset-4">View account standing</Link>
             </div>
           )}
 
@@ -444,6 +445,7 @@ function WorkspaceVerifyContent() {
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           All systems operational
         </p>
+        <div className="mt-3 text-center"><Link href="/account/standing" className="text-xs font-semibold text-lava/45 underline underline-offset-4 transition hover:text-reef-navy">View your account standing</Link></div>
       </div>
     </LightBackground>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import Nav from "@/components/Nav.js";
 import Footer from "@/components/Footer.js";
 
@@ -337,6 +338,7 @@ function VerifyContent() {
             <h2 className="text-xl font-bold text-reef-navy">This account can’t be verified right now.</h2>
             <p className="mt-2 text-sm leading-6 text-lava/60">{status.accessBlock?.reason || "Verification access has been restricted by Honolua staff."}</p>
             {status.accessBlock?.expiresAt ? <p className="mt-3 text-xs font-medium text-lava/45">Restriction ends {new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(new Date(status.accessBlock.expiresAt))}.</p> : null}
+            <Link href="/account/standing" className="mt-4 inline-flex text-xs font-bold text-[#A35345] underline underline-offset-4">View account standing</Link>
           </div>
         )}
 
@@ -468,6 +470,7 @@ function VerifyContent() {
             </div>
           </div>
         )}
+        {!verificationBlocked ? <div className="mt-8 text-center"><Link href="/account/standing" className="text-xs font-semibold text-lava/45 underline underline-offset-4 transition hover:text-reef-navy">View your account standing</Link></div> : null}
       </div>
     </section>
   );

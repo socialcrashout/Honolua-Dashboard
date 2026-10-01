@@ -115,6 +115,28 @@ export async function PATCH(request, { params }) {
   ).lean()
   if (!sanction) return NextResponse.json({ ok: false, error: "active_sanction_not_found" }, { status: 404 })
 
-  await logStaffAction({ session, action: "member_sanction_revoked", meta: { robloxUserId, username: sanction.username, sanctionId: sanction.id, sanctionType: sanction.action } })
-  return NextResponse.json({ ok: true, sanction: serializeMemberSanction(sanction) }, { headers: { "Cache-Control": "private, no-store" } })
+  let discordRoleRestored = null
+  if (sanction.action === "ban") {
+    const verifiedAccount = await VerifiedAccount.findOne({ robloxUserId }).lean()
+    if (verifiedAccount?.discordId) {
+      const guildId = process.env.DISCORD_GUILD_ID
+      const roleId = process.env.DISCORD_VERIFIED_ROLE_ID
+      if (guildId && roleId && process.env.DISCORD_BOT_TOKEN) {
+        try {
+          const discordResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members/${verifiedAccount.discordId}/roles/${roleId}`, {
+            method: "PUT",
+            headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
+          })
+          discordRoleRestored = discordResponse.ok
+          if (!discordRoleRestored) console.error("Could not restore verified role after lifting member ban:", discordResponse.status, await discordResponse.text().catch(() => ""))
+        } catch (error) {
+          discordRoleRestored = false
+          console.error("Could not restore verified role after lifting member ban:", error)
+        }
+      } else discordRoleRestored = false
+    }
+  }
+
+  await logStaffAction({ session, action: "member_sanction_revoked", meta: { robloxUserId, username: sanction.username, sanctionId: sanction.id, sanctionType: sanction.action, discordRoleRestored } })
+  return NextResponse.json({ ok: true, sanction: serializeMemberSanction(sanction), discordRoleRestored }, { headers: { "Cache-Control": "private, no-store" } })
 }

@@ -107,6 +107,7 @@ function SanctionDrawer({ member, sanctions, onClose, onCreated, onRevoked, redu
   }
 
   async function liftSanction(sanction) {
+    if (sanction.action === "ban" && !window.confirm(`Lift the ban for ${member.username}? This restores Honolua access and attempts to restore their Discord verified role.`)) return
     setRevoking(sanction.id)
     setError("")
     try {
@@ -114,7 +115,7 @@ function SanctionDrawer({ member, sanctions, onClose, onCreated, onRevoked, redu
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.error || "Could not lift this action.")
       onRevoked(data.sanction)
-      setNotice("Action lifted. The change is recorded in the audit log.")
+      setNotice(data.discordRoleRestored === false ? "Ban lifted and Honolua access restored, but Discord could not restore the verified role. The member can retry verification." : sanction.action === "ban" ? "Ban lifted. Honolua access and the Discord verified role are restored." : "Action lifted. The change is recorded in the audit log.")
     } catch (revokeError) {
       setError(revokeError.message || "Could not lift this action.")
     } finally {
@@ -164,7 +165,7 @@ function SanctionDrawer({ member, sanctions, onClose, onCreated, onRevoked, redu
                 </form>
 
                 <aside className="space-y-4">
-                  <section className="rounded-[22px] border border-[#31271F]/[0.08] bg-[#FFF8F1] p-4 sm:p-5"><div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#D96E2A]"><ShieldCheck className="h-4 w-4" />Access status</div>{active.length ? <div className="mt-3 space-y-2">{active.map((sanction) => <div key={sanction.id} className="rounded-xl border border-white bg-white p-3"><div className="flex items-center justify-between gap-2"><span className="text-xs font-bold capitalize text-[#31271F]">{sanction.action}</span><span className="text-[9px] text-lava/40">{sanction.expiresAt ? `until ${dateLabel(sanction.expiresAt)}` : "no expiry"}</span></div><p className="mt-1 text-[10px] leading-4 text-lava/55">{sanction.reason}</p><button type="button" onClick={() => void liftSanction(sanction)} disabled={Boolean(revoking)} className="mt-2 text-[10px] font-bold text-[#B85D23] transition hover:underline disabled:opacity-50">{revoking === sanction.id ? "Lifting…" : "Lift this action"}</button></div>)}</div> : <p className="mt-3 rounded-xl border border-dashed border-[#D96E2A]/20 bg-white/70 px-3 py-4 text-xs leading-5 text-[#74685D]">No active actions. Notes and expired items remain in the record history.</p>}</section>
+                  <section className="rounded-[22px] border border-[#31271F]/[0.08] bg-[#FFF8F1] p-4 sm:p-5"><div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#D96E2A]"><ShieldCheck className="h-4 w-4" />Access status</div>{active.length ? <div className="mt-3 space-y-2">{active.map((sanction) => <div key={sanction.id} className="rounded-xl border border-[#E9E2DA] bg-white p-3"><div className="flex items-center justify-between gap-2"><span className="text-xs font-bold capitalize text-[#31271F]">{sanction.action}</span><span className="text-[9px] text-lava/40">{sanction.expiresAt ? `until ${dateLabel(sanction.expiresAt)}` : "no expiry"}</span></div><p className="mt-1 text-[10px] leading-4 text-lava/55">{sanction.reason}</p><button type="button" onClick={() => void liftSanction(sanction)} disabled={Boolean(revoking)} className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-[#E87932] px-3 text-[11px] font-bold text-white transition hover:bg-[#CF6425] disabled:cursor-wait disabled:opacity-60">{revoking === sanction.id ? <><RefreshCw className="h-3.5 w-3.5 animate-spin" />Lifting…</> : sanction.action === "ban" ? "Lift ban · restore access" : `Lift ${sanction.action}`}</button></div>)}</div> : <p className="mt-3 rounded-xl border border-dashed border-[#D96E2A]/20 bg-white/70 px-3 py-4 text-xs leading-5 text-[#74685D]">No active actions. Notes and expired items remain in the record history.</p>}</section>
                   <section className="rounded-[22px] border border-[#E8D7C1] bg-[#FFF9F1] p-4 sm:p-5"><div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#A87419]"><Clock3 className="h-4 w-4" />Decision guide</div><p className="mt-2 text-xs leading-5 text-lava/55">Bans and suspensions block verification and workspace access. Restrictions apply only to the access areas selected. Every action can be lifted here.</p></section>
                 </aside>
               </div>

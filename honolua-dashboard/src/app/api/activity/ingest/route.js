@@ -22,7 +22,7 @@ export async function POST(request) {
   const messageId = typeof body?.messageId === "string" ? body.messageId.trim().slice(0, 128) : ""
   const channel = typeof body?.channel === "string" ? body.channel.trim().slice(0, 48) : ""
   const at = body?.at ? new Date(body.at) : new Date()
-  if (!new Set(["join", "heartbeat", "leave", "chat"]).has(event) || !/^\d{1,20}$/.test(userId) || !serverId || serverId.length > 128 || !sessionId || sessionId.length > 128 || !username || !Number.isInteger(rank) || rank < 0 || rank > 255 || Number.isNaN(at.getTime())) {
+  if (!new Set(["join", "heartbeat", "leave", "chat", "afk_start", "afk_end"]).has(event) || !/^\d{1,20}$/.test(userId) || !serverId || serverId.length > 128 || !sessionId || sessionId.length > 128 || !username || !Number.isInteger(rank) || rank < 0 || rank > 255 || Number.isNaN(at.getTime())) {
     return NextResponse.json({ error: "Invalid activity event." }, { status: 400 })
   }
   if (event === "chat" && (!message || !messageId)) return NextResponse.json({ error: "A filtered chat message and message ID are required." }, { status: 400 })
@@ -63,12 +63,43 @@ export async function POST(request) {
       return NextResponse.json({ ok: true, event: "heartbeat" })
     }
 
+    if (event === "afk_start") {
+      const result = await collection.updateOne(
+        { _id: id, groupId: GROUP_ID, serverId, isActive: true, afkStartedAt: { $exists: false } },
+        { $set: { afkStartedAt: at } }
+      )
+      if (!result.matchedCount) {
+        const active = await collection.findOne({ _id: id, groupId: GROUP_ID, serverId, isActive: true })
+        if (!active) return NextResponse.json({ error: "Matching active session not found." }, { status: 404 })
+      }
+      return NextResponse.json({ ok: true, event: "afk_start" })
+    }
+
+    if (event === "afk_end") {
+      const active = await collection.findOne({ _id: id, groupId: GROUP_ID, serverId, isActive: true, afkStartedAt: { $type: "date" } })
+      if (!active) return NextResponse.json({ ok: true, event: "afk_end" })
+      const startedAt = new Date(active.afkStartedAt)
+      const endedAt = at > startedAt ? at : startedAt
+      const periodEnd = new Date(Math.min(endedAt.getTime(), startedAt.getTime() + 20 * 60 * 1000))
+      await collection.updateOne(
+        { _id: id, groupId: GROUP_ID, serverId, isActive: true, afkStartedAt: active.afkStartedAt },
+        { $push: { afkPeriods: { startedAt, endedAt: periodEnd } }, $unset: { afkStartedAt: "" } }
+      )
+      return NextResponse.json({ ok: true, event: "afk_end" })
+    }
+
     const active = await collection.findOne({ _id: id, groupId: GROUP_ID, serverId, isActive: true })
     if (!active) return NextResponse.json({ error: "Matching active session not found." }, { status: 404 })
     const endedAt = at < new Date(active.startedAt) ? new Date(active.startedAt) : at
+    const updates = { username, rank, experienceName, endedAt, isActive: false, durationMinutes: Math.floor((endedAt - new Date(active.startedAt)) / 60000), lastSeenAt: at }
+    const afkStartedAt = active.afkStartedAt ? new Date(active.afkStartedAt) : null
+    if (afkStartedAt && endedAt > afkStartedAt) {
+      updates.afkPeriods = [...(active.afkPeriods || []), { startedAt: afkStartedAt, endedAt: new Date(Math.min(endedAt.getTime(), afkStartedAt.getTime() + 20 * 60 * 1000)) }]
+      updates.afkStartedAt = null
+    }
     await collection.updateOne(
       { _id: id, isActive: true },
-      { $set: { username, rank, experienceName, endedAt, isActive: false, durationMinutes: Math.floor((endedAt - new Date(active.startedAt)) / 60000), lastSeenAt: at } }
+      { $set: updates }
     )
     return NextResponse.json({ ok: true, event: "leave" })
   } catch (error) {

@@ -27,6 +27,21 @@ function addSessionToDays(dayMinutes, start, end) {
   }
 }
 
+function addPeriodToDays(dayMinutes, start, end) {
+  if (!(end > start)) return
+  let cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()))
+  while (cursor < end) {
+    const next = new Date(cursor)
+    next.setUTCDate(next.getUTCDate() + 1)
+    const overlapStart = start > cursor ? start : cursor
+    const overlapEnd = end < next ? end : next
+    const minutes = Math.max(0, Math.floor((overlapEnd - overlapStart) / 60000))
+    const key = dayKey(cursor)
+    dayMinutes.set(key, (dayMinutes.get(key) || 0) + minutes)
+    cursor = next
+  }
+}
+
 async function getLinkedRobloxId(discordId) {
   const guildId = process.env.DISCORD_GUILD_ID
   const apiKey = process.env.BLOXLINK_API_KEY
@@ -63,16 +78,34 @@ export async function GET() {
     ])
 
     const dayMinutes = new Map()
+    const afkDayMinutes = new Map()
     const sessions = sessionRecords.map((record) => {
       const startedAt = new Date(record.startedAt)
       const lastSeenAt = new Date(record.lastSeenAt || record.endedAt || record.startedAt)
       const isActive = Boolean(record.isActive) && now - lastSeenAt <= ACTIVE_WINDOW_MS
       const endedAt = isActive ? now : new Date(record.endedAt || lastSeenAt)
+      const afkPeriods = [...(record.afkPeriods || [])]
+      const isAfk = isActive && Boolean(record.afkStartedAt)
+      if (record.afkStartedAt) {
+        const openAfkEnd = isActive ? now : endedAt
+        if (openAfkEnd > new Date(record.afkStartedAt)) afkPeriods.push({ startedAt: record.afkStartedAt, endedAt: openAfkEnd })
+      }
       addSessionToDays(dayMinutes, startedAt, endedAt)
+      let afkTotal = 0
+      for (const period of afkPeriods) {
+        const afkStart = new Date(period.startedAt)
+        const afkEnd = new Date(Math.min(new Date(period.endedAt).getTime(), afkStart.getTime() + 20 * 60 * 1000))
+        addPeriodToDays(afkDayMinutes, afkStart, afkEnd)
+        afkTotal += Math.max(0, Math.floor((afkEnd - afkStart) / 60000))
+      }
+      const visibleAfkStartedAt = isAfk ? record.afkStartedAt : null
       return {
         startedAt: record.startedAt,
         endedAt: isActive ? null : (record.endedAt || lastSeenAt),
         minutes: Math.max(0, Math.floor((endedAt - startedAt) / 60000)),
+        afkMinutes: afkTotal,
+        isAfk,
+        afkStartedAt: visibleAfkStartedAt,
         isActive,
         experienceName: record.experienceName || "Honolua",
       }
@@ -82,7 +115,7 @@ export async function GET() {
       const date = new Date(now)
       date.setUTCDate(date.getUTCDate() - (HISTORY_DAYS - index - 1))
       const key = dayKey(date)
-      return { date: key, minutes: dayMinutes.get(key) || 0 }
+      return { date: key, minutes: Math.max(0, (dayMinutes.get(key) || 0) - (afkDayMinutes.get(key) || 0)), afkMinutes: afkDayMinutes.get(key) || 0 }
     })
     const today = dayKey(now)
     const yesterdayDate = new Date(now)
@@ -96,9 +129,8 @@ export async function GET() {
       streakCursor.setUTCDate(streakCursor.getUTCDate() - 1)
     }
 
-    const thirtyDayStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-    const recentSessions = sessions.filter((item) => new Date(item.startedAt) >= thirtyDayStart)
-    const totalRecentMinutes = recentSessions.reduce((total, item) => total + item.minutes, 0)
+    const totalRecentMinutes = days.slice(-30).reduce((total, day) => total + day.minutes, 0)
+    const last30DaysAfkMinutes = days.slice(-30).reduce((total, day) => total + day.afkMinutes, 0)
     const profile = profileResponse.ok ? await profileResponse.json().catch(() => null) : null
 
     return NextResponse.json({
@@ -108,9 +140,8 @@ export async function GET() {
       currentSession: sessions.find((item) => item.isActive) || null,
       member: { username: profile?.name || session.robloxUsername || "Honolua member" },
       stats: {
-        last30DaysMinutes: totalRecentMinutes,
-        visits: recentSessions.length,
-        averageVisitMinutes: recentSessions.length ? Math.round(totalRecentMinutes / recentSessions.length) : 0,
+        last30DaysMinutes: Math.max(0, totalRecentMinutes - last30DaysAfkMinutes),
+        last30DaysAfkMinutes,
         currentStreakDays,
         streakMinimumMinutes: STREAK_MINUTES_PER_DAY,
       },

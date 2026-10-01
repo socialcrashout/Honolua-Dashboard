@@ -6,13 +6,30 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextChatService = game:GetService("TextChatService")
 local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 local report = ReplicatedStorage:WaitForChild("HonoluaChatReport")
+local activityState = ReplicatedStorage:WaitForChild("HonoluaActivityState")
 local watchedChannels = {}
 local reportedMessages = setmetatable({}, { __mode = "k" })
 local pendingById = {}
 local pendingByText = {}
+local isAfk = false
+
+player.Idled:Connect(function()
+	if not isAfk then
+		isAfk = true
+		activityState:FireServer("afk_start")
+	end
+end)
+
+UserInputService.InputBegan:Connect(function()
+	if isAfk then
+		isAfk = false
+		activityState:FireServer("afk_end")
+	end
+end)
 
 local function discardExpiredPending()
 	local now = os.clock()

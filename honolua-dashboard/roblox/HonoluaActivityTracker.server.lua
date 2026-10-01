@@ -33,6 +33,12 @@ local capturedMessageIds = {}
 local lastDedupeCleanupAt = 0
 local closing = false
 local chatRates = {}
+local activityStateRemote = game:GetService("ReplicatedStorage"):FindFirstChild("HonoluaActivityState")
+if not activityStateRemote then
+	activityStateRemote = Instance.new("RemoteEvent")
+	activityStateRemote.Name = "HonoluaActivityState"
+	activityStateRemote.Parent = game:GetService("ReplicatedStorage")
+end
 
 local function sendEvent(eventName, player, rank, filteredMessage, messageId)
 	local payload = {
@@ -138,7 +144,7 @@ local function beginTracking(player)
 		return
 	end
 
-	activePlayers[player.UserId] = { player = player, rank = rank }
+	activePlayers[player.UserId] = { player = player, rank = rank, isAfk = false }
 	sendEvent("join", player, rank)
 
 	-- Roblox's provided chat bar still fires Player.Chatted on the server.
@@ -146,6 +152,19 @@ local function beginTracking(player)
 		captureChat(player, message, nil)
 	end)
 end
+
+activityStateRemote.OnServerEvent:Connect(function(player, state)
+	local tracked = activePlayers[player.UserId]
+	if not tracked or player.Parent ~= Players or (state ~= "afk_start" and state ~= "afk_end") then
+		return
+	end
+	local shouldBeAfk = state == "afk_start"
+	if tracked.isAfk == shouldBeAfk then
+		return
+	end
+	tracked.isAfk = shouldBeAfk
+	task.spawn(sendEvent, state, player, tracked.rank)
+end)
 
 -- TextChatService client events cover newer chat entry paths. Clients only
 -- report messages attributed to themselves; filter again on the server before

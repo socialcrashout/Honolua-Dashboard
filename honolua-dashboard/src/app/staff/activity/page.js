@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { motion, useReducedMotion } from "framer-motion"
-import { Activity, CalendarDays, Clock3, Flame, Gamepad2, MessageCircle, Radio, RefreshCw, Sparkles } from "lucide-react"
+import { Activity, CalendarDays, Clock3, Flame, Gamepad2, MessageCircle, PauseCircle, Radio, RefreshCw, Sparkles } from "lucide-react"
 
 const EASE = [0.16, 1, 0.3, 1]
 const reduceDuration = (reduceMotion, duration) => reduceMotion ? 0.01 : duration
@@ -41,7 +41,8 @@ function SummaryCard({ icon: Icon, label, value, note, tint, index, reduceMotion
 }
 
 function CurrentSession({ session, now, trackingReady, reduceMotion }) {
-  const elapsed = session?.startedAt ? Math.max(0, Math.floor((now - new Date(session.startedAt).getTime()) / 60000)) : 0
+  const afkElapsed = session?.isAfk && session?.afkStartedAt ? Math.min(20, Math.max(0, Math.floor((now - new Date(session.afkStartedAt).getTime()) / 60000))) : 0
+  const elapsed = session?.startedAt ? Math.max(0, Math.floor((now - new Date(session.startedAt).getTime()) / 60000) - (session.afkMinutes || 0)) : 0
   const active = Boolean(session?.isActive)
   return (
     <motion.section initial={reduceMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceDuration(reduceMotion, 0.4), ease: EASE }} className={`relative mt-4 overflow-hidden rounded-[28px] border p-5 shadow-[0_12px_36px_rgba(125,78,27,0.07)] sm:flex sm:items-center sm:gap-6 sm:px-7 ${active ? "border-[#E8B970]/50 bg-[linear-gradient(105deg,#fff_0%,#FFF5E5_50%,#FFE9CE_100%)]" : "border-[#E9DFD1] bg-white"}`}>
@@ -51,11 +52,11 @@ function CurrentSession({ session, now, trackingReady, reduceMotion }) {
         <Gamepad2 className="relative h-6 w-6" />
       </span>
       <div className="relative mt-4 min-w-0 flex-1 sm:mt-0">
-        <div className="flex flex-wrap items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#A9631F]">{active ? "Live session" : "Now playing"}</span>{active ? <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[#A9631F]"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#E67336]" />Live</span> : null}</div>
+        <div className="flex flex-wrap items-center gap-2"><span className="text-[10px] font-bold uppercase tracking-[0.17em] text-[#A9631F]">{active ? (session.isAfk ? "AFK detected" : "Live session") : "Now playing"}</span>{active ? <span className={`inline-flex items-center gap-1.5 rounded-full bg-white/85 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.1em] ${session.isAfk ? "text-[#8B6A34]" : "text-[#A9631F]"}`}><span className={`h-1.5 w-1.5 animate-pulse rounded-full ${session.isAfk ? "bg-[#B98736]" : "bg-[#E67336]"}`} />{session.isAfk ? "Idle" : "Live"}</span> : null}</div>
         <h2 className="mt-1 truncate text-xl font-bold tracking-tight text-reef-navy">{active ? `Playing ${session.experienceName || "Honolua"}` : trackingReady ? "No active game session" : "Activity tracker needs setup"}</h2>
-        <p className="mt-1 text-xs leading-5 text-lava/50">{active ? `Joined at ${dateLabel(session.startedAt, { hour: "numeric", minute: "2-digit" })} · this time is updating live` : trackingReady ? "When you join the Honolua experience, your current session will appear here." : "Roblox cannot send activity until the experience secret and HTTP requests are configured."}</p>
+        <p className="mt-1 text-xs leading-5 text-lava/50">{active ? session.isAfk ? `Idle for ${timeLabel(afkElapsed)} · AFK time updates live` : `Joined at ${dateLabel(session.startedAt, { hour: "numeric", minute: "2-digit" })} · active time updates live` : trackingReady ? "When you join the Honolua experience, your current session will appear here." : "Roblox cannot send activity until the experience secret and HTTP requests are configured."}</p>
       </div>
-      {active ? <div className="relative mt-4 flex shrink-0 items-baseline gap-2 sm:mt-0 sm:pl-6 sm:text-right"><motion.span key={elapsed} initial={reduceMotion ? false : { opacity: 0.4, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-4xl font-bold tabular-nums tracking-tight text-reef-navy">{timeLabel(elapsed)}</motion.span><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#A9631F]">in game</span></div> : null}
+      {active ? <div className="relative mt-4 flex shrink-0 items-baseline gap-2 sm:mt-0 sm:pl-6 sm:text-right"><motion.span key={elapsed} initial={reduceMotion ? false : { opacity: 0.4, y: 4 }} animate={{ opacity: 1, y: 0 }} className="text-4xl font-bold tabular-nums tracking-tight text-reef-navy">{timeLabel(elapsed)}</motion.span><span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#A9631F]">active</span></div> : null}
     </motion.section>
   )
 }
@@ -76,7 +77,7 @@ function SixMonthVoyage({ days, reduceMotion }) {
   const maxWeek = Math.max(30, ...months.flatMap((month) => month.weeks))
   return (
     <section className="relative overflow-hidden rounded-[28px] border border-[#E9D7C0] bg-[#FFF9F1] p-5 sm:p-6">
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">Long view · six months</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Little visits, gathered into seasons</h2></div><span className="text-[10px] text-lava/40">Each curve marks a week</span></div>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">Long view · six months</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Your play rhythm, over time</h2></div><span className="text-[10px] text-lava/40">Active minutes by week</span></div>
       <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
         {months.map((month, monthIndex) => (
           <motion.article key={month.key} initial={reduceMotion ? false : { opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: reduceMotion ? 0 : monthIndex * 0.04, duration: 0.28 }} className="rounded-[20px] border border-[#E8DFD2] bg-white/85 p-3.5 sm:p-4">
@@ -137,21 +138,6 @@ function ThirtyDayTide({ days, reduceMotion }) {
         </svg> : <div className="flex h-48 items-center justify-center rounded-2xl bg-white/55 text-xs text-lava/45">Your first session will draw the tide.</div>}
       </div>
       <div className="relative flex items-center justify-between gap-3 border-t border-[#E9DDCE] pt-3 text-[10px] text-lava/45"><span>30 days ago</span><span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[#E67336]" />More minutes lift the wave</span><span>Today</span></div>
-    </section>
-  )
-}
-
-function SessionList({ sessions, reduceMotion, now }) {
-  return (
-    <section className="rounded-[26px] border border-[#E9DFD1] bg-white p-5 shadow-[0_8px_24px_rgba(46,38,29,0.04)] sm:p-6">
-      <div className="flex items-center justify-between gap-3"><div><div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#B36D20]">Recent visits</div><h2 className="mt-1 text-lg font-bold tracking-tight text-reef-navy">Your time in Honolua</h2></div><CalendarDays className="h-5 w-5 text-[#D8792B]" /></div>
-      {sessions.length ? <div className="mt-4 divide-y divide-[#F0E8DE]">{sessions.slice(0, 6).map((session, index) => (
-        <motion.article key={`${session.startedAt}-${index}`} initial={reduceMotion ? false : { opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: reduceMotion ? 0 : index * 0.045, duration: 0.28 }} className="flex items-center gap-3 py-3.5">
-          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${session.isActive ? "bg-[#EAF5EA] text-[#4B9461]" : "bg-[#FFF3E1] text-[#B36D20]"}`}><Clock3 className="h-4 w-4" /></span>
-          <div className="min-w-0 flex-1"><div className="truncate text-xs font-semibold text-reef-navy">{dateLabel(session.startedAt, { weekday: "short", month: "short", day: "numeric" })}</div><div className="mt-0.5 text-[10px] text-lava/40">{dateLabel(session.startedAt, { hour: "numeric", minute: "2-digit" })}{session.isActive ? " · In game now" : " · Visit"}</div></div>
-          <span className="shrink-0 text-xs font-bold tabular-nums text-reef-navy">{timeLabel(session.isActive && session.startedAt ? Math.max(0, Math.floor((now - new Date(session.startedAt).getTime()) / 60000)) : session.minutes)}</span>
-        </motion.article>
-      ))}</div> : <div className="mt-5 rounded-2xl bg-[#FFFAF4] px-4 py-8 text-center"><Radio className="mx-auto h-5 w-5 text-[#D8792B]" /><p className="mt-2 text-xs font-semibold text-reef-navy">Your first visit will show up here</p><p className="mt-1 text-[10px] text-lava/45">Join the Honolua game to start your activity trail.</p></div>}
     </section>
   )
 }
@@ -220,7 +206,7 @@ export default function StaffActivityPage() {
             <div className="max-w-2xl">
               <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#E9C994] bg-white/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.17em] text-[#A9631F]"><Sparkles className="h-3.5 w-3.5" />A little rhythm, every day</div>
               <h1 className="text-3xl font-bold leading-tight tracking-tight text-reef-navy sm:text-4xl">{data?.member?.username ? `Welcome back, ${data.member.username}.` : "Your island activity"}</h1>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-lava/55">Your game time, your streak, and a trail of moments from the Honolua chat.</p>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-lava/55">See your active play time and AFK time separately, alongside your streak and Honolua chat.</p>
             </div>
             <button type="button" onClick={() => void load(true)} disabled={loading || refreshing} className="relative inline-flex min-h-11 items-center gap-2 rounded-2xl border border-[#E6D5C1] bg-white/90 px-4 text-xs font-semibold text-reef-navy shadow-sm transition hover:border-[#E1A34D] hover:bg-white disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${refreshing && !reduceMotion ? "animate-spin" : ""}`} />Refresh</button>
           </div>
@@ -233,15 +219,16 @@ export default function StaffActivityPage() {
         {loading ? <section className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">{[0, 1, 2, 3].map((item) => <div key={item} className="h-32 animate-pulse rounded-[22px] bg-white/80" />)}</section> : data?.linked ? <>
           <CurrentSession session={currentSession} now={clock} trackingReady={data.trackingReady} reduceMotion={reduceMotion} />
           <section className="mt-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <SummaryCard icon={Clock3} label="Last 30 days" value={timeLabel(stats?.last30DaysMinutes)} note="Time in-game" tint="#D7792A" index={0} reduceMotion={reduceMotion} />
-            <SummaryCard icon={CalendarDays} label="Visits" value={stats?.visits || 0} note="Game sessions this month" tint="#B98736" index={1} reduceMotion={reduceMotion} />
-            <SummaryCard icon={Activity} label="Average visit" value={timeLabel(stats?.averageVisitMinutes)} note="Per session" tint="#C08B40" index={2} reduceMotion={reduceMotion} />
+            <SummaryCard icon={Clock3} label="Active play · 30 days" value={timeLabel(stats?.last30DaysMinutes)} note="AFK time excluded" tint="#D7792A" index={0} reduceMotion={reduceMotion} />
+            <SummaryCard icon={PauseCircle} label="AFK time · 30 days" value={timeLabel(stats?.last30DaysAfkMinutes)} note="Detected idle time" tint="#B98736" index={1} reduceMotion={reduceMotion} />
+            <SummaryCard icon={CalendarDays} label="Active days · 30 days" value={days.slice(-30).filter((day) => day.minutes >= (stats?.streakMinimumMinutes || 10)).length} note="Days with 10+ active minutes" tint="#C08B40" index={2} reduceMotion={reduceMotion} />
             <SummaryCard icon={Flame} label="Current streak" value={`${stats?.currentStreakDays || 0} days`} note="Consecutive active days" tint="#E67336" index={3} reduceMotion={reduceMotion} />
           </section>
+          <p className="mt-2 px-1 text-[10px] leading-5 text-lava/45">AFK detection starts when Roblox marks you idle (about two minutes without activity) and ends when you interact again.</p>
 
           <div className="mt-4"><SixMonthVoyage days={days} reduceMotion={reduceMotion} /></div>
           <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
-            <div className="grid gap-4"><ThirtyDayTide days={days} reduceMotion={reduceMotion} /><SessionList sessions={sessions} now={clock} reduceMotion={reduceMotion} /></div>
+            <div className="grid gap-4"><ThirtyDayTide days={days} reduceMotion={reduceMotion} /></div>
             <MessageList messages={messages} reduceMotion={reduceMotion} />
           </div>
         </> : null}

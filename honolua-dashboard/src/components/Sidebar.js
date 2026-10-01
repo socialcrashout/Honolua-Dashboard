@@ -95,6 +95,7 @@ const NAV_GROUPS = [
       { href: "/staff/loa", label: "Manage Leaves", icon: CalendarCheck2 },
       { href: "/staff/loa/settings", label: "Leave Settings", icon: SlidersHorizontal },
       { href: "/staff/activity/settings", label: "Activity Settings", icon: Activity },
+      { href: "/staff/team-page", label: "Team Page", icon: Users },
       { href: "/staff/binds", label: "Binds", icon: Link2 },
       { href: "/staff/departments", label: "Departments", icon: Building2 },
       { href: "/staff/ranking", label: "Ranking Logs", icon: TrendingUp },
@@ -518,11 +519,14 @@ export default function StaffSidebar() {
   const [pendingLeaveCount, setPendingLeaveCount] = useState(0)
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
-      if (stored === "1") setExpanded(true)
-    } catch {}
-    setHydrated(true)
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = window.localStorage.getItem(SIDEBAR_STORAGE_KEY)
+        if (stored === "1") setExpanded(true)
+      } catch {}
+      setHydrated(true)
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [])
 
   useEffect(() => {

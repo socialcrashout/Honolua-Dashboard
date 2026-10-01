@@ -28,7 +28,9 @@ end
 
 local sessionId = HttpService:GenerateGUID(false)
 local activePlayers = {}
-local lastChatSentAt = {}
+local recentChatKeys = {}
+local capturedMessageIds = {}
+local lastDedupeCleanupAt = 0
 local closing = false
 
 local function sendEvent(eventName, player, rank, filteredMessage, messageId)
@@ -76,6 +78,47 @@ local function sendEvent(eventName, player, rank, filteredMessage, messageId)
 	return false
 end
 
+local function captureChat(player, message, messageId)
+	local tracked = activePlayers[player.UserId]
+	if not tracked or player.Parent ~= Players or type(message) ~= "string" or message == "" then
+		return
+	end
+
+	local now = os.clock()
+	if now - lastDedupeCleanupAt >= 60 then
+		lastDedupeCleanupAt = now
+		for key, sentAt in pairs(recentChatKeys) do
+			if now - sentAt >= 2 then
+				recentChatKeys[key] = nil
+			end
+		end
+		for id, sentAt in pairs(capturedMessageIds) do
+			if now - sentAt >= 120 then
+				capturedMessageIds[id] = nil
+			end
+		end
+	end
+	local dedupeKey = tostring(player.UserId) .. ":" .. message
+	if (messageId and capturedMessageIds[messageId]) or now - (recentChatKeys[dedupeKey] or 0) < 2 then
+		return
+	end
+	if messageId then
+		capturedMessageIds[messageId] = now
+	end
+	recentChatKeys[dedupeKey] = now
+
+	local filteredOk, filteredMessage = pcall(function()
+		local filterResult = TextService:FilterStringAsync(message, player.UserId, Enum.TextFilterContext.PublicChat)
+		return filterResult:GetChatForUserAsync(player.UserId)
+	end)
+	if not filteredOk or type(filteredMessage) ~= "string" or filteredMessage == "" then
+		warn("Honolua activity could not safely filter a chat message for " .. player.Name .. ": " .. tostring(filteredMessage))
+		return
+	end
+
+	task.spawn(sendEvent, "chat", player, tracked.rank, filteredMessage, messageId or HttpService:GenerateGUID(false))
+end
+
 local function beginTracking(player)
 	local ok, rank = pcall(function()
 		return player:GetRankInGroupAsync(GROUP_ID)
@@ -91,24 +134,47 @@ local function beginTracking(player)
 	activePlayers[player.UserId] = { player = player, rank = rank }
 	sendEvent("join", player, rank)
 
+	-- Legacy chat fallback. Modern TextChatService messages are captured by the
+	-- server-side delivery callback below.
 	player.Chatted:Connect(function(message)
-		local now = os.clock()
-		if now - (lastChatSentAt[player.UserId] or 0) < 1 then
-			return
-		end
-		lastChatSentAt[player.UserId] = now
-
-		local filteredOk, filteredMessage = pcall(function()
-			local filterResult = TextService:FilterStringAsync(message, player.UserId, Enum.TextFilterContext.PublicChat)
-			return filterResult:GetChatForUserAsync(player.UserId)
-		end)
-		if not filteredOk or type(filteredMessage) ~= "string" or filteredMessage == "" then
-			warn("Honolua activity could not safely filter a chat message for " .. player.Name)
-			return
-		end
-		task.spawn(sendEvent, "chat", player, rank, filteredMessage, HttpService:GenerateGUID(false))
+		captureChat(player, message, nil)
 	end)
 end
+
+-- TextChatService does not reliably surface every modern chat message through
+-- Player.Chatted. Observe messages on the server as Roblox delivers them, while
+-- chaining any existing delivery policy and preserving its return values.
+local textChatService = game:GetService("TextChatService")
+local hookedChannels = {}
+local function hookTextChannel(channel)
+	if hookedChannels[channel] or not channel:IsA("TextChannel") then
+		return
+	end
+	hookedChannels[channel] = true
+	local previousCallback = channel.ShouldDeliverCallback
+	channel.ShouldDeliverCallback = function(message, textSource)
+		local results
+		if previousCallback then
+			results = table.pack(previousCallback(message, textSource))
+		else
+			results = table.pack(true)
+		end
+
+		if results[1] ~= false and textSource then
+			local player = Players:GetPlayerByUserId(textSource.UserId)
+			if player then
+				task.spawn(captureChat, player, message.Text, message.MessageId)
+			end
+		end
+		return table.unpack(results, 1, results.n)
+	end
+end
+
+local textChannels = textChatService:WaitForChild("TextChannels")
+for _, channel in textChannels:GetChildren() do
+	hookTextChannel(channel)
+end
+textChannels.ChildAdded:Connect(hookTextChannel)
 
 Players.PlayerAdded:Connect(function(player)
 	task.spawn(beginTracking, player)
@@ -117,7 +183,6 @@ end)
 Players.PlayerRemoving:Connect(function(player)
 	local tracked = activePlayers[player.UserId]
 	activePlayers[player.UserId] = nil
-	lastChatSentAt[player.UserId] = nil
 	if tracked then
 		task.spawn(sendEvent, "leave", player, tracked.rank)
 	end

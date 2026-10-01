@@ -32,6 +32,7 @@ local recentChatKeys = {}
 local capturedMessageIds = {}
 local lastDedupeCleanupAt = 0
 local closing = false
+local chatRates = {}
 
 local function sendEvent(eventName, player, rank, filteredMessage, messageId)
 	local payload = {
@@ -134,65 +135,40 @@ local function beginTracking(player)
 	activePlayers[player.UserId] = { player = player, rank = rank }
 	sendEvent("join", player, rank)
 
-	-- Legacy chat fallback. Modern TextChatService messages are captured by the
-	-- server-side delivery callback below.
+	-- Roblox's provided chat bar still fires Player.Chatted on the server.
 	player.Chatted:Connect(function(message)
 		captureChat(player, message, nil)
 	end)
 end
 
--- TextChatService does not reliably surface every modern chat message through
--- Player.Chatted. Observe messages on the server as Roblox delivers them, while
--- chaining any existing delivery policy and preserving its return values.
-local textChatService = game:GetService("TextChatService")
-local hookedChannels = {}
-local function hookTextChannel(channel)
-	if hookedChannels[channel] or not channel:IsA("TextChannel") then
+-- TextChatService client events cover newer chat entry paths. Clients only
+-- report messages attributed to themselves; filter again on the server before
+-- any message leaves Roblox.
+local chatRemote = game:GetService("ReplicatedStorage"):FindFirstChild("HonoluaChatReport")
+if not chatRemote then
+	chatRemote = Instance.new("RemoteEvent")
+	chatRemote.Name = "HonoluaChatReport"
+	chatRemote.Parent = game:GetService("ReplicatedStorage")
+end
+chatRemote.OnServerEvent:Connect(function(player, message, messageId)
+	if type(message) ~= "string" or #message > 500 then
 		return
 	end
-	hookedChannels[channel] = true
-	local previousCallback = channel.ShouldDeliverCallback
-	channel.ShouldDeliverCallback = function(message, textSource)
-		local results
-		if previousCallback then
-			results = table.pack(previousCallback(message, textSource))
-		else
-			results = table.pack(true)
-		end
-
-		-- textSource is the recipient for this delivery check. Attribute the
-		-- message to its sender instead, since ShouldDeliverCallback runs once
-		-- for each possible recipient.
-		local sender = message and message.TextSource
-		if results[1] ~= false and sender then
-			local player = Players:GetPlayerByUserId(sender.UserId)
-			if player then
-				task.spawn(captureChat, player, message.Text, message.MessageId)
-			end
-		end
-		return table.unpack(results, 1, results.n)
+	local now = os.clock()
+	local rate = chatRates[player.UserId] or { window = now, count = 0 }
+	if now - rate.window >= 10 then
+		rate = { window = now, count = 0 }
 	end
-end
-
-local function hookTextChannels(folder)
-	for _, channel in folder:GetChildren() do
-		hookTextChannel(channel)
+	rate.count += 1
+	chatRates[player.UserId] = rate
+	if rate.count > 10 then
+		return
 	end
-	folder.ChildAdded:Connect(hookTextChannel)
-end
-
--- Chat setup is optional for session tracking. Never block the join and
--- heartbeat handlers waiting for Roblox to create the default chat folder.
-local textChannels = textChatService:FindFirstChild("TextChannels")
-if textChannels then
-	hookTextChannels(textChannels)
-else
-	textChatService.ChildAdded:Connect(function(child)
-		if child.Name == "TextChannels" then
-			hookTextChannels(child)
-		end
-	end)
-end
+	if type(messageId) ~= "string" or #messageId > 128 then
+		messageId = nil
+	end
+	captureChat(player, message, messageId)
+end)
 
 Players.PlayerAdded:Connect(function(player)
 	task.spawn(beginTracking, player)
@@ -201,6 +177,7 @@ end)
 Players.PlayerRemoving:Connect(function(player)
 	local tracked = activePlayers[player.UserId]
 	activePlayers[player.UserId] = nil
+	chatRates[player.UserId] = nil
 	if tracked then
 		task.spawn(sendEvent, "leave", player, tracked.rank)
 	end

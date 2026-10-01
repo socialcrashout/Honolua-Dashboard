@@ -1,6 +1,6 @@
 # Honolua activity tracker
 
-`HonoluaActivityTracker.server.lua` belongs in `ServerScriptService` as a normal server `Script`. It sends group member joins, 45-second heartbeats, leaves, and filtered in-game chat messages to the activity endpoint. Keep it server-side so the bearer secret is never shipped to players. The activity page resolves the signed-in Discord account through Bloxlink and returns only that member's own data. Chat entries are filtered by Roblox before sending and expire from the database after 30 days.
+`HonoluaActivityTracker.server.lua` belongs in `ServerScriptService` as a normal server `Script`. `HonoluaChatReporter.client.lua` belongs in `StarterPlayer > StarterPlayerScripts` as a `LocalScript`. Together, they send group member joins, 45-second heartbeats, leaves, and the local player's in-game chat to the activity endpoint. Keep the bearer secret in the server script only. The client reports its own messages through a `RemoteEvent`; the server validates the player, filters every message with Roblox `TextService`, then sends the filtered result. The activity page resolves the signed-in Discord account through Bloxlink and returns only that member's own data. Chat entries expire from the database after 30 days.
 
 ## Configure before publishing
 

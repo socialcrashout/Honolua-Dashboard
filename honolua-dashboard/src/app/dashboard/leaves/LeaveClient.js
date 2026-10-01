@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
+import { CalendarDays, Clock3, FileClock, Palmtree, Plus, X } from 'lucide-react';
+
+const BRAND_GRADIENT = 'linear-gradient(135deg, #F4B942, #E6736F, #F472B6)';
+const EASE = [0.16, 1, 0.3, 1];
 
 const REASON_LABEL = {
     vacation: 'Vacation', school: 'School', exams: 'Exams', hospital: 'Hospital or medical',
@@ -116,41 +121,41 @@ export default function LeaveClient({ user, isStaff, personalOnly = false, pendi
     }
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
-            {/* Hero */}
-            <div className={`relative overflow-hidden border-b border-border ${personalOnly ? 'px-5 py-8 sm:px-8 sm:py-10' : 'px-8 py-14'}`}>
-                <div
-                    aria-hidden
-                    className="animate-drift pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full opacity-25 blur-3xl"
-                    style={{ background: 'radial-gradient(circle at 30% 30%, var(--color-gold), var(--color-hibiscus) 60%, transparent 70%)' }}
-                />
-                <div className={`fade-in relative flex flex-wrap items-end justify-between gap-6 ${revealed ? 'fade-in-visible' : ''}`}>
-                    <div>
-                        <p className="font-medium text-hibiscus">Honolua</p>
-                        <h1 className="mt-1 font-serif text-4xl tracking-tight text-foreground">
+        <main className="min-h-screen text-reef-navy">
+            <div className={`mx-auto w-full max-w-[1440px] ${personalOnly ? 'px-5 py-7 sm:px-8 sm:py-9 xl:px-10' : 'px-8 py-10'}`}>
+                <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.42, ease: EASE }} className="relative overflow-hidden rounded-[28px] border border-lava/10 bg-white/90 p-6 shadow-[0_8px_28px_rgba(46,38,29,0.045)] sm:p-8">
+                    <div aria-hidden className="pointer-events-none absolute -right-10 -top-20 h-64 w-64 rounded-full opacity-20 blur-3xl" style={{ background: BRAND_GRADIENT }} />
+                    <div className={`relative flex flex-wrap items-center justify-between gap-5 ${revealed ? 'fade-in-visible' : ''}`}>
+                      <div className="flex min-w-0 items-start gap-4">
+                        <span className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F4B942]/15 text-[#C57622]"><Palmtree className="h-5 w-5" /></span>
+                        <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-hibiscus">Honolua · Staff portal</p>
+                        <h1 className="mt-1 text-3xl font-bold tracking-tight text-reef-navy sm:text-4xl">
                             {personalOnly
                                 ? 'Your leave, at a glance'
                                 : countAway === 0 ? 'Everyone is here today' : `${countAway} ${countAway === 1 ? 'person is' : 'people are'} away today`}
                         </h1>
-                        <p className="mt-2 max-w-md text-muted-foreground">
+                        <p className="mt-2 max-w-lg text-sm leading-6 text-lava/50">
                             {personalOnly
                                 ? 'Keep track of your requests, approvals, and past leave.'
                                 : "Request time off, or review what's waiting on you."}
                         </p>
-                    </div>
-                    <button
+                        </div>
+                      </div>
+                    <motion.button
                         onClick={() => setShowForm(s => !s)}
-                        className="rounded-full bg-gradient-to-br from-gold to-hibiscus px-6 py-3 font-medium text-reef-navy-deep shadow-sm transition hover:shadow-md active:scale-[0.98]"
+                        whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }}
+                        className="inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md"
+                        style={{ background: BRAND_GRADIENT }}
                     >
+                        {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                         {showForm ? 'Close' : 'Request leave'}
-                    </button>
+                    </motion.button>
                 </div>
-
-                <RequestPanel open={showForm} onClose={() => setShowForm(false)} onSubmitted={() => { setShowForm(false); router.refresh(); }} />
-            </div>
+                </motion.header>
 
             {personalOnly && (
-                <div className="grid gap-3 border-b border-border px-5 py-5 sm:grid-cols-3 sm:px-8">
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
                     <PersonalMetric label="Waiting for review" value={pendingMineCount} detail="Your pending requests" />
                     <PersonalMetric label="Approved" value={approvedMineCount} detail="Upcoming or active leave" />
                     <PersonalMetric label="Past leave" value={pastMine.length} detail="Completed or closed requests" />
@@ -158,23 +163,22 @@ export default function LeaveClient({ user, isStaff, personalOnly = false, pendi
             )}
 
             {/* Tabs */}
-            <div className="sticky top-0 z-10 flex gap-1 border-b border-border bg-background/90 px-5 backdrop-blur sm:px-8">
+            <div className="mt-5 flex flex-wrap gap-1.5 rounded-2xl border border-lava/10 bg-white/70 p-1.5 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
                 {tabs.map(t => (
                     <button
                         key={t.id}
                         onClick={() => setTab(t.id)}
-                        className={`relative px-4 py-4 text-sm font-medium transition-colors ${tab === t.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                        className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-semibold transition ${tab === t.id ? 'bg-white text-reef-navy shadow-sm' : 'text-lava/45 hover:bg-white/60 hover:text-reef-navy'}`}
                     >
                         {t.label}
                         {typeof t.count === 'number' && t.count > 0 && (
-                            <span className="ml-2 rounded-full bg-gold/15 px-2 py-0.5 text-xs text-reef-navy-deep">{t.count}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] tabular-nums ${tab === t.id ? 'bg-[#F4B942]/20 text-[#9D5C1A]' : 'bg-lava/5 text-lava/45'}`}>{t.count}</span>
                         )}
-                        {tab === t.id && <span className="absolute inset-x-4 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-gold to-hibiscus" />}
                     </button>
                 ))}
             </div>
 
-            <div className={personalOnly ? 'px-5 py-6 sm:px-8 sm:py-8' : 'px-8 py-10'}>
+            <motion.section key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, ease: EASE }} className="mt-4 min-h-40 rounded-[24px] border border-lava/10 bg-white/85 p-4 shadow-[0_6px_22px_rgba(46,38,29,0.035)] sm:p-6">
                 {personalOnly && tab === 'current' && (
                     <PersonalLeaveList
                         items={currentMine}
@@ -204,7 +208,7 @@ export default function LeaveClient({ user, isStaff, personalOnly = false, pendi
                         busyId={busyId}
                     />
                 )}
-            </div>
+            </motion.section>
             {denialTarget && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm" onMouseDown={event => { if (event.target === event.currentTarget && !busyId) setDenialTarget(null); }}>
                     <section role="dialog" aria-modal="true" aria-labelledby="leave-denial-title" className="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-2xl">
@@ -220,18 +224,21 @@ export default function LeaveClient({ user, isStaff, personalOnly = false, pendi
                     </section>
                 </div>
             )}
-        </div>
+            </div>
+            <RequestPanel open={showForm} onClose={() => setShowForm(false)} onSubmitted={() => { setShowForm(false); router.refresh(); }} />
+        </main>
     );
 }
 
 
 function PersonalMetric({ label, value, detail }) {
     return (
-        <div className="rounded-2xl border border-border bg-background/80 px-5 py-4 shadow-sm">
-            <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
-        </div>
+        <motion.article whileHover={{ y: -2 }} className="relative overflow-hidden rounded-2xl border border-lava/10 bg-white p-4 shadow-[0_6px_20px_rgba(46,38,29,0.035)] sm:p-5">
+            <span className="absolute -right-5 -top-7 h-20 w-20 rounded-full bg-[#F4B942]/10 blur-2xl" />
+            <div className="relative flex items-center justify-between gap-3"><p className="text-[10px] font-bold uppercase tracking-[0.15em] text-lava/40">{label}</p><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#F4B942]/15 text-[#B36D20]"><FileClock className="h-4 w-4" /></span></div>
+            <p className="relative mt-3 text-3xl font-bold tracking-tight text-reef-navy tabular-nums">{value}</p>
+            <p className="relative mt-1 text-xs text-lava/45">{detail}</p>
+        </motion.article>
     );
 }
 
@@ -248,7 +255,7 @@ function PersonalLeaveList({ items, emptyTitle, emptyText, onCancel, busyId }) {
     return (
         <div className="mx-auto flex max-w-5xl flex-col gap-3">
             {items.map(item => (
-                <article key={item._id} className="rounded-2xl border border-border bg-background/85 p-5 shadow-sm transition-shadow hover:shadow-md sm:p-6">
+                <motion.article key={item._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-lava/10 bg-white p-5 shadow-[0_4px_18px_rgba(46,38,29,0.035)] transition-shadow hover:shadow-md sm:p-6">
                     <div className="flex flex-wrap items-start justify-between gap-4">
                         <div className="flex min-w-0 items-start gap-3">
                             <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${dotColor(item)}`} />
@@ -273,7 +280,7 @@ function PersonalLeaveList({ items, emptyTitle, emptyText, onCancel, busyId }) {
                     </div>
                     {item.note && <p className="mt-4 rounded-xl bg-sand/45 px-4 py-3 text-sm leading-6 text-muted-foreground">{item.note}</p>}
                     {item.denialReason && <p className="mt-3 text-sm text-hibiscus">Reason: {item.denialReason}</p>}
-                </article>
+                </motion.article>
             ))}
         </div>
     );
@@ -338,13 +345,16 @@ function RequestPanel({ open, onClose, onSubmitted }) {
     }
 
     return (
-        <div
-            ref={panelRef}
-            className="relative mt-8 grid overflow-hidden rounded-2xl border border-border bg-sand/40 transition-[grid-template-rows] duration-300 ease-out"
-            style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
-        >
-            <div className="min-h-0">
-                <form onSubmit={submit} className="flex flex-col gap-5 p-6">
+        <AnimatePresence>
+        {open && <>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 z-40 bg-reef-navy/20 backdrop-blur-[2px]" />
+          <motion.aside ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="leave-request-title" initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ duration: 0.3, ease: EASE }} className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col border-l border-lava/10 bg-white shadow-[-4px_0_28px_rgba(0,0,0,0.12)]">
+                <div className="flex items-center justify-between border-b border-lava/10 px-6 py-5 sm:px-8">
+                  <div className="flex items-start gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F4B942]/15 text-[#B36D20]"><CalendarDays className="h-5 w-5" /></span><div><h2 id="leave-request-title" className="text-lg font-bold text-reef-navy">Request leave</h2><p className="mt-0.5 text-xs text-lava/45">Share when you’ll be away with your team.</p></div></div>
+                  <button type="button" onClick={onClose} aria-label="Close request form" className="flex h-9 w-9 items-center justify-center rounded-xl text-lava/45 transition hover:bg-lava/5 hover:text-reef-navy"><X className="h-4 w-4" /></button>
+                </div>
+                <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+                  <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5 sm:px-8">
                     {!acceptingRequests && <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">Leave requests are temporarily paused.</div>}
                     <div>
                         <p className="mb-2 text-sm font-medium text-foreground">Choose a leave reason</p>
@@ -362,55 +372,57 @@ function RequestPanel({ open, onClose, onSubmitted }) {
                         </div> : <p className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-muted-foreground">No leave reasons have been added yet. Check back after staff adds them in Workspace leave settings.</p>}
                     </div>
 
-                    <label className="text-sm">
-                        <span className="mb-1 block font-medium text-foreground">Anything to add — optional</span>
+                    <label className="block text-sm">
+                        <span className="mb-1.5 block text-xs font-semibold text-lava/55">Anything to add <span className="font-normal text-lava/35">— optional</span></span>
                         <textarea
                             value={note}
                             onChange={e => setNote(e.target.value)}
                             rows={2}
-                            className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none focus:border-hibiscus"
+                            className="w-full rounded-xl border border-lava/10 bg-lava/[0.03] p-3 text-sm text-reef-navy outline-none transition placeholder:text-lava/30 focus:border-hibiscus/40"
                             placeholder="Anything staff should know."
                         />
                     </label>
 
-                    <div className="flex flex-wrap gap-4">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <label className="text-sm">
                             <span className="mb-1 block font-medium text-foreground">First day away</span>
                             <input type="date" value={start} onChange={e => setStart(e.target.value)}
-                                className="rounded-lg border border-input bg-background p-2 text-sm outline-none focus:border-hibiscus" />
+                                className="mt-1.5 h-11 w-full rounded-xl border border-lava/10 bg-lava/[0.03] px-3 text-sm text-reef-navy outline-none focus:border-hibiscus/40" />
                         </label>
                         <label className="text-sm">
                             <span className="mb-1 block font-medium text-foreground">Start time</span>
                             <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)}
-                                className="rounded-lg border border-input bg-background p-2 text-sm outline-none focus:border-hibiscus" />
+                                className="mt-1.5 h-11 w-full rounded-xl border border-lava/10 bg-lava/[0.03] px-3 text-sm text-reef-navy outline-none focus:border-hibiscus/40" />
                         </label>
                         <label className="text-sm">
                             <span className="mb-1 block font-medium text-foreground">Last day away</span>
                             <input type="date" value={end} onChange={e => setEnd(e.target.value)}
-                                className="rounded-lg border border-input bg-background p-2 text-sm outline-none focus:border-hibiscus" />
+                                className="mt-1.5 h-11 w-full rounded-xl border border-lava/10 bg-lava/[0.03] px-3 text-sm text-reef-navy outline-none focus:border-hibiscus/40" />
                         </label>
                         <label className="text-sm">
                             <span className="mb-1 block font-medium text-foreground">End time</span>
                             <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)}
-                                className="rounded-lg border border-input bg-background p-2 text-sm outline-none focus:border-hibiscus" />
+                                className="mt-1.5 h-11 w-full rounded-xl border border-lava/10 bg-lava/[0.03] px-3 text-sm text-reef-navy outline-none focus:border-hibiscus/40" />
                         </label>
                     </div>
-                    <p className="-mt-3 text-xs text-muted-foreground">Times use your local timezone.</p>
+                    <p className="-mt-3 inline-flex items-center gap-1.5 text-[10px] text-lava/40"><Clock3 className="h-3 w-3" />Times use your local timezone.</p>
 
                     {error && <p className="text-sm text-hibiscus">{error}</p>}
 
-                    <div className="flex gap-3">
+                  </div>
+                    <div className="flex gap-3 border-t border-lava/10 bg-white px-6 py-4 sm:px-8">
                         <button type="submit" disabled={submitting || !acceptingRequests || !customReasons.length || !reason}
-                            className="rounded-full bg-gradient-to-br from-gold to-hibiscus px-5 py-2 text-sm font-medium text-reef-navy-deep disabled:opacity-60">
+                            className="inline-flex h-11 flex-1 items-center justify-center rounded-xl px-5 text-sm font-semibold text-white shadow-sm disabled:opacity-50" style={{ background: BRAND_GRADIENT }}>
                             {submitting ? 'Sending…' : `Send request · ${requestLimits.minDays}–${requestLimits.maxDays} days`}
                         </button>
-                        <button type="button" onClick={onClose} className="rounded-full px-5 py-2 text-sm text-muted-foreground hover:text-foreground">
+                        <button type="button" onClick={onClose} className="rounded-xl border border-lava/10 px-5 py-2 text-sm font-medium text-lava/50 transition hover:bg-lava/5 hover:text-reef-navy">
                             Cancel
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+          </motion.aside>
+        </>}
+        </AnimatePresence>
     );
 }
 
@@ -419,9 +431,9 @@ function RequestQueue({ items, busyId, onApprove, onDeny }) {
         return <EmptyState text="Nothing waiting. Requests will land here as they come in." />;
     }
     return (
-        <div className="flex flex-col divide-y divide-border">
+        <div className="flex flex-col divide-y divide-lava/10">
             {items.map(l => (
-                <div key={l._id} className="flex flex-wrap items-center justify-between gap-4 py-4">
+                <motion.div key={l._id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="flex flex-wrap items-center justify-between gap-4 py-4 first:pt-1 last:pb-1">
                     <div>
                         <p className="font-medium text-foreground">{l.username} <span className="font-normal text-muted-foreground">· {l.reasonLabel || REASON_LABEL[l.reason] || l.reason}</span></p>
                         <p className="text-sm text-muted-foreground">{fmt(l.startDate)} – {fmt(l.endDate)} · {daysAway(l.startDate, l.endDate)}d</p>
@@ -444,7 +456,7 @@ function RequestQueue({ items, busyId, onApprove, onDeny }) {
                             Deny
                         </button>
                     </div>
-                </div>
+                </motion.div>
             ))}
         </div>
     );
@@ -457,8 +469,8 @@ function AwayChips({ items, busyId, isStaff, onEnd }) {
     return (
         <div className="flex flex-wrap gap-3">
             {items.map(l => (
-                <div key={l._id} className="flex items-center gap-3 rounded-full border border-lagoon/30 bg-lagoon-soft/30 py-2 pl-2 pr-4">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-gold to-hibiscus text-xs font-semibold text-reef-navy-deep">
+                <div key={l._id} className="flex items-center gap-3 rounded-2xl border border-lava/10 bg-white px-3 py-3 shadow-sm">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl text-xs font-semibold text-white" style={{ background: BRAND_GRADIENT }}>
                         {l.username?.[0]?.toUpperCase() || '?'}
                     </div>
                     <div className="leading-tight">
@@ -530,8 +542,9 @@ function outcomeText(l) {
 
 function EmptyState({ text }) {
     return (
-        <div className="rounded-2xl border border-dashed border-border py-16 text-center text-muted-foreground">
-            {text}
+        <div className="rounded-2xl border border-dashed border-lava/15 bg-[#FFFAF4] px-5 py-12 text-center">
+            <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-[#F4B942]/15 text-[#B36D20]"><CalendarDays className="h-4 w-4" /></span>
+            <p className="mt-3 text-sm font-semibold text-reef-navy">{text}</p>
         </div>
     );
 }

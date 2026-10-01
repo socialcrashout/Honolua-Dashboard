@@ -212,7 +212,7 @@ function VerifyContent() {
   };
 
   useEffect(() => {
-    fetchStatus();
+    const statusTimer = setTimeout(fetchStatus, 0);
 
     const token = searchParams.get("token");
     const appId = searchParams.get("app_id");
@@ -226,8 +226,9 @@ function VerifyContent() {
 
     if (searchParams.get("connected") || searchParams.get("error")) {
       const t = setTimeout(() => router.replace("/verify"), 50);
-      return () => clearTimeout(t);
+      return () => { clearTimeout(statusTimer); clearTimeout(t); };
     }
+    return () => clearTimeout(statusTimer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfirm = () => {
@@ -312,7 +313,7 @@ function VerifyContent() {
             Verify to enter Honolua.
           </h1>
           <p className="max-w-[520px] text-base leading-relaxed text-lava/60 sm:text-lg">
-            Log in with Discord and we'll pull your linked Roblox account to
+            Log in with Discord and we&apos;ll pull your linked Roblox account to
             confirm your staff role.
           </p>
         </div>

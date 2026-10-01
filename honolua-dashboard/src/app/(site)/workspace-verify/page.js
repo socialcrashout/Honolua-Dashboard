@@ -235,7 +235,7 @@ function VerifiedScreen({ mounted, status }) {
         <h1 className="font-serif italic font-medium text-reef-navy text-3xl mb-2">Successfully Verified</h1>
         <p className="text-sm text-lava/55 mb-8 leading-relaxed">
           {status?.robloxUsername}
-          {status?.workspaceRoleName ? ` — ${status.workspaceRoleName}` : ""} — you're cleared for workspace access.
+          {status?.workspaceRoleName ? ` — ${status.workspaceRoleName}` : ""} — you&apos;re cleared for workspace access.
         </p>
 
         <button
@@ -274,12 +274,13 @@ function WorkspaceVerifyContent() {
   };
 
   useEffect(() => {
-    fetchStatus();
+    const statusTimer = setTimeout(fetchStatus, 0);
 
     if (searchParams.get("connected") || searchParams.get("error")) {
       const t = setTimeout(() => router.replace("/workspace-verify"), 50);
-      return () => clearTimeout(t);
+      return () => { clearTimeout(statusTimer); clearTimeout(t); }
     }
+    return () => clearTimeout(statusTimer)
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const discordConnected = status?.discordConnected;
@@ -325,7 +326,7 @@ function WorkspaceVerifyContent() {
                 Verify to enter the workspace.
               </h1>
               <p className="mb-5 max-w-[480px] text-base leading-relaxed text-lava/60 sm:mb-6 sm:text-lg">
-                Log in with Discord — we'll check your Roblox group rank to confirm workspace access.
+                Log in with Discord — we&apos;ll check your Roblox group rank to confirm workspace access.
               </p>
 
               <div className="flex flex-wrap items-center justify-center gap-2">

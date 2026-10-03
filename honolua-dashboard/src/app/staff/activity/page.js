@@ -61,6 +61,45 @@ function CurrentSession({ session, now, trackingReady, reduceMotion }) {
   )
 }
 
+function WeeklyRhythm({ days, reduceMotion }) {
+  const week = useMemo(() => {
+    const today = new Date()
+    const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()))
+    const weekday = (start.getUTCDay() + 6) % 7
+    start.setUTCDate(start.getUTCDate() - weekday)
+    const entries = Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(start)
+      date.setUTCDate(start.getUTCDate() + index)
+      const key = date.toISOString().slice(0, 10)
+      return { key, minutes: days.find((day) => day.date === key)?.minutes || 0, date }
+    })
+    return { entries, total: entries.reduce((sum, day) => sum + day.minutes, 0), start }
+  }, [days])
+  const peak = Math.max(30, ...week.entries.map((day) => day.minutes))
+  const weekLabel = `${dateLabel(week.start, { month: "short", day: "numeric", timeZone: "UTC" })} – ${dateLabel(week.entries[6].date, { month: "short", day: "numeric", timeZone: "UTC" })}`
+
+  return (
+    <section className="relative mt-4 overflow-hidden rounded-[26px] border border-[#E5D8C8] bg-[#FBF8F2] p-5 sm:flex sm:items-center sm:gap-8 sm:px-7 sm:py-6">
+      <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full bg-[#E8B66D]/15 blur-3xl" />
+      <div className="relative min-w-[190px] sm:w-[32%]">
+        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#A9631F]"><CalendarDays className="h-3.5 w-3.5" />Weekly rhythm</div>
+        <div className="mt-2 flex items-baseline gap-2"><span className="text-3xl font-bold tracking-tight text-reef-navy tabular-nums">{timeLabel(week.total)}</span><span className="text-[10px] text-lava/45">active this week</span></div>
+        <p className="mt-1 text-[10px] text-lava/45">{weekLabel} <span className="mx-1">·</span> AFK time excluded</p>
+      </div>
+      <div className="relative mt-5 grid flex-1 grid-cols-7 gap-2 sm:mt-0 sm:gap-3">
+        {week.entries.map((day, index) => {
+          const height = day.minutes ? Math.max(12, Math.round((day.minutes / peak) * 52)) : 5
+          const isToday = day.key === new Date().toISOString().slice(0, 10)
+          return <div key={day.key} className="flex min-w-0 flex-col items-center gap-2" title={`${dateLabel(day.date, { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" })}: ${timeLabel(day.minutes)}`}>
+            <div className="flex h-14 w-full items-end justify-center rounded-xl bg-white/70 px-1.5 pb-1.5"><motion.span initial={reduceMotion ? false : { scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ delay: reduceMotion ? 0 : index * 0.045, duration: 0.36, ease: EASE }} className={`w-full origin-bottom rounded-md ${day.minutes ? "bg-gradient-to-t from-[#C96332] to-[#EBAF5D]" : "bg-[#E9E1D6]"}`} style={{ height }} /></div>
+            <span className={`text-[9px] font-semibold ${isToday ? "text-[#A9631F]" : "text-lava/40"}`}>{new Intl.DateTimeFormat(undefined, { weekday: "narrow", timeZone: "UTC" }).format(day.date)}</span>
+          </div>
+        })}
+      </div>
+    </section>
+  )
+}
+
 function SixMonthVoyage({ days, reduceMotion }) {
   const months = useMemo(() => {
     const monthMap = new Map()
@@ -224,6 +263,7 @@ export default function StaffActivityPage() {
             <SummaryCard icon={CalendarDays} label="Active days · 30 days" value={days.slice(-30).filter((day) => day.minutes >= (stats?.streakMinimumMinutes || 10)).length} note="Days with 10+ active minutes" tint="#C08B40" index={2} reduceMotion={reduceMotion} />
             <SummaryCard icon={Flame} label="Current streak" value={`${stats?.currentStreakDays || 0} days`} note="Consecutive active days" tint="#E67336" index={3} reduceMotion={reduceMotion} />
           </section>
+          <WeeklyRhythm days={days} reduceMotion={reduceMotion} />
           <p className="mt-2 px-1 text-[10px] leading-5 text-lava/45">AFK detection starts when Roblox marks you idle (about two minutes without activity) and ends when you interact again.</p>
 
           <div className="mt-4"><SixMonthVoyage days={days} reduceMotion={reduceMotion} /></div>
